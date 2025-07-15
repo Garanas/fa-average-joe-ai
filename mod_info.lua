@@ -1,0 +1,17 @@
+name = "Average Joe AI"
+uid = "joe-ai-01"
+version = 1
+copyright = "MIT License"
+description = "An AI to help the average player get better at the game."
+author = "Jip"
+url = ""
+icon = "/mods/fa-joe-ai/thumbnail.png"
+selectable = true
+enabled = true
+exclusive = false
+ui_only = false
+requires = { }
+requiresNames = { }
+conflicts = { }
+before = { }
+after = { }

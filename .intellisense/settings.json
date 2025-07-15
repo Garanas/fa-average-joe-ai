@@ -1,0 +1,35 @@
+{
+  "Lua.telemetry.enable": false,
+
+  "Lua.completion.showWord": "Disable",
+  "Lua.completion.requireSeparator": "/",
+  "Lua.completion.autoRequire": false,
+
+  "Lua.runtime.version": "Lua 5.1",
+  "Lua.runtime.path": ["/?"],
+  "Lua.runtime.plugin": ".vscode/fa-plugin.lua",
+  "Lua.runtime.pathStrict": false,
+  "Lua.runtime.exportEnvDefault": true,
+  "Lua.runtime.nonstandardSymbol": ["continue", "!="],
+  "Lua.runtime.special": {
+    "import": "require",
+    "doscript": "require",
+    "lazyimport": "require"
+  },
+
+  "Lua.workspace.checkThirdParty": false,
+  "Lua.workspace.library": ["D:/your-path-to-cloned-repository/fa"],
+  "Lua.workspace.ignoreDir": [".vscode", "loc", "*.bp"],
+
+
+  "Lua.diagnostics.enable": true,
+  "Lua.diagnostics.globals": ["ScenarioInfo"],
+
+  "Lua.format.defaultConfig": {
+    "max_line_length": "unset",
+  },
+
+  "files.associations": {
+    "*.bp": "lua"
+  },
+}
