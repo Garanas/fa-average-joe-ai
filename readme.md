@@ -1,6 +1,6 @@
-# Joe AI
+# (Average) Joe AI
 
-_Through the crushing sound of Pillars being crushed by Monkeylords the Support Armored Command Unit whispers to the Armored Command Unit: did we underestimate him? Why isn't he average?_
+_Through the screeching sound of Pillars being crushed by Monkeylords the Support Armored Command Unit whispers to the Armored Command Unit: did we underestimate him? What is average about this?_
 
 ## Development Setup
 
