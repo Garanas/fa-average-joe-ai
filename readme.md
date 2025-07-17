@@ -1,6 +1,6 @@
 # (Average) Joe AI
 
-_Through the screeching sound of Pillars being crushed by Monkeylords the Support Armored Command Unit whispers to the Armored Command Unit: did we underestimate him? What is average about this?_
+_Through the screeching sound of Pillars being crushed by Monkeylords the Support Armored Command Unit whispers to the Armored Command Unit: did we underestimate him? What is average about this Joe?_
 
 ## Development Setup
 
@@ -31,3 +31,7 @@ You can use the (ab)use the [Run and Debug view](https://code.visualstudio.com/d
 - - Update the program arguments, such as the UID of the mod and the key of the AIs that you want to launch.
 
 This provides you with a single configuration. As you run the configuration it will ask you what map to start. You can pick a map and the game will launch. The default configuration will always launch a 1vs1 using the first two slots. You can edit this by changing the program arguments.
+
+## Credits
+
+- With thanks to Maudlin27 for his [Mini27AI template](https://github.com/maudlin27/Mini27AI).
