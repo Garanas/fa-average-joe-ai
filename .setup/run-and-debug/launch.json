@@ -1,0 +1,11 @@
+{
+    "configurations": [
+    {
+        "type": "node",
+        "preLaunchTask": "Launch with Average Joe AI",
+        "name":"Launch with Average Joe AI",
+        "request": "launch",
+        "args": [],
+    },
+    ]
+}

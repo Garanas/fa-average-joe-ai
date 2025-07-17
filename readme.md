@@ -20,3 +20,14 @@ This adds all of the annotations of the repository to the context of the extensi
 - Update the path to the init file that you copied into the `bin` in the `fa-plugin.lua` file. By default the path is correct if you did not choose an alternative installation location for FAForever.
 
 You should be all set! As you start Visual Studio Code you should see the extension load in a few thousand files. You can see this happen in the status bar of Visual Studio Code. After that, verify that as you ctrl-left-click a reference that it opens the corresponding source file and pin points the place where the reference is defined.
+
+### Launch the game
+
+You can use the (ab)use the [Run and Debug view](https://code.visualstudio.com/docs/debugtest/debugging) to quickly start the game with all settings set exactly the way you need it:
+
+- Copy the content of the [.setup/run-and-debug](./.setup/intellisense) folder into the `.vscode` folder.
+- For the file `.vscode/tasks/launch-game.ps1` you'll need to update the following values:
+- - Update the path to the executable. This is only necessary if you did not install FAForever at the default location.
+- - Update the program arguments, such as the UID of the mod and the key of the AIs that you want to launch.
+
+This provides you with a single configuration. As you run the configuration it will ask you what map to start. You can pick a map and the game will launch. The default configuration will always launch a 1vs1 using the first two slots. You can edit this by changing the program arguments.

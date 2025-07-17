@@ -1,0 +1,54 @@
+{
+  "version": "2.0.0",
+
+  "inputs": [
+    {
+      "id": "mapSelection",
+      "type": "pickString",
+      "description": "Select a map to play",
+      "options": [
+        "Burial Mounds - /maps/SCMP_001/SCMP_001_scenario.lua",
+        "Concord Lake - /maps/SCMP_002/SCMP_002_scenario.lua",
+        "Drake's Ravine - /maps/SCMP_003/SCMP_003_scenario.lua",
+        "Emerald Crater - /maps/SCMP_004/SCMP_004_scenario.lua",
+        "Gentleman's Reef - /maps/SCMP_005/SCMP_005_scenario.lua",
+        "Ian's Cross - /maps/SCMP_006/SCMP_006_scenario.lua",
+        "Open Palms - /maps/SCMP_007/SCMP_007_scenario.lua",
+        "Seraphim Glaciers - /maps/SCMP_008/SCMP_008_scenario.lua",
+        "Seton's Clutch - /maps/SCMP_009/SCMP_009_scenario.lua",
+        "Sung Island - /maps/SCMP_010/SCMP_010_scenario.lua",
+        "The Great Void - /maps/SCMP_011/SCMP_011_scenario.lua",
+        "Theta Passage - /maps/SCMP_012/SCMP_012_scenario.lua",
+        "Winter Duel - /maps/SCMP_013/SCMP_013_scenario.lua",
+        "The Bermuda Locket - /maps/SCMP_014/SCMP_014_scenario.lua",
+        "Fields of Isis - /maps/SCMP_015/SCMP_015_scenario.lua",
+        "Canis Rivers - /maps/SCMP_016/SCMP_016_scenario.lua",
+        "Syrtis Major - /maps/SCMP_017/SCMP_017_scenario.lua",
+        "Sentry Point - /maps/SCMP_018/SCMP_018_scenario.lua",
+        "Finn's Revenge - /maps/SCMP_019/SCMP_019_scenario.lua",
+        "Roanoke Abyss - /maps/SCMP_020/SCMP_020_scenario.lua"
+      ],
+      "default": "Finn's Revenge - /maps/SCMP_019/SCMP_019_scenario.lua"
+    },
+  ],
+
+  "tasks": [
+    {
+      "label": "Launch with Average Joe AI",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\.vscode\\tasks\\launch-game.ps1",
+      ],
+      "options": {
+        "env": {
+          "MAP_SELECTION": "${input:mapSelection}"
+        }
+      },
+      "problemMatcher": []
+    }
+  ]
+}
