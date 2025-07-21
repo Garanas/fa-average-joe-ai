@@ -1,13 +1,7 @@
 local TableGetn = table.getn
-local TableEmpty = table.empty
 local TableInsert = table.insert
-local TableConcat = table.concat
 
 local MathFloor = math.floor
-local MathMin = math.min
-local MathMax = math.max
-
-local StringFormat = string.format
 
 ---@class AIBaseChunkLocation
 ---@field OffsetX number
@@ -52,7 +46,6 @@ local function GetLocations(units, size)
     ---@param unit UserUnit
     for _, unit in units do
         local unitId = unit:GetUnitId()
-        local blueprintPhysics = unit:GetBlueprint().Physics
         local position = unit:GetPosition()
 
         ---@type AIBaseChunkLocation
