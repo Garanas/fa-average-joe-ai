@@ -27,6 +27,7 @@ function ToChunkCoordinates(n, size)
     return MathFloor(n / size)
 end
 
+--- Get all (non-unique) unit ids of a list of (user) units.
 ---@param units UserUnit[]
 ---@return UnitId[]
 local function GetUniqueUnitIds(units)
@@ -41,6 +42,7 @@ local function GetUniqueUnitIds(units)
     return unitIds
 end
 
+--- Get all build offsets of a list of (user) units.
 ---@param units UserUnit[]
 ---@param size number
 ---@return table<UnitId, AIBaseChunkLocation>
@@ -92,7 +94,7 @@ end
 
 -- Functionality that is related to debugging.
 
---- Transforms a base chunk template into a build template.
+--- Transforms a base chunk template into a build template that we all know and love.
 ---@param template AIBaseChunkTemplate
 ---@return UIBuildTemplate
 function ToBuildTemplate(template)
@@ -161,7 +163,7 @@ local PreviewTemplateThread = function(template)
     ClearBuildTemplates()
 end
 
---- Starts the command mode using the giving template. The template is updated live.
+--- Starts the command mode using the giving base chunk template. The template snaps to the template size.
 ---@param template AIBaseChunkTemplate
 function PreviewTemplate(template)
     ForkThread(PreviewTemplateThread, template)
