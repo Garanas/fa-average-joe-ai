@@ -2,9 +2,9 @@ local AIBaseChunkTemplate = import("/mods/fa-joe-ai/lua/Concepts/AIBaseChunkTemp
 local Utils = import("/mods/fa-joe-ai/lua/Utils.lua")
 
 --- Creates a base chunk template from the currently selected units. This function only runs in the UI and is supposed to be called from a hotkey.
-function CreateTemplateFromSelection()
+function CreateTemplateFromSelection(size)
     local units = GetSelectedUnits()
-    local template = AIBaseChunkTemplate.CreateTemplate(units, 32)
+    local template = AIBaseChunkTemplate.CreateTemplate(units, size)
 
     -- copy the template to the clipboard
     local stringified = Utils.SerializeValue(template)
