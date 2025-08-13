@@ -5,6 +5,6 @@ Tooltips = {
     },
     aitype_joe_ai_cheat = {
         title = "AIx: Joe",
-        description = "A machine with no restraints. You will not survive the endless waves of metal heading towards you.",
+        description = "A machine with no restraints. You will not survive the endless waves of reclaim heading towards you.",
     },
 }
