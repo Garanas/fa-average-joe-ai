@@ -25,8 +25,9 @@
 
 ## Naming conventions
 - Use `CamelCase` for class names (e.g., `JoeBrain`).
-- Use `CamelCase` for table keys and function names (e.g., `self.Templates`)
-- Use `pascalCase` for local variable names (e.g., `createTemplate`)
+- Use `CamelCase` for table keys (e.g., `self.Templates`)
+- Use `CamelCase` for function names (e.g., `CreateTemplate`, `FindTemplate`).
+- Use `pascalCase` for local variables and parameters (e.g., `createTemplate`)
 
 ---
 
