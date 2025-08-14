@@ -1,5 +1,4 @@
 local AIBaseChunkTemplate = import("/mods/fa-joe-ai/lua/Concepts/AIBaseChunkTemplate.lua")
-local Utils = import("/mods/fa-joe-ai/lua/Utils.lua")
 
 --- Creates a base chunk template from the currently selected units. This function only runs in the UI and is supposed to be called from a hotkey.
 function CreateTemplateFromSelection(size)
@@ -7,7 +6,7 @@ function CreateTemplateFromSelection(size)
     local template = AIBaseChunkTemplate.CreateTemplate(units, size)
 
     -- copy the template to the clipboard
-    local stringified = Utils.SerializeValue(template)
+    local stringified = AIBaseChunkTemplate.SerializeTemplate(template)
     CopyToClipboard(stringified)
     print("Template copied to clipboard")
 
