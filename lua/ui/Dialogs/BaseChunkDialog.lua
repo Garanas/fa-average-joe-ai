@@ -72,7 +72,7 @@ BaseChunkDialog = ClassUI(Window) {
 
     ---@param self UIBaseChunkDialog
     ReloadBaseChunkTemplates = function(self)
-        self.BaseChunkManager = import("/mods/fa-joe-ai/lua/Shared/AIBaseChunkLoader.lua").CreateDefaultAIBaseChunkLoader()
+        self.BaseChunkManager = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/AIBaseChunkLoader.lua").CreateDefaultAIBaseChunkLoader()
 
         self.ScrollArea.ActiveTemplates:Set(self.BaseChunkManager.Templates)
         print(string.format("Loaded %d base chunk templates", table.getn(self.BaseChunkManager.Templates)))
