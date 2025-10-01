@@ -84,7 +84,7 @@ UnitIcon = ClassUI(Group) {
 
     --- Get the path to the background of a unit.
     ---@param self UIUnitIcon
-    ---@param unitId UnitIdFB
+    ---@param unitId UnitId
     ---@return FileName
     GetUnitBackgroundPath = function(self, unitId)
         return '/icons/units/' .. tostring(self:GetUnitBackgroundType(unitId)) .. '_up.dds'
