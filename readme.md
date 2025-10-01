@@ -35,3 +35,7 @@ This provides you with a single configuration. As you run the configuration it w
 ## Credits
 
 - With thanks to Maudlin27 for his [Mini27AI template](https://github.com/maudlin27/Mini27AI).
+
+### Icons attribution
+
+[![](./textures/icons/to-build-template.png)](https://www.flaticon.com/free-icon/blocks_15202135) [![](./textures/icons/copy-template-source.png)](https://www.flaticon.com/free-icon/files_2581104)
