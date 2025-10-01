@@ -10,6 +10,6 @@ do
     modKeyDescriptions['average_joe_ai_create_chunk_template_64'] = "Joe AI - Create AI base chunk template (064x064)"
     modKeyDescriptions['average_joe_ai_create_chunk_template_128'] = "Joe AI - Create AI base chunk template (128x128)"
 
-    -- keyActions is a globally defined table in keydescriptions.lua
+    -- Actions is a globally defined table in keydescriptions.lua
     keyDescriptions = table.combine(keyDescriptions, modKeyDescriptions)
 end
