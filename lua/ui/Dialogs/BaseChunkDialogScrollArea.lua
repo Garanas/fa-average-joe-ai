@@ -67,7 +67,6 @@ BaseChunkDialogScrollArea = ClassUI(Group) {
 
     ---@param self UIBaseChunkDialogScrollArea
     PopulateRows = function(self)
-        LOG("PopulateRows")
         -- hide all rows by default
         for _, row in self.Rows do
             row:Hide()
@@ -76,8 +75,9 @@ BaseChunkDialogScrollArea = ClassUI(Group) {
         local startIndex = self.ScrollTopIndex()
         local activeTemplates = self.ActiveTemplates()
         local activeTemplatesCount = self.ActiveTemplatesCount()
+
         for k = startIndex, activeTemplatesCount do
-            local rowIndex = k - startIndex + 1
+            local rowIndex = k - startIndex
             local row = self.Rows[rowIndex]
             if row then
                 row:Show()
@@ -90,12 +90,10 @@ BaseChunkDialogScrollArea = ClassUI(Group) {
 
     ---@param self UIBaseChunkDialogScrollArea
     CreateRows = function(self)
-
         local templateRowHeight = self.TemplateRowHeight()
         local templateRowGap = self.TemplateRowGap()
         local TemplateAreaHeight = self.Height()
         local instances = math.floor(TemplateAreaHeight / (templateRowHeight + templateRowGap))
-        LOG("CreateRows", templateRowHeight, templateRowGap, TemplateAreaHeight, instances)
 
         for k = 1, instances do
             local row = BaseChunkDialogRow(self)
@@ -107,7 +105,6 @@ BaseChunkDialogScrollArea = ClassUI(Group) {
                 :AtTopIn(self, (k - 1) * (templateRowHeight + 2))
                 :End()
 
-
             self.Rows[k] = row
         end
 
@@ -116,7 +113,6 @@ BaseChunkDialogScrollArea = ClassUI(Group) {
 
     ---@param self UIBaseChunkDialogScrollArea
     ReCreateRows = function(self)
-        LOG("ReCreateRows")
         for _, row in self.Rows do
             row:Destroy()
         end
@@ -127,6 +123,7 @@ BaseChunkDialogScrollArea = ClassUI(Group) {
 
    --#region Scroll functionality
 
+    --- Called by the engine (via the scroll component) each frame to determine the scroll bar properties.
     ---@param self UIBaseChunkDialogScrollArea
     ---@param axis "Vert" | "Horz"
     ---@return integer  # minimum range
@@ -146,6 +143,7 @@ BaseChunkDialogScrollArea = ClassUI(Group) {
         return firstItem, lastItem, currentTopItem, maximumTopItem
     end,
 
+    --- Called by the engine (via the scroll component) when we scroll using the mouse wheel, the scroll bar or the buttons.
     ---@param self UIBaseChunkDialogScrollArea
     ---@param axis "Vert" | "Horz"
     ---@param delta integer  # positive or negative
@@ -153,6 +151,7 @@ BaseChunkDialogScrollArea = ClassUI(Group) {
         self:ScrollSetTop(axis, self.ScrollTopIndex() + math.floor(delta))
     end,
 
+    --- Called by the engine (via the scroll component) when we use page up/page down keys
     ---@param self UIBaseChunkDialogScrollArea
     ---@param axis "Vert" | "Horz"
     ---@param delta integer  # positive or negative
@@ -166,7 +165,7 @@ BaseChunkDialogScrollArea = ClassUI(Group) {
     ScrollSetTop = function(self, axis, top)
         local numberOfItems = self.ActiveTemplatesCount()
         local numberOfRows = table.getn(self.Rows)
-        local newTop = math.max(math.min(numberOfItems - numberOfRows + 1, math.floor(top)), 1)
+        local newTop = math.max(math.min(numberOfItems - numberOfRows, math.floor(top)), 1)
         if newTop == self.ScrollTopIndex() then
             return
         end
