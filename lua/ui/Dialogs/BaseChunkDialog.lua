@@ -52,14 +52,6 @@ BaseChunkDialog = ClassUI(Window) {
         Window.__init(self, parent, title, icon, pin, config, lockSize, lockPosition, identifier, defaultPosition)
         self:ApplyWindowTextures(WindowTextures)
 
-        --#region Search functionality
-
-        self.ConfigurationArea = UIUtil.CreateBitmapColor(self, '33ffffff')
-        self.SearchLabel = UIUtil.CreateText(self.ConfigurationArea, "Search:", 12, UIUtil.bodyFont)
-        self.Search = Edit(self.ConfigurationArea)
-
-        --#endregion
-
         self.ScrollArea = BaseChunkDialogScrollArea(self)
 
          -- load the base chunk templates
@@ -69,34 +61,9 @@ BaseChunkDialog = ClassUI(Window) {
     ---@param self UIBaseChunkDialog
     ---@param parent Control
     __post_init = function(self, parent)
-        LayoutHelpers.LayoutFor(self.ConfigurationArea)
-            :AtTopIn(self.ClientGroup, 5)
-            :AtLeftIn(self.ClientGroup, 10)
-            :AtRightIn(self.ClientGroup, 10)
-            :Height(30)
-            :End()
-
-        LayoutHelpers.LayoutFor(self.SearchLabel)
-            :AtTopIn(self.ConfigurationArea, 5)
-            :AtLeftIn(self.ConfigurationArea, 5)
-            :Font(UIUtil.bodyFont, 12)
-            :Hide()
-            :Over(self, 10)
-            :End()
-
-        LayoutHelpers.LayoutFor(self.Search)
-            :RightOf(self.SearchLabel, 5)
-            :AtRightIn(self.ConfigurationArea, 5)
-            :Height(20)
-            :Font(UIUtil.bodyFont, 12)
-            :Hide()
-            :Over(self, 10)
-            :End()
-
         LayoutHelpers.LayoutFor(self.ScrollArea)
             :Fill(self.ClientGroup)
             :AtRightIn(self.ClientGroup, 45)
-            :Below(self.ConfigurationArea, 10)
             :ResetHeight()
             :End()
 
