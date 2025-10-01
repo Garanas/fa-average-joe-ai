@@ -38,19 +38,6 @@ AIBaseChunkLoader = ClassSimple {
 
         self:AddTemplate(template)
     end,
-
-    --- Finds all templates that meet the given criteria.
-    ---@param self AIBaseChunkLoader
-    ---@param categories EntityCategory
-    ---@param cache? AIBaseChunkTemplate[] # Optional cache to reduce allocations
-    ---@return AIBaseChunkTemplate[]
-    FindTemplateByCategory = function(self, categories, cache)
-        cache = cache or {}
-
-        error("Not implemented yet")
-
-        return cache
-    end,
 }
 
 --- Creates the default instance with all the default templates loaded. These templates are used by JoeBrain to build bases.
