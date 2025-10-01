@@ -1,22 +1,22 @@
 --- Responsible for managing the base chunk templates that are loaded from files.
----@class AIBaseChunkManager
+---@class AIBaseChunkLoader
 ---@field Templates AILoadedBaseChunkTemplate[] # List of base chunk templates managed by this instance.
-AIBaseChunkManager = ClassSimple {
+AIBaseChunkLoader = ClassSimple {
 
-    ---@param self AIBaseChunkManager
+    ---@param self AIBaseChunkLoader
     __init = function(self)
         self.Templates = {}
     end,
 
     --- Adds a base chunk template to the manager.
-    ---@param self AIBaseChunkManager
+    ---@param self AIBaseChunkLoader
     ---@param template AIBaseChunkTemplate
     AddTemplate = function(self, template)
         table.insert(self.Templates, template)
     end,
 
     --- Loads a base chunk template from a file.
-    ---@param self AIBaseChunkManager
+    ---@param self AIBaseChunkLoader
     ---@param file string
     ---@param field? string     # defaults to "Template"
     LoadTemplate = function(self, file, field)
@@ -40,7 +40,7 @@ AIBaseChunkManager = ClassSimple {
     end,
 
     --- Finds all templates that meet the given criteria.
-    ---@param self AIBaseChunkManager
+    ---@param self AIBaseChunkLoader
     ---@param categories EntityCategory
     ---@param cache? AIBaseChunkTemplate[] # Optional cache to reduce allocations
     ---@return AIBaseChunkTemplate[]
@@ -54,9 +54,9 @@ AIBaseChunkManager = ClassSimple {
 }
 
 --- Creates the default instance with all the default templates loaded. These templates are used by JoeBrain to build bases.
----@return AIBaseChunkManager
-CreateDefaultAIBaseChunkManager = function()
-    local baseChunkManager = AIBaseChunkManager() --[[@as AIBaseChunkManager]]
+---@return AIBaseChunkLoader
+CreateDefaultAIBaseChunkLoader = function()
+    local baseChunkManager = AIBaseChunkLoader() --[[@as AIBaseChunkLoader]]
 
     local ok, msg = pcall(
         function()
