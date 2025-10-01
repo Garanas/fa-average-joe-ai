@@ -106,11 +106,11 @@ BaseChunkDialogRow = ClassUI(Bitmap) {
                 self.UnitIcons[k] = unitIcon
 
                 LayoutHelpers.LayoutFor(unitIcon)
-                    :AtRightIn(self, 5 + (k - 1) * 32)
+                    :AtRightIn(self, 5 + (k - 1) * self.Height())
                     :AtVerticalCenterIn(self)
                     :DisableHitTest(true)
-                    :Width(32)
-                    :Height(32)
+                    :Width(self.Height)
+                    :Height(self.Height)
                     :End()
             end
 
