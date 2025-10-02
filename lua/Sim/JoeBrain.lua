@@ -8,15 +8,13 @@ local StandardBrainOnCreateAI = StandardBrain.OnCreateAI
 ---@field GridRecon AIGridRecon
 ---@field GridPresence AIGridPresence
 JoeBrain = Class(StandardBrain) {
-
-
     ---@param self JoeBrain
     OnCreateAI = function(self)
         StandardBrainOnCreateAI(self, 'NoPlan')
 
         NavUtils.Generate()
 
-       -- requires these data structures to understand the game
+        -- requires these data structures to understand the game
         self.GridReclaim = import("/lua/ai/gridreclaim.lua").Setup(self)
         self.GridRecon = import("/lua/ai/gridrecon.lua").Setup(self)
         self.GridPresence = import("/lua/ai/gridpresence.lua").Setup(self)

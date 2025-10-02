@@ -39,6 +39,22 @@ do
         category = keyCategory,
     }
 
+    modKeyActions['average_joe_ai_apply_null_behavior'] = {
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/CreatePlatoon.lua").Handle("NullBehavior")',
+        category = keyCategory,
+    }
+
+    modKeyActions['average_joe_ai_apply_wander_behavior'] = {
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/CreatePlatoon.lua").Handle("WanderBehavior")',
+        category = keyCategory,
+    }
+
+    modKeyActions['average_joe_ai_apply_ping_pong_behavior'] = {
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/CreatePlatoon.lua").Handle("PingPongBehavior")',
+        category = keyCategory,
+    }
+
+
     -- keyActions is a globally defined table in keyactions.lua
     keyActions = table.combine(keyActions, modKeyActions)
 end
