@@ -9,7 +9,7 @@ do
     ---@field BehaviorName string 
 
     ---@param data JoeDebugCreatePlatoonData
-    ---@param units Unit[]
+    ---@param units JoeUnit[]
     Callbacks.JoeDebugCreatePlatoon = function(data, units)
         -- assertion
         if table.empty(units) then

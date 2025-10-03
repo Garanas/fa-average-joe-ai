@@ -16,6 +16,7 @@ local TableGetn = table.getn
 
 --- Describes the behavior of a platoon with one or more units.
 ---@class AIPlatoonBehavior : moho.platoon_methods
+---@field BehaviorState table
 ---@field Debug AIPlatoonBehaviorDebug             # Debug information of this behavior. This information may not be synchronized between players. Any field in this table should not be used for the behavior itself!
 ---@field BehaviorTrash TrashBag            # Content is destroyed when the behavior is destroyed as a whole, includes the trash of a state
 ---@field BehaviorStateTrash TrashBag       # Content is destroyed when the state of the behavior is changed
@@ -23,13 +24,14 @@ AIPlatoonBehavior = Class(moho.platoon_methods) {
 
     BehaviorName = 'PlatoonBase',
     BehaviorStateName = 'Unknown',
-    BehaviorStateColor = 'ffffff',
+    BehaviorStateColor = '000000',
 
     --- Called by the platoon builder when the behavior is created.
     ---@param self AIPlatoonBehavior
     OnCreate = function(self)
         self.BehaviorTrash = TrashBag()
         self.BehaviorStateTrash = self.BehaviorTrash:Add(TrashBag())
+        self.BehaviorState = {}
 
         self.Debug = {
             LastSelected = 0
@@ -48,6 +50,7 @@ AIPlatoonBehavior = Class(moho.platoon_methods) {
     Start = State {
 
         BehaviorStateName = 'Start',
+        BehaviorStateColor =  'ffffff',
 
         ---@param self AIPlatoonBehavior
         Main = function(self)
@@ -58,16 +61,16 @@ AIPlatoonBehavior = Class(moho.platoon_methods) {
     Error = State {
 
         BehaviorStateName = 'Error',
+        BehaviorStateColor =  'ff0000',
 
         ---@param self AIPlatoonBehavior
         Main = function(self)
-            -- tell the developer that something went wrong
-            while not IsDestroyed(self) do
-                if GetFocusArmy() == self:GetBrain():GetArmyIndex() then
-                    DrawCircle(self:GetPlatoonPosition(), 10, 'ff0000')
-                end
-                WaitTicks(2)
-            end
+            -- do nothing
+        end,
+
+        ---@param self AIPlatoonBehavior
+        Draw = function(self)
+            DrawCircle(self:GetPlatoonPosition(), 10, 'ff0000')
         end,
     },
 
@@ -94,10 +97,14 @@ AIPlatoonBehavior = Class(moho.platoon_methods) {
             return
         end
 
-        self:LogDebug(string.format('Changing state to: %s', tostring(state.BehaviorStateName)))
+        self:Log(string.format('Changing state to %s', tostring(state.BehaviorStateName)))
+        DrawCircle(self:GetPlatoonPosition(), 10, state.BehaviorStateColor)
 
         -- Clear out the trash of the old state
         self.BehaviorStateTrash:Destroy()
+        for k, _ in self.BehaviorState do
+            self.BehaviorState[k] = nil
+        end
 
         -- Switcheroo on the meta table
         setmetatable(self, state)
@@ -117,33 +124,33 @@ AIPlatoonBehavior = Class(moho.platoon_methods) {
     --#region Brain events
 
     ---@param self AIPlatoonBehavior
-    ---@param units Unit[]
+    ---@param units JoeUnit[]
     OnUnitsAddedToAttackSquad = function(self, units)
-        self:LogWarning('no support for units in attack squad')
+        self:Warn('no support for units in attack squad')
     end,
 
     ---@param self AIPlatoonBehavior
-    ---@param units Unit[]
+    ---@param units JoeUnit[]
     OnUnitsAddedToScoutSquad = function(self, units)
-        self:LogWarning('no support for units in scout squad')
+        self:Warn('no support for units in scout squad')
     end,
 
     ---@param self AIPlatoonBehavior
-    ---@param units Unit[]
+    ---@param units JoeUnit[]
     OnUnitsAddedToArtillerySquad = function(self, units)
-        self:LogWarning('no support for units in artillery squad')
+        self:Warn('no support for units in artillery squad')
     end,
 
     ---@param self AIPlatoonBehavior
-    ---@param units Unit[]
+    ---@param units JoeUnit[]
     OnUnitsAddedToSupportSquad = function(self, units)
-        self:LogWarning('no support for units in support squad')
+        self:Warn('no support for units in support squad')
     end,
 
     ---@param self AIPlatoonBehavior
-    ---@param units Unit[]
+    ---@param units JoeUnit[]
     OnUnitsAddedToGuardSquad = function(self, units)
-        self:LogWarning('no support for units in guard squad')
+        self:Warn('no support for units in guard squad')
     end,
 
     --#endregion
@@ -349,7 +356,7 @@ AIPlatoonBehavior = Class(moho.platoon_methods) {
 
     --- Returns all units that are part of this platoon.
     ---@param self AIPlatoonBehavior
-    ---@return Unit[]   # Table of alive (non-destroyed) units
+    ---@return JoeUnit[]   # Table of alive (non-destroyed) units
     ---@return number   # Number of units
     GetPlatoonUnits = function(self)
 
@@ -424,42 +431,35 @@ AIPlatoonBehavior = Class(moho.platoon_methods) {
     ---------------------------------------------------------------------------
     --#region Debug functionality
 
+    --- A utility function that determines whether this platoon is selected. The output of this function is not synchronized across clients and therefore should not be a condition for anything but logging and/or drawing!
     ---@param self AIPlatoonBehavior
-    LogDebug = function(self, message)
-        self.DebugMessages = self.DebugMessages or { }
-        table.insert(self.DebugMessages, string.format("%d - %s", GetGameTick(), message))
+    IsBeingDebugged = function(self)
+        return self.Debug.LastSelected >= GetGameTick() - 1
     end,
 
+    --- Formats the message to make it more convenient to understand.
     ---@param self AIPlatoonBehavior
-    LogWarning = function(self, message)
-        self.DebugMessages = self.DebugMessages or { }
-        table.insert(self.DebugMessages, string.format("%d - %s", GetGameTick(), message))
+    ---@param message string
+    ---@return string
+    FormatMessage = function(self, message)
+        return string.format("[%s] %s (%s): %s", tostring(self), tostring(self.BehaviorName), tostring(self.BehaviorStateName), tostring(message))
     end,
 
+    --- A utility function that logs a message to the console.
     ---@param self AIPlatoonBehavior
-    ---@return AIPlatoonDebugInfo
-    GetDebugInfo = function(self)
-        local info = self.DebugInfo
-        if not info then
-            ---@type AIPlatoonDebugInfo
-            info = { }
-            self.DebugInfo = info
-        end
-
-        info.BehaviorName = self.BehaviorName
-        info.BehaviorStateName = self.BehaviorStateName
-        info.DebugMessages = self.DebugMessages
-        table.sort(self.DebugMessages,
-            function (a, b)
-                return a > b
-            end
-        )
-
-        return info
+    Log = function(self, message)
+        LOG(self:FormatMessage(message))
     end,
 
+    --- A utility function that logs a warning to the console.
     ---@param self AIPlatoonBehavior
-    Visualize = function(self)
+    Warn = function(self, message)
+        WARN(self:FormatMessage(message))
+    end,
+
+    --- A utility function that draws the current status quo.
+    ---@param self AIPlatoonBehavior
+    Draw = function(self)
     end,
 
     --#endregion

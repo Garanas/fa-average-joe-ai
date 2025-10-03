@@ -6,7 +6,7 @@ local TableSetn = table.setn
 local TableGetn = table.getn
 
 --- Reduces a list of units to a list of unique blueprint identifiers.
----@param units Unit[]
+---@param units JoeUnit[]
 ---@param cache? UnitId[]       # Does not reset the content of the cache. Use table.getn to iterate it.
 ---@return UnitId[]
 GetUniqueUnitIds = function(units, cache)
@@ -26,7 +26,7 @@ GetUniqueUnitIds = function(units, cache)
 end
 
 --- Reduces a list of units to the most restrictive navigational layer. 
----@param units Unit[]
+---@param units JoeUnit[]
 ---@return NavLayers
 GetRestrictingNavigationalLayer = function(units)
     -- TODO: use a cache?
@@ -55,7 +55,7 @@ GetRestrictingNavigationalLayer = function(units)
 end
 
 ---@param self AIPlatoonBehavior
----@param units Unit[]
+---@param units JoeUnit[]
 ---@param origin Vector
 ---@param waypoint Vector
 ---@param formation? UnitFormations # Defaults to 'GrowthFormation' 

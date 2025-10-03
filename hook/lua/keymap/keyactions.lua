@@ -39,6 +39,11 @@ do
         category = keyCategory,
     }
 
+    modKeyActions['average_joe_ai_apply_error_behavior'] = {
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/CreatePlatoon.lua").Handle("ErrorBehavior")',
+        category = keyCategory,
+    }
+
     modKeyActions['average_joe_ai_apply_null_behavior'] = {
         action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/CreatePlatoon.lua").Handle("NullBehavior")',
         category = keyCategory,
