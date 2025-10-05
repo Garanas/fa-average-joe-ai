@@ -16,6 +16,7 @@ FirstProp = function(cell, threshold)
     return nil
 end
 
+--- Builds an array of all props with sufficient mass value in the given area.
 ---@param px number         # x world coordinate
 ---@param pz number         # z world coordinate
 ---@param radius number     # in ogrids
@@ -26,7 +27,7 @@ FindPropsInArea = function(px, pz, radius, threshold)
         return {}
     end
 
-    -- re-use the table we received by the engine
+    -- re-use the table we received by the engine to filter information
     local free = 1
     for k = 1, TableGetn(props) do
         local prop = props[k]
