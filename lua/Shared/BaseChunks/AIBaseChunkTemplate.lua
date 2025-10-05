@@ -28,7 +28,7 @@ local function ToChunkCoordinates(n, size)
 end
 
 --- Get all (non-unique) unit ids of a list of (user) units.
----@param units UserUnit[]
+---@param units UserJoeUnit[]
 ---@return UnitId[]
 local function GetUniqueUnitIds(units)
     local seen = {}
@@ -47,7 +47,7 @@ local function GetUniqueUnitIds(units)
 end
 
 --- Get all build offsets of a list of (user) units.
----@param units UserUnit[]
+---@param units UserJoeUnit[]
 ---@param size number
 ---@return table<UnitId, AIBaseChunkLocation>
 local function GetLocations(units, size)
@@ -72,7 +72,7 @@ local function GetLocations(units, size)
 end
 
 --- Creates an a base chunk template that is used by AIs.
----@param units UserUnit[]
+---@param units UserJoeUnit[]
 ---@param size number
 ---@return AIBaseChunkTemplate
 function CreateTemplate(units, size)
