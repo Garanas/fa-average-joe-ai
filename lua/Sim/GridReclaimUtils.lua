@@ -21,7 +21,6 @@ end
 ---@param radius number     # in ogrids
 ---@param threshold number  
 FindPropsInArea = function(px, pz, radius, threshold)
-    DrawCircle({ px, GetSurfaceHeight(px, pz), pz}, radius, 'ffffff')
     local props = GetReclaimablesInRect(px - radius, pz - radius, px + radius, pz + radius)
     if not props then
         return {}
