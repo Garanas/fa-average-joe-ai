@@ -1,5 +1,5 @@
 
---- Applies the specified behavior to a selection of units
+--- Applies a simple behavior with no parameters to a selection of units.
 function Handle(behavior)
     ---@type JoeDebugCreatePlatoonData
     local data = {

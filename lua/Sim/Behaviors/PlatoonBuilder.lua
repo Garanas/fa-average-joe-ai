@@ -12,10 +12,17 @@ PlatoonBuilder = Class() {
         self.Platoon = platoon
     end,
 
+    ---@param self AIPlatoonBuilder
+    ---@param input AIPlatoonBehaviorInput
+    AssignInput = function(self, input)
+        PlatoonUtils.AssignInput(self.Platoon, input)
+    end,
+
     --- Starts the behavior of a platoon.
     ---@param self AIPlatoonBuilder
-    StartBehavior = function(self)
-        PlatoonUtils.StartPlatoon(self.Platoon)
+    ---@param input? AIPlatoonBehaviorInput
+    StartBehavior = function(self, input)
+        PlatoonUtils.StartPlatoon(self.Platoon, input)
         return self
     end,
 

@@ -10,6 +10,9 @@ PlatoonBehaviors = {
     NullBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/Debug/NullBehavior.lua").NullBehavior,
     WanderBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/Debug/WanderBehavior.lua").WanderBehavior,
     PingPongBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/Debug/PingPongBehavior.lua").PingPongBehavior,
+
+    -- engineer behavior
+    ReclaimBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/Engineers/ReclaimBehavior.lua").ReclaimBehavior,
 }
 
 --- Creates an empty platoon with the specified behavior.
@@ -105,8 +108,15 @@ end
 
 --- Starts the behavior of a platoon.
 ---@param platoon AIPlatoonBehavior
-StartPlatoon = function(platoon)
+---@param input? AIPlatoonBehaviorInput
+StartPlatoon = function(platoon, input)
+    platoon.PlatoonBehaviorInput = input or {}
     platoon:ChangeState(platoon.Start)
+end
+
+---@param platoon AIPlatoonBehavior
+AssignInput = function(platoon, input)
+    platoon.PlatoonBehaviorInput = input
 end
 
 -------------------------------------------------------------------------------

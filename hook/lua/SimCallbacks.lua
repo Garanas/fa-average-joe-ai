@@ -7,6 +7,7 @@ do
 
     ---@class JoeDebugCreatePlatoonData
     ---@field BehaviorName string 
+    ---@field BehaviorInput? AIPlatoonBehaviorInput
 
     ---@param data JoeDebugCreatePlatoonData
     ---@param units JoeUnit[]
@@ -33,7 +34,7 @@ do
 
         local platoon = PlatoonBuilderModule.Build(brain, behavior)
             :AssignUnits(units)
-            :StartBehavior()
+            :StartBehavior(data.BehaviorInput)
             :End()
     end
 end
