@@ -4,8 +4,6 @@ local AIPlatoonBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/PlatoonBehav
 ---@class AIReclaimBehaviorInput : AIPlatoonBehaviorInput
 ---@field Location Vector       # In world coordinates
 
----@class AIReclaimBehaviorOutput : AIPlatoonBehaviorOutput
-
 --- A behavior used for debugging, testing and development.
 ---@class AIReclaimBehavior : AIPlatoonBehavior
 ---@field PlatoonBehaviorInput AIReclaimBehaviorInput
@@ -28,7 +26,7 @@ ReclaimBehavior = Class(AIPlatoonBehavior) {
     },
 
     FindReclaim = State {
-        BehaviorStateName = 'WaitForReclaim',
+        BehaviorStateName = 'FindReclaim',
 
         ---@param self AIReclaimBehavior
         Main = function(self)

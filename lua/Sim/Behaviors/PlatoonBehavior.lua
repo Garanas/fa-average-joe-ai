@@ -7,12 +7,7 @@ local IsDestroyed = IsDestroyed
 local TableGetn = table.getn
 
 --- A social contract between the platoon behavior and who ownership over the platoon behavior. This is a read-only table to parameterize the behavior.
----@class AIPlatoonBehaviorInput
-
---- A social contract between the platoon behavior and who has ownership over the platoon behavior. This is a read-only table for the owner to understand the status quo of the platoon.
----@class AIPlatoonBehaviorOutput
----@field CompletedSince? number    # Indicates the tick that the behavior completed.
----@field ErrorSince? number        # Indicates the tick that the behavior encountered an unrecoverable error.        
+---@class AIPlatoonBehaviorInput    
 
 --- Data structure for storing information used to debug this behavior. This information may not be synchronized between players. Any field in this table should not be used for the behavior itself!
 ---@class AIPlatoonBehaviorDebug
@@ -25,7 +20,6 @@ local TableGetn = table.getn
 --- Describes the behavior of a platoon with one or more units.
 ---@class AIPlatoonBehavior : moho.platoon_methods
 ---@field PlatoonBehaviorInput AIPlatoonBehaviorInput
----@field PlatoonBehaviorOutput AIPlatoonBehaviorOutput
 ---@field BehaviorState table               # State of the behavior that is running. 
 ---@field Debug AIPlatoonBehaviorDebug             # Debug information of this behavior. This information may not be synchronized between players. Any field in this table should not be used for the behavior itself!
 ---@field BehaviorTrash TrashBag            # Content is destroyed when the behavior is destroyed as a whole, includes the trash of a state
@@ -74,7 +68,7 @@ AIPlatoonBehavior = Class(moho.platoon_methods) {
 
         ---@param self AIPlatoonBehavior
         Main = function(self)
-            self.PlatoonBehaviorOutput.CompletedSince = GetGameTick()
+            -- do nothing
         end,
     },
 
@@ -85,7 +79,7 @@ AIPlatoonBehavior = Class(moho.platoon_methods) {
 
         ---@param self AIPlatoonBehavior
         Main = function(self)
-            self.PlatoonBehaviorOutput.ErrorSince = GetGameTick()
+            -- do nothing
         end,
 
         ---@param self AIPlatoonBehavior
