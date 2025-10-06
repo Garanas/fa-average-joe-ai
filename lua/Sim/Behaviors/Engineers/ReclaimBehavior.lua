@@ -27,6 +27,26 @@ ReclaimBehavior = Class(AIPlatoonBehavior) {
         end,
     },
 
+    Completed = State {
+        BehaviorStateName = 'Completed',
+        BehaviorStateColor =  '00ff00',
+
+        ---@param self AIReclaimBehavior
+        Main = function(self)
+
+            -- input
+            local input = self.PlatoonBehaviorInput
+            local target = input.Location
+
+            -- general reclaim until the units are repurposed
+            local supportSquad = self:GetSquadUnits("Support")
+            IssuePatrol(supportSquad, { target[1] + 10, target[2], target[3] + 10 })
+            IssuePatrol(supportSquad, { target[1] - 10, target[2], target[3] + 10 })
+            IssuePatrol(supportSquad, { target[1] - 10, target[2], target[3] - 10 })
+            IssuePatrol(supportSquad, { target[1] + 10, target[2], target[3] - 10 })
+        end,
+    },
+
     FindReclaim = State {
         BehaviorStateName = 'FindReclaim',
 
@@ -74,7 +94,7 @@ ReclaimBehavior = Class(AIPlatoonBehavior) {
                 -- we want to reclaim tree groups from a distance
                 if prop.IsTreeGroup then
                     local tx, _, tz = prop:GetPositionXYZ()
-                    local mx, mz = VectorUtils.PointCloseToXZ(ox, oz, tx, tz, buildDistance + math.max(propsInArea[1]:GetBlueprint().SizeX, propsInArea[1]:GetBlueprint().SizeZ))
+                    local mx, mz = VectorUtils.PointCloseToXZ(ox, oz, tx, tz, buildDistance + math.min(propsInArea[1]:GetBlueprint().SizeX, propsInArea[1]:GetBlueprint().SizeZ))
                     local target = { mx, GetSurfaceHeight(mx, mz), mz }
                     IssueMove(supportSquad, target)
                 end
