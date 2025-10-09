@@ -64,6 +64,10 @@ do
         category = keyCategory,
     }
 
+    modKeyActions['average_joe_ai_apply_build_behavior'] = {
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/ApplyBuildBehavior.lua").Handle("ueb0101")',
+        category = keyCategory,
+    }
 
     -- keyActions is a globally defined table in keyactions.lua
     keyActions = table.combine(keyActions, modKeyActions)

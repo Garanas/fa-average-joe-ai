@@ -1,4 +1,3 @@
-
 --- Applies a simple behavior with no parameters to a selection of units.
 function Handle(behavior)
     ---@type JoeDebugCreatePlatoonData

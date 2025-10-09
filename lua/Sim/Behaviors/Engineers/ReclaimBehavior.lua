@@ -1,6 +1,7 @@
 local AIPlatoonBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/PlatoonBehavior.lua").AIPlatoonBehavior
 
-local GridReclaimUtils = import("/mods/fa-joe-ai/lua/sim/GridReclaimUtils.lua")
+local ReclaimBuilder = import("/mods/fa-joe-ai/lua/sim/ReclaimBuilder.lua")
+local ReclaimUtils = import("/mods/fa-joe-ai/lua/sim/ReclaimUtils.lua")
 local EntityUtils = import("/mods/fa-joe-ai/lua/Sim/EntityUtils.lua")
 local VectorUtils = import("/mods/fa-joe-ai/lua/Shared/VectorUtils.lua")
 
@@ -29,7 +30,7 @@ ReclaimBehavior = Class(AIPlatoonBehavior) {
 
     Completed = State {
         BehaviorStateName = 'Completed',
-        BehaviorStateColor =  '00ff00',
+        BehaviorStateColor = '00ff00',
 
         ---@param self AIReclaimBehavior
         Main = function(self)
@@ -61,6 +62,11 @@ ReclaimBehavior = Class(AIPlatoonBehavior) {
             local input = self.PlatoonBehaviorInput
             local target = input.Location
 
+            -- point of origin for sorting of props
+            local supportSquad = self:GetSquadUnits("Support")
+            local engineer = supportSquad[1]
+            local ox, _, oz = engineer:GetPositionXYZ()
+
             -- find the cell we're in, by all means we expect the target to be legitimate
             local brain = self:GetBrain() --[[@as JoeBrain]]
             local cell = brain.GridReclaim:ToCellFromWorldSpace(target[1], target[3]) --[[@as AIGridReclaimCell]]
@@ -70,7 +76,7 @@ ReclaimBehavior = Class(AIPlatoonBehavior) {
             end
 
             -- try and find something that is worth reclaiming
-            local prop = GridReclaimUtils.FirstProp(cell, massThreshold)
+            local prop = ReclaimUtils.FirstPropOfCell(cell, massThreshold)
             if not prop then
                 self:ChangeState(self.Completed)
                 return
@@ -78,29 +84,15 @@ ReclaimBehavior = Class(AIPlatoonBehavior) {
 
             -- find nearby other props
             local px, _, pz = prop:GetPositionXYZ()
-            local propsInArea = GridReclaimUtils.FindPropsInArea(px, pz, searchDistance, massThreshold)
+            reprsl(ReclaimBuilder)
+            local propsInArea = ReclaimBuilder.FromArea(px, pz, searchDistance)
+                :ReduceByMassValue(massThreshold)
+                :SortByDistanceXZ(ox, oz)
+                :End()
 
-            -- sort the props by distance to provide some sense of order
-            local supportSquad = self:GetSquadUnits("Support")
-            local engineer = supportSquad[1]
-            local ox, _, oz = engineer:GetPositionXYZ()
-            EntityUtils.SortInPlaceByDistanceXZ(propsInArea, ox, oz)
-
-            -- issue reclaim orders to support squad
+            -- issue reclaim orders
             local buildDistance = engineer:GetBlueprint().Economy.MaxBuildDistance - 2
-            for k = 1, table.getn(propsInArea) do
-                local prop = propsInArea[k]
-
-                -- we want to reclaim tree groups from a distance
-                if prop.IsTreeGroup then
-                    local tx, _, tz = prop:GetPositionXYZ()
-                    local mx, mz = VectorUtils.PointCloseToXZ(ox, oz, tx, tz, buildDistance + math.min(propsInArea[1]:GetBlueprint().SizeX, propsInArea[1]:GetBlueprint().SizeZ))
-                    local target = { mx, GetSurfaceHeight(mx, mz), mz }
-                    IssueMove(supportSquad, target)
-                end
-
-                IssueReclaim(supportSquad, prop)
-            end
+            ReclaimUtils.IssueReclaimAtDistance(supportSquad, propsInArea, buildDistance)
 
             self:ChangeState(self.WaitForReclaim)
         end,

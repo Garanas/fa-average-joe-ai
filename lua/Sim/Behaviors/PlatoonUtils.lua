@@ -13,6 +13,7 @@ PlatoonBehaviors = {
 
     -- engineer behavior
     ReclaimBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/Engineers/ReclaimBehavior.lua").ReclaimBehavior,
+    BuildBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/Engineers/BuildBehavior.lua").BuildBehavior
 }
 
 --- Creates an empty platoon with the specified behavior.
@@ -31,9 +32,14 @@ end
 --- Assigns units to the specified squad. Updates the platoon reference of units.
 ---@param brain JoeBrain
 ---@param platoon AIPlatoonBehavior
----@param units JoeJoeUnit[]
+---@param units JoeUnit[]
 ---@param squad PlatoonSquads
 AssignUnitsToSquad = function(brain, platoon, units, squad)
+    -- assertions
+    if table.empty(units) then
+        return
+    end
+
     brain:AssignUnitsToPlatoon(platoon, units, squad, 'None')
 
     -- inform the unit of the event
@@ -46,7 +52,7 @@ end
 --- Assigns units to the attack squad.
 ---@param brain JoeBrain
 ---@param platoon AIPlatoonBehavior
----@param units JoeJoeUnit[]
+---@param units JoeUnit[]
 AssignAttackUnits = function(brain, platoon, units)
     AssignUnitsToSquad(brain, platoon, units, "Attack")
 end
@@ -54,7 +60,7 @@ end
 --- Assigns units to the support squad.
 ---@param brain JoeBrain
 ---@param platoon AIPlatoonBehavior
----@param units JoeJoeUnit[]
+---@param units JoeUnit[]
 AssignSupportUnits = function(brain, platoon, units)
     AssignUnitsToSquad(brain, platoon, units, "Support")
 end
@@ -62,7 +68,7 @@ end
 --- Assigns units to the artillery squad.
 ---@param brain JoeBrain
 ---@param platoon AIPlatoonBehavior
----@param units JoeJoeUnit[]
+---@param units JoeUnit[]
 AssignArtilleryUnits = function(brain, platoon, units)
     AssignUnitsToSquad(brain, platoon, units, "Artillery")
 end
@@ -70,7 +76,7 @@ end
 --- Assigns units to the guard squad.
 ---@param brain JoeBrain
 ---@param platoon AIPlatoonBehavior
----@param units JoeJoeUnit[]
+---@param units JoeUnit[]
 AssignGuardUnits = function(brain, platoon, units)
     AssignUnitsToSquad(brain, platoon, units, "Guard")
 end
@@ -78,7 +84,7 @@ end
 --- Assigns units to the scout squad.
 ---@param brain JoeBrain
 ---@param platoon AIPlatoonBehavior
----@param units JoeJoeUnit[]
+---@param units JoeUnit[]
 AssignScoutUnits = function(brain, platoon, units)
     AssignUnitsToSquad(brain, platoon, units, "Scout")
 end
@@ -86,7 +92,7 @@ end
 --- Assigns units to their respective squads.
 ---@param brain JoeBrain
 ---@param platoon AIPlatoonBehavior
----@param units JoeJoeUnit[]
+---@param units JoeUnit[]
 AssignUnits = function(brain, platoon, units)
     -- TODO: do proper filtering :))
     AssignSupportUnits(brain, platoon, units)
@@ -99,7 +105,7 @@ end
 --- Creates a platoon and populates it with the specified units. The units are automatically assigned to their respective squads.
 ---@param brain JoeBrain
 ---@param platoon AIPlatoonBehavior
----@param units JoeJoeUnit[]
+---@param units JoeUnit[]
 CreatePlatoon = function(brain, platoon, units)
     local platoon = CreatePlatoonWithBehavior(brain, platoon)
     AssignUnits(brain, platoon, units)
@@ -130,7 +136,7 @@ PlatoonBehaviorDebugThread = function()
     while true do
         local platoons = {}
         local gameTick = GetGameTick()
-        local selectedUnits = DebugGetSelection() --[[@as (JoeJoeUnit[])]]
+        local selectedUnits = DebugGetSelection() --[[@as (JoeUnit[])]]
 
         -- enable debug behavior for all platoon behaviors of selected units
         for k = 1, table.getn(selectedUnits) do

@@ -25,7 +25,7 @@ GetUniqueUnitIds = function(units, cache)
     return cache
 end
 
---- Reduces a list of units to the most restrictive navigational layer. 
+--- Reduces a list of units to the most restrictive navigational layer.
 ---@param units JoeUnit[]
 ---@return NavLayers
 GetRestrictingNavigationalLayer = function(units)
@@ -58,7 +58,7 @@ end
 ---@param units JoeUnit[]
 ---@param origin Vector
 ---@param waypoint Vector
----@param formation? UnitFormations # Defaults to 'GrowthFormation' 
+---@param formation? UnitFormations # Defaults to 'GrowthFormation'
 ---@return SimCommand
 IssueFormMoveToWaypoint = function(self, units, origin, waypoint, formation)
     formation = formation or 'GrowthFormation'

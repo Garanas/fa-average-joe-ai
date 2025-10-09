@@ -20,8 +20,21 @@ SortInPlaceByDistanceXZ = function(entities, ox, oz)
     -- compute the distance of each entity from the origin
     for k = 1, TableGetn(entities) do
         local entity = entities[k]
+        local blueprint = entity:GetBlueprint()
         local px, _, pz = entity:GetPositionXYZ()
-        entity.SortInPlaceByDistanceXZ = (px - ox) * (px - ox) + (pz - oz) * (pz - oz)
+        local size = math.min(blueprint.SizeX, blueprint.SizeZ)
+
+        -- compute distance
+        local dx = px - ox
+        local dz = pz - oz
+        local distance = math.sqrt(dx * dx + dz * dz)
+        if distance > size then
+            distance = distance - size
+        else
+            distance = 0
+        end
+
+        entity.SortInPlaceByDistanceXZ = distance
     end
 
     -- sort in place

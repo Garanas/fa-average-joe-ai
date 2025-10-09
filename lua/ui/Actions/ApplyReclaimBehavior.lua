@@ -1,4 +1,3 @@
-
 --- Applies the reclaim behavior to a selection of units.
 function Handle()
 
