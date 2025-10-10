@@ -63,3 +63,19 @@ DrawSquareXZ = function(lx1, lz1, lx2, lz2, color, inset)
     DrawLineXZ(lx2, lz2, lx1, lz2, color)
     DrawLineXZ(lx1, lz2, lx1, lz1, color)
 end
+
+--- Draws a line with an indication for direction for one tick.
+---@param lx1 number    # in world coordinates
+---@param lz1 number    # in world coordinates
+---@param lx2 number    # in world coordinates
+---@param lz2 number    # in world coordinates
+---@param color Color
+DrawLinePopXZ = function(lx1, lz1, lx2, lz2, color)
+    PositionCacheA[1] = lx1
+    PositionCacheA[2] = GetSurfaceHeight(lx1, lz1)
+    PositionCacheA[3] = lz1
+    PositionCacheB[1] = lx2
+    PositionCacheB[2] = GetSurfaceHeight(lx2, lz2)
+    PositionCacheB[3] = lz2
+    DrawLinePop(PositionCacheA, PositionCacheB, color)
+end
