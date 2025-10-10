@@ -40,3 +40,52 @@ end
 Inside = function(ax0, az0, ax1, az1, bx0, bz0, bx1, bz1)
     return ax0 >= bx0 and az0 >= bz0 and ax1 <= bx1 and az1 <= bz1
 end
+
+--- Computes a point outside the bounding box by moving away from its center.
+--- The returned point is offset outward from the box by (half side length + offset).
+---@param lx number
+---@param lz number
+---@param x0 number
+---@param z0 number
+---@param x1 number
+---@param z1 number
+---@param offset number|nil
+---@return number   # x coordinate of the point
+---@return number   # z coordinate of the point
+ToPointOutside = function(lx, lz, x0, z0, x1, z1, offset)
+    offset = offset or 0
+
+    -- Normalize coordinates
+    if x0 > x1 then x0, x1 = x1, x0 end
+    if z0 > z1 then z0, z1 = z1, z0 end
+
+    -- Compute box center and half-size
+    local cx = (x0 + x1) * 0.5
+    local cz = (z0 + z1) * 0.5
+    local hx = (x1 - x0) * 0.5
+    local hz = (z1 - z0) * 0.5
+
+    -- Direction from center to point
+    local dx = lx - cx
+    local dz = lz - cz
+
+    -- Handle the case where the point is exactly at the center
+    if dx == 0 and dz == 0 then
+        -- Move straight up by default
+        return cx, cz + hz + offset
+    end
+
+    -- Normalize direction
+    local len = math.sqrt(dx * dx + dz * dz)
+    dx = dx / len
+    dz = dz / len
+
+    -- Compute how far we must go to reach outside the box
+    local sideLength = 4 * math.max(hx, hz)
+    local radius = sideLength + offset
+
+    -- Return the point outside
+    local ox = cx + dx * radius
+    local oz = cz + dz * radius
+    return ox, oz
+end
