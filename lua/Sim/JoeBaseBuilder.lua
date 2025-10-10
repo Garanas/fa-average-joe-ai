@@ -17,8 +17,12 @@ JoeBaseBuilder = ClassSimple {
         self.Base = base
     end,
 
-    AddUnits = function(self, units)
-
+    ---@param self JoeBaseBuilder
+    ---@param units JoeUnit[]
+    AssignUnits = function(self, units)
+        for k = 1, table.getn(units) do
+            TableInsert(self.Base.Units, units[k])
+        end
     end,
 
     ---@param self JoeBaseBuilder
