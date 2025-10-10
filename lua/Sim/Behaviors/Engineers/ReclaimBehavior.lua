@@ -84,7 +84,6 @@ ReclaimBehavior = Class(AIPlatoonBehavior) {
 
             -- find nearby other props
             local px, _, pz = prop:GetPositionXYZ()
-            reprsl(ReclaimBuilder)
             local propsInArea = ReclaimBuilder.FromArea(px, pz, searchDistance)
                 :ReduceByMassValue(massThreshold)
                 :SortByDistanceXZ(ox, oz)
