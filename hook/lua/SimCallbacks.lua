@@ -5,6 +5,8 @@ do
     local PlatoonBuilderUtils = import("/mods/fa-joe-ai/lua/Sim/Behaviors/PlatoonUtils.lua")
     local PlatoonBuilderModule = import("/mods/fa-joe-ai/lua/Sim/Behaviors/PlatoonBuilder.lua")
 
+    local JoeBaseBuilder = import("/mods/fa-joe-ai/lua/Sim/JoeBaseBuilder.lua")
+
     ---@class JoeDebugCreatePlatoonData
     ---@field BehaviorName string 
     ---@field BehaviorInput? AIPlatoonBehaviorInput
@@ -35,6 +37,29 @@ do
         local platoon = PlatoonBuilderModule.Build(brain, behavior)
             :AssignUnits(units)
             :StartBehavior(data.BehaviorInput)
+            :End()
+    end
+
+    ---@class JoeDebugCreateBase
+    ---@field Location Vector
+
+    ---@param data JoeDebugCreateBase
+    ---@param units JoeUnit[]
+    CallBacks.JoeDebugCreateBase = function(data, units)
+        -- assertion
+        if table.empty(units) then
+            print("No units to apply to platoon")
+            return
+        end
+
+        -- assertion
+        local brain = units[1]:GetAIBrain() --[[@as JoeBrain]]
+        if not brain then
+            print("Units (literally) have no brain to apply a platoon with")
+            return
+        end
+
+        local base = JoeBaseBuilder.Build(brain, data.Location)
             :End()
     end
 end

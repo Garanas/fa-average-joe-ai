@@ -1,103 +1,44 @@
-local PlatoonUtils = import("/mods/fa-joe-ai/lua/Sim/Behaviors/PlatoonUtils.lua")
+local ReclaimUtils = import("/mods/fa-joe-ai/lua/sim/ReclaimUtils.lua")
+local EntityUtils = import("/mods/fa-joe-ai/lua/sim/EntityUtils.lua")
+local JoeBase = import("/mods/fa-joe-ai/lua/Sim/JoeBase.lua").JoeBase
 
----@class AIPlatoonBuilder
----@field Brain JoeBrain
----@field Platoon AIPlatoonBehavior
-PlatoonBuilder = Class() {
-    ---@param self AIPlatoonBuilder
-    ---@param brain JoeBrain
-    ---@param platoon AIPlatoonBehavior
-    __init = function(self, brain, platoon)
-        self.Brain = brain
-        self.Platoon = platoon
+local TableGetn = table.getn
+local TableSetn = table.setn
+local TableInsert = table.insert
+
+--- Builder pattern to interact with a base.
+---@class JoeBaseBuilder
+---@field Base JoeBase
+JoeBaseBuilder = ClassSimple {
+
+    ---@param self JoeBaseBuilder
+    ---@param base JoeBase
+    __init = function(self, base)
+        self.Base = base
     end,
 
-    ---@param self AIPlatoonBuilder
-    ---@param input AIPlatoonBehaviorInput
-    AssignInput = function(self, input)
-        PlatoonUtils.AssignInput(self.Platoon, input)
+    AddUnits = function(self, units)
+
     end,
 
-    --- Starts the behavior of a platoon.
-    ---@param self AIPlatoonBuilder
-    ---@param input? AIPlatoonBehaviorInput
-    StartBehavior = function(self, input)
-        PlatoonUtils.StartPlatoon(self.Platoon, input)
-        return self
-    end,
-
-    ---@param self AIPlatoonBuilder
-    ---@param units JoeUnit[]
-    ---@return AIPlatoonBuilder
-    AssignUnits = function(self, units)
-        PlatoonUtils.AssignUnits(self.Brain, self.Platoon, units)
-        return self
-    end,
-
-    --- Assigns units to the attack squad.
-    ---@param self AIPlatoonBuilder
-    ---@param units JoeUnit[]
-    AssignAttackUnits = function(self, units)
-        PlatoonUtils.AssignAttackUnits(self.Brain, self.Platoon, units)
-        return self
-    end,
-
-    --- Assigns units to the support squad.
-    ---@param self AIPlatoonBuilder
-    ---@param units JoeUnit[]
-    ---@return AIPlatoonBuilder
-    AssignSupportUnits = function(self, units)
-        PlatoonUtils.AssignSupportUnits(self.Brain, self.Platoon, units)
-        return self
-    end,
-
-    --- Assigns units to the artillery squad.
-    ---@param self AIPlatoonBuilder
-    ---@param units JoeUnit[]
-    ---@return AIPlatoonBuilder
-    AssignArtilleryUnits = function(self, units)
-        PlatoonUtils.AssignArtilleryUnits(self.Brain, self.Platoon, units)
-        return self
-    end,
-
-    --- Assigns units to the guard squad.
-    ---@param self AIPlatoonBuilder
-    ---@param units JoeUnit[]
-    ---@return AIPlatoonBuilder
-    AssignGuardUnits = function(self, units)
-        PlatoonUtils.AssignGuardUnits(self.Brain, self.Platoon, units)
-        return self
-    end,
-
-    --- Assigns units to the scout squad.
-    ---@param self AIPlatoonBuilder
-    ---@param units JoeUnit[]
-    ---@return AIPlatoonBuilder
-    AssignScoutUnits = function(self, units)
-        PlatoonUtils.AssignScoutUnits(self.Brain, self.Platoon, units)
-        return self
-    end,
-
-    ---@param self AIPlatoonBuilder
-    ---@return AIPlatoonBehavior
+    ---@param self JoeBaseBuilder
+    ---@return JoeBase
     End = function(self)
-        -- TODO: basic validation
-        return self.Platoon
+        return self.Base
     end,
 }
 
---- Builds a platoon from scratch.
+--- Wraps a builder around a base from a set of units and a location.
 ---@param brain JoeBrain
----@return AIPlatoonBuilder
-Build = function(brain, behavior)
-    local platoon = PlatoonUtils.CreatePlatoonWithBehavior(brain, behavior)
-    return PlatoonBuilder(brain, platoon)
+---@param location Vector
+---@return JoeBaseBuilder
+Build = function(brain, location)
+    local base = JoeBase(brain, location)
+    return JoeBaseBuilder(base)
 end
 
---- Extends an existing platoon.
----@param brain JoeBrain
----@param platoon AIPlatoonBehavior
----@return AIPlatoonBuilder
-Extend = function(brain, platoon)
-    return PlatoonBuilder(brain, platoon)
+---@param base JoeBrain
+---@return JoeBaseBuilder
+Extend = function(base)
+    return JoeBaseBuilder(base)
 end
