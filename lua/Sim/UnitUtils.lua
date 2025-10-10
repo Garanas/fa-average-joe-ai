@@ -1,4 +1,6 @@
 local ArrayContains = import("/mods/fa-joe-ai/lua/Shared/TableUtils.lua").ArrayContains
+local MapUtils = import("/mods/fa-joe-ai/lua/Sim/MapUtils.lua")
+local BoundingBoxUtils = import("/mods/fa-joe-ai/lua/Shared/BoundingBoxUtils.lua")
 
 -- Upvalue scope for performance
 local TableInsert = table.insert
@@ -80,4 +82,69 @@ IssueFormMoveToWaypoint = function(self, units, origin, waypoint, formation)
     local degrees = 57.2958279 * rads
 
     return IssueFormMove(units, waypoint, formation, degrees)
+end
+
+--- Validates whether a given unit type can be built at a given location for the given brain.
+---@param brain JoeBrain
+---@param location Vector
+---@param unitId UnitId
+ValidateBuildSite = function(brain, location, unitId)
+    -- we can't built unknown blueprints
+    local blueprint = __blueprints[unitId]
+    if not blueprint then
+        return false
+    end
+
+    -- local value for performance
+    local lx, lz = location[1], location[3]
+    local fsx, fsz = 0.5 * (blueprint.Physics.SkirtSizeX or 1), 0.5 * (blueprint.Physics.SkirtSizeZ or 1)
+
+    -- can't built too close to map border
+    if not MapUtils.IsBuildSiteInArea(lx, lz, fsx, fsz) then
+        return false
+    end
+
+    -- engine checks for resources, terrain height and occupation grid. Unfortunately the latter appears to hallucinate for (support) factories on occasion.
+    if not brain:CanBuildStructureAt(unitId, location) then
+        return false
+    end
+
+    -- find nearby entities that may block the construction
+    local ax0 = math.floor(lx) - fsx + 0.5
+    local az0 = math.floor(lz) - fsz + 0.5
+    local ax1 = math.floor(lx) + fsx + 0.5
+    local az1 = math.floor(lz) + fsz + 0.5
+    local entities = GetReclaimablesInRect(ax0 - 4, az0 - 4, ax1 + 4, az1 + 4)
+
+
+    -- manually check that there are no overlapping structures with the build site. Unfortunately, the use
+    -- of `CanBuildStructureAt` above only works ~95% of the time. There are edge cases with (support) factories
+    -- where the engine function fails. Therefore we have to check for overlapping structures here.
+
+    if entities then
+        for k = 1, table.getn(entities) do
+            local entity = entities[k]
+            if EntityCategoryContains(categories.STRUCTURE, entity) then
+                local bpx, _, bpz = entity:GetPositionXYZ()
+                local blueprint = entity:GetBlueprint()
+                local bfpx, bfpz = 0.5 * (blueprint.Physics.SkirtSizeX or 1), 0.5 * (blueprint.Physics.SkirtSizeZ or 1)
+
+                local bx0 = bpx - bfpx
+                local bz0 = bpz - bfpz
+                local bx1 = bpx + bfpx
+                local bz1 = bpz + bfpz
+
+                -- can't build on top of other structures
+                if BoundingBoxUtils.Overlap(
+                    ax0, az0, ax1, az1,
+                    bx0, bz0, bx1, bz1
+                )
+                then
+                    return false
+                end
+            end
+        end
+    end
+
+    return true
 end
