@@ -1,10 +1,12 @@
 --- Applies the build behavior to a selection of units.
 function Handle(unitId)
 
+    local commandMode = import("/lua/ui/game/commandmode.lua").GetCommandMode()
+
     ---@type AIBuildBehaviorInput
     local BehaviorInput = {
         Location = GetMouseWorldPos(),
-        UnitId = unitId
+        UnitId = commandMode[2].name or unitId
     }
 
     ---@type JoeDebugCreatePlatoonData
