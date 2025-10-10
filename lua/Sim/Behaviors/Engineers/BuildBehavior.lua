@@ -4,6 +4,7 @@ local ReclaimBuilder = import("/mods/fa-joe-ai/lua/sim/ReclaimBuilder.lua")
 local ReclaimUtils = import("/mods/fa-joe-ai/lua/sim/ReclaimUtils.lua")
 local EntityUtils = import("/mods/fa-joe-ai/lua/Sim/EntityUtils.lua")
 local VectorUtils = import("/mods/fa-joe-ai/lua/Shared/VectorUtils.lua")
+local Orders = import("/mods/fa-joe-ai/lua/Sim/Orders.lua")
 
 ---@class AIBuildBehaviorInput : AIPlatoonBehaviorInput
 ---@field Location Vector       # The location where we want to build.
@@ -65,9 +66,10 @@ BuildBehavior = Class(AIPlatoonBehavior) {
             local supportSquad = self:GetSquadUnits("Support")
             local engineer = supportSquad[1]
             local ox, _, oz = engineer:GetPositionXYZ()
+            local sideLength = 0.5 * math.max(blueprint.SizeX, blueprint.SizeZ)
 
             -- find all props blocking the build site
-            local props = ReclaimBuilder.FromArea(tx, tz, 0.5 * math.max(blueprint.SizeX, blueprint.SizeZ))
+            local props = ReclaimBuilder.FromArea(tx, tz, sideLength)
                 :ReduceToBuildObstructing()
                 :SortByDistanceXZ(ox, oz)
                 :End()
@@ -79,6 +81,7 @@ BuildBehavior = Class(AIPlatoonBehavior) {
             -- TODO: move engineer out of the build site?
 
             -- build the thing
+            Orders.IssueClearArea(engineer.Army --[[@as number]], tx, tz, sideLength)
             IssueBuildAllMobile(supportSquad, target, unitId, {}) -- TODO: unnecessary empty table allocation
 
             self:ChangeState(self.WaitForConstruction)
