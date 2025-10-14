@@ -70,7 +70,7 @@ do
     }
 
     modKeyActions['average_joe_ai_create_base_at_location'] = {
-        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/ApplyBuildBehavior.lua").Handle("ueb0101")',
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/CreateBase.lua").Handle()',
         category = keyCategory,
     }
 

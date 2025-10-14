@@ -32,6 +32,14 @@ You can use the (ab)use the [Run and Debug view](https://code.visualstudio.com/d
 
 This provides you with a single configuration. As you run the configuration it will ask you what map to start. You can pick a map and the game will launch. The default configuration will always launch a 1vs1 using the first two slots. You can edit this by changing the program arguments.
 
+## Technical details
+
+Some functionality is hidden in the behavior of the engine. In this section we share some technical details that are relevant to understand some code design decisions.
+
+### Platoons
+
+A platoon is a group of units. A unit can only be part of a single platoon. The engine automatically removes the unit from its previous platoon when you re-assign it. All units are by default part of the `ArmyPool`. This is a unique platoon that you can access via `brain:GetPlatoonUniquelyNamed`. You can make your own unique platoons via `brain:MakePlatoon(uniqueName, aiPlan)`. If you leave `uniqueName` an empty string then it is not considered a uniquely named platoon. When a platoon has no unique name it is automatically destroyed when all units in the platoon are destroyed.
+
 ## Credits
 
 - With thanks to Maudlin27 for his [Mini27AI template](https://github.com/maudlin27/Mini27AI).

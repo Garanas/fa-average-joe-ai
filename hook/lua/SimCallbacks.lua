@@ -22,10 +22,6 @@ do
 
         -- assertion
         local brain = units[1]:GetAIBrain() --[[@as JoeBrain]]
-        if not brain then
-            print("Units (literally) have no brain to apply a platoon with")
-            return
-        end
 
         -- assertion
         local behavior = PlatoonBuilderUtils.PlatoonBehaviors[data.BehaviorName]
@@ -40,12 +36,12 @@ do
             :End()
     end
 
-    ---@class JoeDebugCreateBase
+    ---@class JoeDebugCreateBaseData
     ---@field Location Vector
 
-    ---@param data JoeDebugCreateBase
+    ---@param data JoeDebugCreateBaseData
     ---@param units JoeUnit[]
-    CallBacks.JoeDebugCreateBase = function(data, units)
+    Callbacks.JoeDebugCreateBase = function(data, units)
         -- assertion
         if table.empty(units) then
             print("No units to apply to platoon")
@@ -54,12 +50,9 @@ do
 
         -- assertion
         local brain = units[1]:GetAIBrain() --[[@as JoeBrain]]
-        if not brain then
-            print("Units (literally) have no brain to apply a platoon with")
-            return
-        end
 
         local base = JoeBaseBuilder.Build(brain, data.Location)
+            :AssignUnits(units)
             :End()
     end
 end

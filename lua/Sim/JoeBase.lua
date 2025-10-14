@@ -10,6 +10,7 @@ local PlatoonBuilderModule = import("/mods/fa-joe-ai/lua/Sim/Behaviors/PlatoonBu
 ---@field Engineers table<EntityId, JoeUnit>
 ---@field Brain JoeBrain
 ---@field Location Vector
+---@field IdleBehavior AIPlatoonBehavior
 ---@field Units JoeUnit[]
 JoeBase = ClassSimple {
 
@@ -18,7 +19,9 @@ JoeBase = ClassSimple {
     __init = function(self, brain, center)
         self.Brain = brain
         self.Location = center
-        self.Units = {}
+        self.Debug = {}
+
+        self.IdleBehavior = PlatoonBuilderModule.Build(self.Brain, PlatoonBuilderUtils.PlatoonBehaviors.Base.IdleBehavior):End()
     end,
 
     ---------------------------------------------------------------------------
@@ -53,7 +56,15 @@ JoeBase = ClassSimple {
     --- A utility function that draws the current status quo.
     ---@param self JoeBase
     Draw = function(self)
+        DrawCircle(self.Location, 10, 'ffffff')
+        DrawCircle(self.Location, 11, 'ffffff')
+        DrawCircle(self.Location, 12, 'ffffff')
 
+        local idleUnits = self.IdleBehavior:GetPlatoonUnits()
+        for k = 1, table.getn(idleUnits) do
+            local unit = idleUnits[k]
+            DrawCircle(unit:GetPosition(), 1, 'ffffff')
+        end
     end,
 
     --#endregion

@@ -9,8 +9,6 @@ do
 
     ---@class JoeUnit : Unit
     ---@field JoeData JoeUnitData
-    ---@field JoeData.Behavior? AIPlatoonBehavior     # The behavior that this unit is a part of
-    ---@field JoeBase? AIJoeBase                        # The base that this unit is a part of
     Unit = Class(OldUnit) {
 
 

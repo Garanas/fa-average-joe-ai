@@ -73,6 +73,9 @@ JoeBrain = Class(StandardBrain) {
     OnUnitStopBeingBuilt = function(self, unit, builder, layer)
         -- for debugging
         LOG("OnUnitStopBeingBuilt")
+
+        local platoon = self:GetPlatoonUniquelyNamed("ArmyPool")
+        LOG(table.getn(platoon:GetPlatoonUnits()))
     end,
 
     ---@param self EasyAIBrain

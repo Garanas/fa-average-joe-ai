@@ -1,3 +1,5 @@
+local ArrayContains = import("/mods/fa-joe-ai/lua/Shared/TableUtils.lua").ArrayContains
+
 -- upvalue scope for performance
 local DrawCircle = DrawCircle
 local DrawLine = DrawLine
@@ -79,3 +81,58 @@ DrawLinePopXZ = function(lx1, lz1, lx2, lz2, color)
     PositionCacheB[3] = lz2
     DrawLinePop(PositionCacheA, PositionCacheB, color)
 end
+
+--- Responsible for debugging whatever the player has selected.
+DebugSelectionThread = function()
+    local GetGameTick = GetGameTick
+    local DebugGetSelection = DebugGetSelection
+
+    while true do
+        local instances = {}
+        local gameTick = GetGameTick()
+        local selectedUnits = DebugGetSelection() --[[@as (JoeUnit[])]]
+
+        -- enable debug behavior for all platoon behaviors of selected units
+        for k = 1, table.getn(selectedUnits) do
+            local unit = selectedUnits[k]
+            local joeData = unit.JoeData
+
+            local base = joeData.Base
+            if base and base.Debug then
+                base.Debug.LastSelected = gameTick
+
+                -- register all unique base instances
+                if base.Draw then
+                    if not ArrayContains (instances, base) then
+                        table.insert(instances, base)
+                    end
+                end
+            end
+
+            local behavior = joeData.Behavior
+            if behavior and behavior.Debug then
+                behavior.Debug.LastSelected = gameTick
+
+                -- register all unique behaviors
+                if behavior.Draw then
+                    if not ArrayContains (instances, behavior) then
+                        table.insert(instances, behavior)
+                    end
+                end
+            end
+        end
+
+        -- call the draw function of all the platoon behaviors that we have selected
+        for k = 1, table.getn(instances) do
+            local instance = instances[k]
+            local ok, msg = pcall(instance.Draw, instance)
+            if not ok then
+                WARN(msg)
+            end
+        end
+
+        WaitTicks(1)
+    end
+end
+
+--#endregion
