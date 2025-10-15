@@ -13,7 +13,12 @@ PlatoonBehaviors = {
 
     -- engineer behavior
     ReclaimBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/Engineers/ReclaimBehavior.lua").ReclaimBehavior,
-    BuildBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/Engineers/BuildBehavior.lua").BuildBehavior
+    BuildBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/Engineers/BuildBehavior.lua").BuildBehavior,
+
+    -- base behavior
+    Base = {
+        IdleBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/Base/IdleBehavior.lua").BaseIdleBehavior
+    }
 }
 
 --- Creates an empty platoon with the specified behavior.
@@ -124,45 +129,3 @@ end
 AssignInput = function(platoon, input)
     platoon.PlatoonBehaviorInput = input
 end
-
--------------------------------------------------------------------------------
---#region Debug functionality
-
---- Responsible for debugging the platoon behavior of units that you have selected.
-PlatoonBehaviorDebugThread = function()
-    local GetGameTick = GetGameTick
-    local DebugGetSelection = DebugGetSelection
-
-    while true do
-        local platoons = {}
-        local gameTick = GetGameTick()
-        local selectedUnits = DebugGetSelection() --[[@as (JoeUnit[])]]
-
-        -- enable debug behavior for all platoon behaviors of selected units
-        for k = 1, table.getn(selectedUnits) do
-            local unit = selectedUnits[k]
-            local aiPlatoonBehavior = unit.AIPlatoonBehavior
-            if aiPlatoonBehavior then
-                aiPlatoonBehavior.Debug.LastSelected = gameTick
-
-                -- register all unique platoons
-                if not ArrayContains (platoons, aiPlatoonBehavior) then
-                    table.insert(platoons, aiPlatoonBehavior)
-                end
-            end
-        end
-
-        -- call the draw function of all the platoon behaviors that we have selected
-        for k = 1, table.getn(platoons) do
-            local platoon = platoons[k]
-            local ok, msg = pcall(platoon.Draw, platoon)
-            if not ok then
-                WARN(msg)
-            end
-        end
-
-        WaitTicks(1)
-    end
-end
-
---#endregion

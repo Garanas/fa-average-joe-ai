@@ -73,6 +73,9 @@ JoeBrain = Class(StandardBrain) {
     OnUnitStopBeingBuilt = function(self, unit, builder, layer)
         -- for debugging
         LOG("OnUnitStopBeingBuilt")
+
+        local platoon = self:GetPlatoonUniquelyNamed("ArmyPool")
+        LOG(table.getn(platoon:GetPlatoonUnits()))
     end,
 
     ---@param self EasyAIBrain
@@ -87,7 +90,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param old number # 0.25 / 0.50 / 0.75 / 1.0
     OnUnitHealthChanged = function(self, unit, new, old)
         -- pass the event to the platoon
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnHealthChanged(unit, new, old)
         end
@@ -100,7 +103,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param target Unit | Prop | nil      # is nil when the prop or unit is completely reclaimed
     OnUnitStopReclaim = function(self, unit, target)
         -- pass the event to the platoon
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnStopReclaim(unit, target)
         end
@@ -113,7 +116,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param target Unit | Prop
     OnUnitStartReclaim = function(self, unit, target)
         -- pass the event to the platoon
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnStartReclaim(unit, target)
         end
@@ -126,7 +129,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param target Unit
     OnUnitStartRepair = function(self, unit, target)
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnStartRepair(unit, target)
         end
@@ -139,7 +142,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param target Unit
     OnUnitStopRepair = function(self, unit, target)
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnStopRepair(unit, target)
         end
@@ -154,7 +157,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param overkillRatio number
     OnUnitKilled = function(self, unit, instigator, damageType, overkillRatio)
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnKilled(unit, instigator, damageType, overkillRatio)
         end
@@ -215,7 +218,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param unit JoeUnit
     ---@param weapon Weapon
     OnUnitSiloBuildStart = function(self, unit, weapon)
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnSiloBuildStart(unit, weapon)
         end
@@ -227,7 +230,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param unit JoeUnit
     ---@param weapon Weapon
     OnUnitSiloBuildEnd = function(self, unit, weapon)
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnSiloBuildEnd(unit, weapon)
         end
@@ -241,7 +244,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param order string
     OnUnitStartBuild = function(self, unit, target, order)
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnStartBuild(unit, target, order)
         end
@@ -255,7 +258,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param order string
     OnUnitStopBuild = function(self, unit, target, order)
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         LOG(aiPlatoon)
         if aiPlatoon then
             aiPlatoon:OnStopBuild(unit, target)
@@ -306,7 +309,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param attachedUnit Unit
     OnUnitTransportAttach = function(self, unit, attachBone, attachedUnit)
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnTransportAttach(unit, attachBone, attachedUnit)
         end
@@ -320,7 +323,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param detachedUnit Unit
     OnUnitTransportDetach = function(self, unit, attachBone, detachedUnit)
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnTransportDetach(unit, attachBone, detachedUnit)
         end
@@ -332,7 +335,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param unit JoeUnit
     OnUnitTransportAborted = function(self, unit)
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnTransportAborted(unit)
         end
@@ -344,7 +347,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param unit JoeUnit
     OnUnitTransportOrdered = function(self, unit)
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnTransportOrdered(unit)
         end
@@ -357,7 +360,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param attachedUnit Unit
     OnUnitAttachedKilled = function(self, unit, attachedUnit)
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnAttachedKilled(unit)
         end
@@ -369,7 +372,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param unit JoeUnit
     OnUnitStartTransportLoading = function(self, unit)
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnStartTransportLoading(unit)
         end
@@ -381,7 +384,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param unit JoeUnit
     OnUnitStopTransportLoading = function(self, unit)
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnStopTransportLoading(unit)
         end
@@ -424,7 +427,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param carrier Unit
     OnUnitAddToStorage = function(self, unit, carrier)
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnAddToStorage(unit, carrier)
         end
@@ -437,7 +440,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param carrier Unit
     OnUnitRemoveFromStorage = function(self, unit, carrier)
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnRemoveFromStorage(unit, carrier)
         end
@@ -464,7 +467,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param unit JoeUnit
     OnUnitShieldEnabled = function(self, unit)
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnShieldEnabled(unit)
         end
@@ -476,7 +479,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param unit JoeUnit
     OnUnitShieldDisabled = function(self, unit)
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnShieldDisabled(unit)
         end
@@ -501,7 +504,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param work any
     OnUnitWorkBegin = function(self, unit, work)
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnWorkBegin(unit, work)
         end
@@ -514,7 +517,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param work any
     OnUnitWorkEnd = function(self, unit, work)
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnWorkEnd(unit, work)
         end
@@ -535,7 +538,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param position Vector
     OnUnitMissileImpactShield = function(self, unit, target, shield, position)
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnMissileImpactShield(unit, target, shield, position)
         end
@@ -549,7 +552,7 @@ JoeBrain = Class(StandardBrain) {
     ---@param position Vector
     OnUnitMissileImpactTerrain = function(self, unit, target, position)
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnMissileImpactTerrain(unit, target, position)
         end
@@ -565,7 +568,7 @@ JoeBrain = Class(StandardBrain) {
     OnUnitMissileIntercepted = function(self, unit, target, defense, position)
 
         -- awareness of event for AI
-        local aiPlatoon = unit.JoePlatoonBehavior
+        local aiPlatoon = unit.JoeData.Behavior
         if aiPlatoon then
             aiPlatoon:OnMissileIntercepted(unit, target, defense, position)
         end
