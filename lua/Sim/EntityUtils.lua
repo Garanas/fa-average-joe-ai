@@ -1,4 +1,3 @@
-
 -- upvalue scope for performance
 local TableInsert = table.insert
 local TableSetn = table.setn
@@ -11,6 +10,7 @@ local function SortByDistanceLambda(a, b)
     return a.SortInPlaceByDistanceXZ < b.SortInPlaceByDistanceXZ
 end
 
+--- Sorts the entities in place by their distance from the specified origin. Sorts from nearest to farthest.
 ---@overload fun (entities: Prop[], ox: number, oz: number): Prop[]
 ---@overload fun (entities: Unit[], ox: number, oz: number): Unit[]
 ---@param entities Entity[]
@@ -46,6 +46,7 @@ SortInPlaceByDistanceXZ = function(entities, ox, oz)
     end
 end
 
+--- Sorts the entities in place by their distance from the specified origin. Sorts from nearest to farthest.
 ---@overload fun (entities: Prop[], origin: Vector): Prop[]
 ---@overload fun (entities: Unit[], origin: Vector): Unit[]
 ---@param entities Entity[]

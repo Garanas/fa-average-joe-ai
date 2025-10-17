@@ -6,6 +6,7 @@ do
     local PlatoonBuilderModule = import("/mods/fa-joe-ai/lua/Sim/Behaviors/PlatoonBuilder.lua")
 
     local JoeBaseBuilder = import("/mods/fa-joe-ai/lua/Sim/JoeBaseBuilder.lua")
+    local EntityUtils = import("/mods/fa-joe-ai/lua/sim/EntityUtils.lua")
 
     ---@class JoeDebugCreatePlatoonData
     ---@field BehaviorName string 
@@ -48,11 +49,41 @@ do
             return
         end
 
-        -- assertion
         local brain = units[1]:GetAIBrain() --[[@as JoeBrain]]
-
         local base = JoeBaseBuilder.Build(brain, data.Location)
             :AssignUnits(units)
             :End()
+    end
+
+    ---@class JoeDebugAssignReclaimBehaviorData
+    ---@field Location Vector
+
+    ---@param data JoeDebugAssignReclaimBehaviorData
+    ---@param units JoeUnit[]
+    Callbacks.JoeDebugAssignReclaimBehavior = function(data, units)
+        -- assertion
+        if table.empty(units) then
+            print("No units to apply to platoon")
+            return
+        end
+
+        -- assertion
+        local base = units[1].JoeData.Base
+        if not base then
+            print("Unit is not part of a base")
+            return
+        end
+
+        -- find candidates and sort them
+        local candidates = base:FindEngineersToReclaim()
+        if table.empty(candidates) then
+            print("No available engineers to reclaim")
+            return
+        end
+
+        EntityUtils.SortInPlaceByDistance(candidates, data.Location)
+        local engineer = candidates[1]
+
+        base:AssignReclaimBehavior(engineer, data.Location)
     end
 end

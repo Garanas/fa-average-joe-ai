@@ -74,6 +74,11 @@ do
         category = keyCategory,
     }
 
+    modKeyActions['average_joe_ai_assign_reclaim_behavior_base'] = {
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/Base/AssignReclaimBehavior.lua").Handle()',
+        category = keyCategory,
+    }
+
     -- keyActions is a globally defined table in keyactions.lua
     keyActions = table.combine(keyActions, modKeyActions)
 end

@@ -1,3 +1,5 @@
+local UnitCache = {}
+
 ---@class AIPlatoonBuilder
 ---@field Brain JoeBrain
 ---@field Platoon AIPlatoonBehavior
@@ -97,6 +99,51 @@ PlatoonBuilder = Class() {
     ---@return AIPlatoonBuilder
     AssignScoutUnits = function(self, units)
         return self:AssignUnitsToSquad(units, "Scout")
+    end,
+
+    --- Assigns the unit to the attack squad.
+    ---@param self AIPlatoonBuilder
+    ---@param unit JoeUnit
+    ---@return AIPlatoonBuilder
+    AssignAttackUnit = function(self, unit)
+        UnitCache[1] = unit
+        return self:AssignAttackUnits(UnitCache)
+    end,
+
+    --- Assigns the unit to the support squad.
+    ---@param self AIPlatoonBuilder
+    ---@param unit JoeUnit
+    ---@return AIPlatoonBuilder
+    AssignSupportUnit = function(self, unit)
+        UnitCache[1] = unit
+        return self:AssignSupportUnits(UnitCache)
+    end,
+
+    --- Assigns the unit to the artillery squad.
+    ---@param self AIPlatoonBuilder
+    ---@param unit JoeUnit
+    ---@return AIPlatoonBuilder
+    AssignArtilleryUnit = function(self, unit)
+        UnitCache[1] = unit
+        return self:AssignArtilleryUnits(UnitCache)
+    end,
+
+    --- Assigns the unit to the guard squad.
+    ---@param self AIPlatoonBuilder
+    ---@param unit JoeUnit
+    ---@return AIPlatoonBuilder
+    AssignGuardUnit = function(self, unit)
+        UnitCache[1] = unit
+        return self:AssignGuardUnits(UnitCache)
+    end,
+
+    --- Assigns the unit to the scout squad.
+    ---@param self AIPlatoonBuilder
+    ---@param unit JoeUnit
+    ---@return AIPlatoonBuilder
+    AssignScoutUnit = function(self, unit)
+        UnitCache[1] = unit
+        return self:AssignScoutUnits(UnitCache)
     end,
 
     ---@param self AIPlatoonBuilder

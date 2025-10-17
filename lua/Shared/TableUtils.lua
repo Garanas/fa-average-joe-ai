@@ -31,3 +31,22 @@ ArrayContains = function(t, entry)
 
     return false
 end
+
+--- Compacts the array in-place by removing all nil or destroyed entries from the array.
+---@param t table
+---@return table
+CompactArray = function(t)
+    local n = TableGetn(t)
+
+    local free = 1
+    for readIndex = 1, n do
+        local value = t[readIndex]
+        if not IsDestroyed(value) then
+            t[free] = value
+            free = free + 1
+        end
+    end
+
+    TableSetn(t, free - 1)
+    return t
+end
