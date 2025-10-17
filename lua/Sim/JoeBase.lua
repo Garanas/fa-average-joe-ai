@@ -172,21 +172,18 @@ JoeBase = ClassSimple {
         DrawCircle(self.Location, 11, 'ffffff')
         DrawCircle(self.Location, 12, 'ffffff')
 
+        local DebugUtils = import("/mods/fa-joe-ai/lua/Sim/DebugUtils.lua")
+
         local idleUnits = self.IdleBehavior:GetPlatoonUnits()
-        for k = 1, table.getn(idleUnits) do
-            local unit = idleUnits[k]
-            DrawCircle(unit:GetPosition(), 1, 'ffffff')
-        end
+        DebugUtils.DrawUnits(idleUnits, 'ffffff', 0.1)
 
         for k = 1, table.getn(self.Engineers.Reclaiming) do
             local behavior = self.Engineers.Reclaiming[k]
-            local reclaimingUnits = behavior:GetPlatoonUnits()
-            for k = 1, table.getn(reclaimingUnits) do
-                local unit = reclaimingUnits[k]
-                DrawCircle(unit:GetPosition(), 1, '00ff00')
+            if not IsDestroyed(behavior) then
+                local reclaimingUnits = behavior:GetPlatoonUnits()
+                DebugUtils.DrawUnits(reclaimingUnits, '00ff00', 0.1)
             end
         end
-
     end,
 
     --#endregion

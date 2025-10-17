@@ -82,6 +82,86 @@ DrawLinePopXZ = function(lx1, lz1, lx2, lz2, color)
     DrawLinePop(PositionCacheA, PositionCacheB, color)
 end
 
+--- Returns the four corners of an oriented bounding box in 2D (XZ-plane),
+--- with optional inset (positive shrinks, negative expands).
+--- Order: front-left, front-right, back-right, back-left.
+---@param unit JoeUnit
+---@param inset? number
+---@return number x1 X coordinate of front-left corner
+---@return number z1 Z coordinate of front-left corner
+---@return number x2 Z coordinate of front-right corner
+---@return number z2 Z coordinate of front-right corner
+---@return number x3 X coordinate of back-right corner
+---@return number z3 Z coordinate of back-right corner
+---@return number x4 X coordinate of back-left corner
+---@return number z4 Z coordinate of back-left corner
+function GetOrientedBoundingBox(unit, inset)
+    local bp = unit:GetBlueprint()
+    local width  = bp.SizeZ or 1  -- side-to-side along X
+    local length = bp.SizeX or 1  -- forward along Z
+
+    local heading = unit:GetHeading()
+    local ux, _, uz = unit:GetPositionXYZ()
+    local insetVal = (inset or 0) - 1
+
+    local hx = width * 0.5 - insetVal
+    local hz = length * 0.5 - insetVal
+    if hx < 0 then hx = 0 end
+    if hz < 0 then hz = 0 end
+
+    local cosH = math.sin(heading)
+    local sinH = math.cos(heading)
+
+    -- Corners: front-left, front-right, back-right, back-left
+    local x1 = ux + (-hx) * cosH - ( hz) * sinH
+    local z1 = uz + (-hx) * sinH + ( hz) * cosH
+
+    local x2 = ux + ( hx) * cosH - ( hz) * sinH
+    local z2 = uz + ( hx) * sinH + ( hz) * cosH
+
+    local x3 = ux + ( hx) * cosH - (-hz) * sinH
+    local z3 = uz + ( hx) * sinH + (-hz) * cosH
+
+    local x4 = ux + (-hx) * cosH - (-hz) * sinH
+    local z4 = uz + (-hx) * sinH + (-hz) * cosH
+
+    return x1, z1, x2, z2, x3, z3, x4, z4
+end
+
+--- Draws an orientated bounding box at the unit for one tick.
+---@param unit JoeUnit
+---@param color Color
+---@param inset? number
+DrawUnit = function(unit, color, inset)
+    -- get blueprint properties
+    local unitBlueprint = unit:GetBlueprint()
+    local sx = unitBlueprint.SizeX or 1
+    local sz = unitBlueprint.SizeZ or 1
+
+    -- get unit properties
+    local heading = unit:GetHeading()
+    local ux, uy, uz = unit:GetPositionXYZ()
+
+    -- compute orientated bounding box
+    local x1, z1, x2, z2, x3, z3, x4, z4 = GetOrientedBoundingBox(unit, inset)
+
+    DrawLineXZ(x1, z1, x2, z2, color)
+    DrawLineXZ(x2, z2, x3, z3, color)
+    DrawLineXZ(x3, z3, x4, z4, color)
+    DrawLineXZ(x4, z4, x1, z1, color)
+end
+
+--- Draws an orientated bounding box for each unit in a set of units for one tick.
+---@param units JoeUnit[]
+---@param color Color
+---@param inset? number
+DrawUnits = function(units, color, inset)
+    for k = 1, table.getn(units) do
+        local unit = units[k]
+        DrawUnit(unit, color, inset)
+    end
+end
+
 --- Responsible for debugging whatever the player has selected.
 DebugSelectionThread = function()
     local GetGameTick = GetGameTick
@@ -103,19 +183,19 @@ DebugSelectionThread = function()
 
                 -- register all unique base instances
                 if base.Draw then
-                    if not ArrayContains (instances, base) then
+                    if not ArrayContains(instances, base) then
                         table.insert(instances, base)
                     end
                 end
             end
 
             local behavior = joeData.Behavior
-            if behavior and behavior.Debug then
+            if behavior and behavior.Debug and (not IsDestroyed(behavior)) then
                 behavior.Debug.LastSelected = gameTick
 
                 -- register all unique behaviors
                 if behavior.Draw then
-                    if not ArrayContains (instances, behavior) then
+                    if not ArrayContains(instances, behavior) then
                         table.insert(instances, behavior)
                     end
                 end

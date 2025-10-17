@@ -111,8 +111,9 @@ AIPlatoonBehavior = Class(moho.platoon_methods) {
             return
         end
 
-        self:Log(string.format('Changing state to %s', tostring(state.BehaviorStateName)))
-        DrawCircle(self:GetPlatoonPosition(), 10, state.BehaviorStateColor)
+        if self:IsBeingDebugged() then
+            self:Log(string.format('Switching to state %s', tostring(state.BehaviorStateName)))
+        end
 
         -- Clear out the trash of the old state
         self.BehaviorStateTrash:Destroy()
@@ -474,6 +475,18 @@ AIPlatoonBehavior = Class(moho.platoon_methods) {
     --- A utility function that draws the current status quo.
     ---@param self AIPlatoonBehavior
     Draw = function(self)
+        local DebugUtils = import("/mods/fa-joe-ai/lua/Sim/DebugUtils.lua")
+
+        -- draw behavior
+        DebugUtils.DrawUnits(self:GetPlatoonUnits() or {}, self.BehaviorStateColor, 0)
+
+        -- draw squads
+        DebugUtils.DrawUnits(self:GetSquadUnits('Attack') or {}, 'ff0000', -0.1)
+        DebugUtils.DrawUnits(self:GetSquadUnits('Artillery') or {}, '8B4513', -0.1)
+        DebugUtils.DrawUnits(self:GetSquadUnits('Scout') or {}, '00ffff', -0.1)
+        DebugUtils.DrawUnits(self:GetSquadUnits('Support') or {}, 'ffff00', -0.1)
+        DebugUtils.DrawUnits(self:GetSquadUnits('Guard') or {}, '00ff00', -0.1)
+        DebugUtils.DrawUnits(self:GetSquadUnits('Unassigned') or {}, '000000', -0.1)
     end,
 
     --#endregion
