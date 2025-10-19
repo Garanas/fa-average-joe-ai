@@ -3,20 +3,40 @@ local TableInsert = table.insert
 local TableSetn = table.setn
 local TableGetn = table.getn
 
+local setmetatable = setmetatable
+
 --- Metatable to indicate that the value references to tables should not be taken into account by the garbage collection.
-WeakValueTable = {
+local WeakValueTable = {
     __mode = "v"
 }
 
 --- Metatable to indicate that the key references to tables should not be taken into account by the garbage collection.
-WeakKeyTable = {
+local WeakKeyTable = {
     __mode = "k"
 }
 
 --- Metatable to indicate that the keys and values references to tables should not be taken into account by the garbage collection.
-WeakTable = {
+local WeakTable = {
     __mode = "kv"
 }
+
+--- All keys are weak references.
+---@return table
+CreateWeakKeyTable = function()
+    return setmetatable({}, WeakKeyTable)
+end
+
+--- All values are weak references.
+---@return table
+CreateWeakValueTable = function()
+    return setmetatable({}, WeakValueTable)
+end
+
+--- Both keys and values are weak references.
+---@return table
+CreateWeakTable = function()
+    return setmetatable({}, WeakTable)
+end
 
 --- Optimized version to determine if array section of the table contains a specific entry.
 ---@param t table
