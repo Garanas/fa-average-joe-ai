@@ -36,7 +36,7 @@ JoeBase = ClassSimple {
         self.Debug = {}
 
         self.Engineers = {
-            Reclaiming = setmetatable({}, TableUtils.WeakValueTable)
+            Reclaiming = TableUtils.CreateWeakValueTable()
         }
 
         self.IdleBehavior = PlatoonBuilderModule.Build(self.Brain, PlatoonBuilderUtils.PlatoonBehaviors.Base.IdleBehavior):End() --[[@as BaseIdleBehavior]]

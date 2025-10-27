@@ -35,9 +35,9 @@ BaseChunkDialogRow = ClassUI(Bitmap) {
 
         self.ToTemplateButton = IconButton(self, UIUtil.UIFile("/mods/fa-joe-ai/textures/icons/to-build-template.png"))
         self.ToTemplateButton.OnClick = function(button, modifiers)
-            local AIBaseChunkTemplateModule = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/AIBaseChunkTemplate.lua")
+            local JoeBaseChunkTemplateModule = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/JoeBaseChunkTemplate.lua")
             if self.Template then
-                AIBaseChunkTemplateModule.PreviewTemplate(self.Template)
+                JoeBaseChunkTemplateModule.PreviewTemplate(self.Template)
                 print("Template preview!")
             end
         end

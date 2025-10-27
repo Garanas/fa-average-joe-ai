@@ -25,6 +25,12 @@ KeyCategories = {
 local BaseChunkKeys = {
     {
         category = KeyCategories.BaseChunks.Key,
+        key = 'average_joe_ai_dialog_toggle',
+        name = 'Joe AI - Toggle base chunk dialog',
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/ToggleBaseChunkDialog.lua").Handle()',
+    },
+    {
+        category = KeyCategories.BaseChunks.Key,
         key = 'average_joe_ai_create_chunk_template_4',
         name = 'Joe AI - Create AI base chunk template (004x004)',
         action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/CreateBaseChunkTemplate.lua").Handle(4)',
