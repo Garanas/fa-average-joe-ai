@@ -4,13 +4,13 @@
 - **Purpose:** Implements "Average Joe AI" for Supreme Commander: Forged Alliance Forever (FAF), focusing on thematic AI behavior.
 - **Structure:**
   - `lua/AI/`: Main AI logic (e.g., `JoeBrain.lua`)
-  - `lua/Concepts/`: Core data structures (e.g., `AIBaseChunkTemplate.lua`)
+  - `lua/Concepts/`: Core data structures (e.g., `JoeBaseChunkTemplate.lua`)
   - `lua/Shared/`: Cross-cutting utilities (e.g., `BaseChunkManager.lua`)
   - `hook/`: Game engine hooks and overrides
 
 ## Key Architectural Patterns
 - **AI Brains:** Extend `AIBrain` (see `JoeBrain.lua`). Use composition for grid-based features (`GridReclaim`, `GridRecon`, `GridPresence`).
-- **Base Chunk Templates:** Defined in `AIBaseChunkTemplate.lua` and managed via `BaseChunkManager.lua`. Templates describe base layouts and are used for build planning.
+- **Base Chunk Templates:** Defined in `JoeBaseChunkTemplate.lua` and managed via `BaseChunkManager.lua`. Templates describe base layouts and are used for build planning.
 - **Serialization:** Use `SerializeTable`/`SerializeValue` from `Utils.lua` for converting Lua tables to strings/files.
 - **Hooks:** Place engine overrides in `hook/` (e.g., `simInit.lua`, `aibrains/`).
 

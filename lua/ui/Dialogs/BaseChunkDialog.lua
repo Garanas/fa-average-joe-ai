@@ -28,7 +28,7 @@ local WindowTextures = {
 ---@field Search Edit
 ---@field SearchLabel Text
 ---@field ScrollArea UIBaseChunkDialogScrollArea
----@field BaseChunkManager AIBaseChunkLoader
+---@field BaseChunkManager JoeBaseChunkLoader
 BaseChunkDialog = ClassUI(Window) {
 
     ---@param self UIBaseChunkDialog
@@ -72,7 +72,7 @@ BaseChunkDialog = ClassUI(Window) {
 
     ---@param self UIBaseChunkDialog
     ReloadBaseChunkTemplates = function(self)
-        self.BaseChunkManager = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/AIBaseChunkLoader.lua").CreateDefaultAIBaseChunkLoader()
+        self.BaseChunkManager = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/JoeBaseChunkLoader.lua").CreateDefaultJoeBaseChunkLoader()
 
         self.ScrollArea.ActiveTemplates:Set(self.BaseChunkManager.Templates)
         print(string.format("Loaded %d base chunk templates", table.getn(self.BaseChunkManager.Templates)))
