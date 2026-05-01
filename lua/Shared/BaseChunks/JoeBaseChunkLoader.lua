@@ -15,6 +15,22 @@ JoeBaseChunkLoader = ClassSimple {
         table.insert(self.Templates, template)
     end,
 
+    --- Returns all loaded templates of the given size that contain at least one location for the given building identifier.
+    ---@param self JoeBaseChunkLoader
+    ---@param identifier JoeBuildingIdentifier
+    ---@param size number
+    ---@param cache? JoeLoadedBaseChunk[]    # optional table to reuse; cleared before being filled.
+    ---@return JoeLoadedBaseChunk[]
+    FindTemplates = function(self, identifier, size, cache)
+        cache = cache or {}
+        for _, template in self.Templates do
+            if template.Size == size and template.Locations[identifier] then
+                table.insert(cache, template)
+            end
+        end
+        return cache
+    end,
+
     --- Loads a base chunk from a file and registers it as a template.
     ---@param self JoeBaseChunkLoader
     ---@param file string
