@@ -1,4 +1,4 @@
-local JoeLoadedBaseChunk = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/JoeLoadedBaseChunk.lua")
+local JoeLoadedBaseChunk = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/JoeBaseChunkTemplate.lua")
 
 --- Creates a base chunk template from the currently selected units. This function only runs in the UI and is supposed to be called from a hotkey.
 function Handle(size)
