@@ -28,6 +28,13 @@ These load automatically when working in the relevant subtree — read them firs
 
 ## Conventions
 
+### Lua dialect
+The engine runs a pre-5.1 Lua dialect. The `#` length operator does **not** exist — use `table.getn(t)` for tables and `string.len(s)` for strings. Localise both at module top per the perf conventions in [`lua/Sim/CLAUDE.md`](lua/Sim/CLAUDE.md):
+```lua
+local TableGetn = table.getn
+local StringLen = string.len
+```
+
 ### Formatting
 - 4 spaces for indentation. No tabs.
 
