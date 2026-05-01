@@ -15,7 +15,7 @@ local LazyVar = import("/lua/lazyvar.lua")
 ---@field Rows UIBaseChunkDialogRow[]
 ---@field ScrollArea Bitmap
 ---@field ScrollTopIndex LazyVar        # of type integer
----@field ActiveTemplates LazyVar       # of type AILoadedBaseChunkTemplate[]
+---@field ActiveTemplates LazyVar       # of type JoeLoadedBaseChunk[]
 ---@field ActiveTemplatesCount LazyVar  # of type integer
 BaseChunkDialogScrollArea = ClassUI(Group) {
 

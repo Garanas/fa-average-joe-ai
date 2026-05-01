@@ -10,6 +10,7 @@ local MathFloor = math.floor
 ---@field [2] number    # Z offset
 ---@field [3] number    # orientation
 
+--- A chunk of a base, as it lives on disk. Describes build locations for specific identifiers (faction-agnostic structure roles).
 ---@class JoeBaseChunk
 ---@field Name string       # Optional name of the chunk.
 ---@field Size number       # Size of the chunk (length of one side, in world units).
@@ -17,21 +18,10 @@ local MathFloor = math.floor
 ---@field Units UnitId[]    # Accessible list of all unique unit identifiers that we can use to process this chunk.
 ---@field Locations table<JoeBuildingIdentifier, JoeBaseChunkLocation[]>     # Maps identifiers with build locations.
 
----@class AIBaseChunkLocation
----@field OffsetX number
----@field OffsetY number
-
---- A chunk of a base. Describes various locations for specific units and unit categories.
----@class JoeBaseChunkTemplate
----@field Faction string
----@field Name string      # Optional name of the template.
----@field Units UnitId[]    # All the units (read: structures) that are part of this chunk. This list exists to make it easier to interact with entity (unit) functions.
----@field Size number
----@field Locations table<UnitId, AIBaseChunkLocation>
-
----@class AILoadedBaseChunkTemplate : JoeBaseChunkTemplate
----@field Source string
----@field SourceField string
+--- A `JoeBaseChunk` once loaded into the runtime, with traceability fields stamped on by the loader.
+---@class JoeLoadedBaseChunk : JoeBaseChunk
+---@field Source string         # File path the chunk was loaded from.
+---@field SourceField string    # Field name in the source file that held the chunk (default "Template").
 
 --- Converts world coordinates to chunk coordinates.
 ---@param n number
@@ -92,10 +82,10 @@ local function GetLocations(units, size)
     return locations
 end
 
---- Creates an a base chunk template that is used by AIs.
+--- Captures the placement of a set of structures into a base chunk that can be saved to disk.
 ---@param units JoeUnit[]
 ---@param size number
----@return JoeBaseChunkTemplate
+---@return JoeBaseChunk
 function CreateTemplate(units, size)
     -- assertions
     if type(units) ~= "table" or TableGetn(units) == 0 then
@@ -107,7 +97,7 @@ function CreateTemplate(units, size)
         error(string.format("Size should be between 1 and 256, but is %s", tostring(size)))
     end
 
-    ---@type JoeBaseChunkTemplate
+    ---@type JoeBaseChunk
     local template = {
         Faction = units[1]:GetBlueprint().FactionCategory,
         Name = "Unnamed template",
@@ -119,8 +109,8 @@ function CreateTemplate(units, size)
     return template
 end
 
----Serializes the given template to a Lua string that can be used in a file.
----@param template JoeBaseChunkTemplate
+---Serializes the given chunk to a Lua string that can be used in a file.
+---@param template JoeBaseChunk
 ---@return string
 function SerializeTemplate(template)
     local Utils = import("/mods/fa-joe-ai/lua/Utils.lua")
@@ -151,8 +141,8 @@ local function TemplateAxisOffset(blueprint, axe)
     return (math.mod(math.ceil(blueprint.Footprint and blueprint.Footprint[axe] or blueprint[axe] or 1), 2) == 1 and 0 or 0.5)
 end
 
---- Transforms a base chunk template into a build template that we all know and love.
----@param template JoeBaseChunkTemplate
+--- Transforms a base chunk into a build template that we all know and love.
+---@param template JoeBaseChunk
 ---@return UIBuildTemplate
 function ToBuildTemplate(template)
     ---@type UIBuildTemplate
@@ -163,14 +153,14 @@ function ToBuildTemplate(template)
 
     local buildOrder = 1
 
-    ---@param buildingIdentifier UnitId
-    ---@param locations AIBaseChunkLocation[]
+    ---@param buildingIdentifier JoeBuildingIdentifier
+    ---@param locations JoeBaseChunkLocation[]
     for buildingIdentifier, locations in template.Locations do
         local buildingCategories = JoeBuildingIdentifierModule.MapToCategory(buildingIdentifier)
         if buildingCategories then
             local unitId = EntityCategoryGetUnitList(buildingCategories * categories[template.Faction])[1]
             if unitId then
-                ---@param location AIBaseChunkLocation
+                ---@param location JoeBaseChunkLocation
                 for _, location in locations do
                     buildOrder = buildOrder + 1
 
@@ -202,8 +192,8 @@ function ToBuildTemplate(template)
     return buildTemplate
 end
 
---- Starts the command mode using the giving base chunk template. The template snaps to the template size.
----@param template JoeBaseChunkTemplate
+--- Starts the command mode using the given base chunk. The template snaps to the chunk size.
+---@param template JoeBaseChunk
 function PreviewTemplate(template)
     local buildTemplate = ToBuildTemplate(template)
 

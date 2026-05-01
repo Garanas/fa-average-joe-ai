@@ -1,6 +1,6 @@
 --- Responsible for managing the base chunk templates that are loaded from files.
 ---@class JoeBaseChunkLoader
----@field Templates AILoadedBaseChunkTemplate[] # List of base chunk templates managed by this instance.
+---@field Templates JoeLoadedBaseChunk[] # List of base chunk templates managed by this instance.
 JoeBaseChunkLoader = ClassSimple {
 
     ---@param self JoeBaseChunkLoader
@@ -8,14 +8,14 @@ JoeBaseChunkLoader = ClassSimple {
         self.Templates = {}
     end,
 
-    --- Adds a base chunk template to the manager.
+    --- Adds a base chunk template to the manager. The template should already have its loader fields (`Source`, `SourceField`) attached.
     ---@param self JoeBaseChunkLoader
-    ---@param template JoeBaseChunkTemplate
+    ---@param template JoeLoadedBaseChunk
     AddTemplate = function(self, template)
         table.insert(self.Templates, template)
     end,
 
-    --- Loads a base chunk template from a file.
+    --- Loads a base chunk from a file and registers it as a template.
     ---@param self JoeBaseChunkLoader
     ---@param file string
     ---@param field? string     # defaults to "Template"
@@ -27,16 +27,17 @@ JoeBaseChunkLoader = ClassSimple {
             error("Failed to load template from file: " .. tostring(templateModule))
         end
 
-        local template = templateModule[field] --[[@as AILoadedBaseChunkTemplate?]]
+        local template = templateModule[field] --[[@as JoeBaseChunk?]]
         if not template then
             error("Field '" .. tostring(field) .. "' not found in template file: " .. tostring(file))
         end
 
-        -- add information that we can only compute during runtime
-        template.Source = file
-        template.SourceField = field
+        -- promote the on-disk JoeBaseChunk to a runtime JoeLoadedBaseChunk by stamping loader fields
+        local runtimeTemplate = template --[[@as JoeLoadedBaseChunk]]
+        runtimeTemplate.Source = file
+        runtimeTemplate.SourceField = field
 
-        self:AddTemplate(template)
+        self:AddTemplate(runtimeTemplate)
     end,
 }
 

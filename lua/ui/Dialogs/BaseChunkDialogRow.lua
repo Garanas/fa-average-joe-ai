@@ -9,7 +9,7 @@ local IconButton = import("/mods/fa-joe-ai/lua/ui/Components/IconButton.lua").Ic
 local FactionIcon = import("/mods/fa-joe-ai/lua/ui/Components/FactionIcon.lua").FactionIcon
 
 ---@class UIBaseChunkDialogRow : Bitmap
----@field Template? AILoadedBaseChunkTemplate
+---@field Template? JoeLoadedBaseChunk
 ---@field Name Text
 ---@field FactionIcon UIFactionIcon
 ---@field ToFileButton Button
@@ -35,7 +35,7 @@ BaseChunkDialogRow = ClassUI(Bitmap) {
 
         self.ToTemplateButton = IconButton(self, UIUtil.UIFile("/mods/fa-joe-ai/textures/icons/to-build-template.png"))
         self.ToTemplateButton.OnClick = function(button, modifiers)
-            local JoeBaseChunkTemplateModule = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/JoeBaseChunkTemplate.lua")
+            local JoeBaseChunkTemplateModule = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/JoeLoadedBaseChunk.lua")
             if self.Template then
                 JoeBaseChunkTemplateModule.PreviewTemplate(self.Template)
                 print("Template preview!")
@@ -74,7 +74,7 @@ BaseChunkDialogRow = ClassUI(Bitmap) {
     end,
 
     ---@param self UIBaseChunkDialogRow
-    ---@param template AILoadedBaseChunkTemplate
+    ---@param template JoeLoadedBaseChunk
     Update = function(self, template)
         self.Template = template
 
