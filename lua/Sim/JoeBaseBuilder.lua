@@ -53,10 +53,11 @@ JoeBaseBuilder = ClassSimple {
 ---@return JoeBaseBuilder
 Build = function(brain, location)
     local base = JoeBase(brain, location)
+    base.Brain:AddBase(base)
     return JoeBaseBuilder(base)
 end
 
----@param base JoeBrain
+---@param base JoeBase
 ---@return JoeBaseBuilder
 Extend = function(base)
     return JoeBaseBuilder(base)

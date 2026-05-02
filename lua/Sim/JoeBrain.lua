@@ -15,6 +15,7 @@ local StandardBrainOnCreateAI = StandardBrain.OnCreateAI
 ---@field GridReclaim AIGridReclaim
 ---@field GridRecon AIGridRecon
 ---@field GridPresence AIGridPresence
+---@field ChunkComponent JoeBrainChunkComponent
 ---@field Bases JoeBase[]
 JoeBrain = Class(StandardBrain) {
     ---@param self JoeBrain
@@ -27,6 +28,9 @@ JoeBrain = Class(StandardBrain) {
         self.GridReclaim = import("/lua/ai/gridreclaim.lua").Setup(self)
         self.GridRecon = import("/lua/ai/gridrecon.lua").Setup(self)
         self.GridPresence = import("/lua/ai/gridpresence.lua").Setup(self)
+        self.ChunkComponent = import("/mods/fa-joe-ai/lua/Sim/JoeBrainChunkComponent.lua").Setup(self)
+
+        self.Bases = {}
     end,
 
     ---------------------------------------------------------------------------
@@ -35,20 +39,54 @@ JoeBrain = Class(StandardBrain) {
     ---@param self JoeBrain
     ---@param base JoeBase
     AddBase = function(self, base)
+        table.insert(self.Bases, base)
     end,
 
 
+    --- Returns the base most relevant to the given XZ position. First checks whether the position falls inside an already-claimed nav section (Land first, Water as fallback) — if so, returns that section's owning base directly. Otherwise falls back to the base whose `Location` is closest in XZ. Returns nil if the brain has no bases and no claimed sections cover the position.
     ---@param self JoeBrain
     ---@param lx number     # in world coordinates
     ---@param lz number     # in world coordinates
+    ---@return JoeBase?
     FindNearestBaseXZ = function(self, lx, lz)
+        -- First try: is the position already inside a claimed section? Then we know the owner directly.
+        local chunkComponent = self.ChunkComponent
+        local position = { lx, 0, lz }
+        local section = chunkComponent:FindSection("Land", position)
+                     or chunkComponent:FindSection("Water", position)
+        if section then
+            local owner = chunkComponent:GetOwner(section.Identifier)
+            if owner then
+                return owner
+            end
+        end
 
+        -- Fall back: nearest base by squared XZ distance to base.Location.
+        local bases = self.Bases
+        local nearest = nil
+        local nearestDistSq
+
+        for k = 1, table.getn(bases) do
+            local base = bases[k]
+            local pos = base.Location
+            local dx = pos[1] - lx
+            local dz = pos[3] - lz
+            local distSq = dx * dx + dz * dz
+
+            if (not nearestDistSq) or distSq < nearestDistSq then
+                nearest = base
+                nearestDistSq = distSq
+            end
+        end
+
+        return nearest
     end,
 
     ---@param self JoeBrain
     ---@param location Vector
+    ---@return JoeBase?
     FindNearestBase = function(self, location)
-
+        return self:FindNearestBaseXZ(location[1], location[3])
     end,
 
     --#endregion
