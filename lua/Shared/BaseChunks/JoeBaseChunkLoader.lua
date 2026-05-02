@@ -1,3 +1,10 @@
+
+local TableInsert = table.insert
+
+local error = error
+local warn = WARN
+local pcall = pcall
+
 --- Responsible for managing the base chunk templates that are loaded from files.
 ---@class JoeBaseChunkLoader
 ---@field Templates JoeLoadedBaseChunk[] # List of base chunk templates managed by this instance.
@@ -12,7 +19,7 @@ JoeBaseChunkLoader = ClassSimple {
     ---@param self JoeBaseChunkLoader
     ---@param template JoeLoadedBaseChunk
     AddTemplate = function(self, template)
-        table.insert(self.Templates, template)
+        TableInsert(self.Templates, template)
     end,
 
     --- Returns all loaded templates of the given size that contain at least one location for the given building identifier.
@@ -25,7 +32,7 @@ JoeBaseChunkLoader = ClassSimple {
         cache = cache or {}
         for _, template in self.Templates do
             if template.Size == size and template.Locations[identifier] then
-                table.insert(cache, template)
+                TableInsert(cache, template)
             end
         end
         return cache
@@ -64,7 +71,7 @@ CreateDefaultJoeBaseChunkLoader = function()
 
     local ok, msg = pcall(
         function()
-            -- Load templates from files or other sources if needed
+            -- Load templates from files in a deterministic manner. We can not load in all templates using a glob.
             baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/air_16x16_01.lua")
             baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/power_08x08_01.lua")
             baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/power_16x16_01.lua")
