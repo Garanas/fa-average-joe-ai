@@ -2,8 +2,8 @@ local PlatoonBuilderUtils = import("/mods/fa-joe-ai/lua/Sim/Behaviors/PlatoonUti
 local PlatoonBuilderModule = import("/mods/fa-joe-ai/lua/Sim/Behaviors/PlatoonBuilder.lua")
 
 local ReclaimUtils = import("/mods/fa-joe-ai/lua/sim/ReclaimUtils.lua")
-local EntityUtils = import("/mods/fa-joe-ai/lua/sim/EntityUtils.lua")
-local JoeBase = import("/mods/fa-joe-ai/lua/Sim/JoeBase.lua").JoeBase
+local EntityUtils = import("/mods/fa-joe-ai/lua/Sim/Utils/EntityUtils.lua")
+local JoeBase = import("/mods/fa-joe-ai/lua/Sim/Bases/JoeBase.lua").JoeBase
 
 local TableGetn = table.getn
 local TableSetn = table.setn

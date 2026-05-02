@@ -5,8 +5,8 @@ do
     local PlatoonBuilderUtils = import("/mods/fa-joe-ai/lua/Sim/Behaviors/PlatoonUtils.lua")
     local PlatoonBuilderModule = import("/mods/fa-joe-ai/lua/Sim/Behaviors/PlatoonBuilder.lua")
 
-    local JoeBaseBuilder = import("/mods/fa-joe-ai/lua/Sim/JoeBaseBuilder.lua")
-    local EntityUtils = import("/mods/fa-joe-ai/lua/sim/EntityUtils.lua")
+    local JoeBaseBuilder = import("/mods/fa-joe-ai/lua/Sim/Bases/JoeBaseBuilder.lua")
+    local EntityUtils = import("/mods/fa-joe-ai/lua/Sim/Utils/EntityUtils.lua")
 
     ---@class JoeDebugCreatePlatoonData
     ---@field BehaviorName string 
@@ -57,19 +57,19 @@ do
     ---@class JoeDebugToggleBrainChunkVisualizationData
     ---@field ArmyIndex number
 
-    --- Toggles the brain-level chunk visualization for the focus army. Independent from any per-base toggle.
+    --- Toggles the brain-level draw thread for the focus army. The thread renders every brain component that exposes a `Draw` method (currently just chunks).
     ---@param data JoeDebugToggleBrainChunkVisualizationData
     Callbacks.JoeDebugToggleBrainChunkVisualization = function(data)
         local brain = GetArmyBrain(data.ArmyIndex) --[[@as JoeBrain]]
-        if not brain or not brain.ChunkComponent then
-            print("No brain or chunk component for army index:", data.ArmyIndex)
+        if not brain then
+            print("No brain for army index:", data.ArmyIndex)
             return
         end
 
-        if brain.ChunkComponent.Debug then
-            brain.ChunkComponent:DisableDebug()
+        if brain.Debug then
+            brain:DisableDebug()
         else
-            brain.ChunkComponent:EnableDebug()
+            brain:EnableDebug()
         end
     end
 
@@ -111,7 +111,7 @@ do
             return
         end
 
-        base.ChunkComponent:Claim(section.Identifier)
+        base:ClaimSection(section.Identifier)
     end
 
     ---@class JoeDebugAssignReclaimBehaviorData

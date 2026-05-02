@@ -1,5 +1,5 @@
 local ArrayContains = import("/mods/fa-joe-ai/lua/Shared/TableUtils.lua").ArrayContains
-local MapUtils = import("/mods/fa-joe-ai/lua/Sim/MapUtils.lua")
+local MapUtils = import("/mods/fa-joe-ai/lua/Sim/Utils/MapUtils.lua")
 local BoundingBoxUtils = import("/mods/fa-joe-ai/lua/Shared/BoundingBoxUtils.lua")
 
 -- Upvalue scope for performance

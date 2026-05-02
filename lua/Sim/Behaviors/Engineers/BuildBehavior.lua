@@ -2,9 +2,9 @@ local AIPlatoonBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/PlatoonBehav
 
 local ReclaimBuilder = import("/mods/fa-joe-ai/lua/sim/ReclaimBuilder.lua")
 local ReclaimUtils = import("/mods/fa-joe-ai/lua/sim/ReclaimUtils.lua")
-local EntityUtils = import("/mods/fa-joe-ai/lua/Sim/EntityUtils.lua")
+local EntityUtils = import("/mods/fa-joe-ai/lua/Sim/Utils/EntityUtils.lua")
 local VectorUtils = import("/mods/fa-joe-ai/lua/Shared/VectorUtils.lua")
-local Orders = import("/mods/fa-joe-ai/lua/Sim/Orders.lua")
+local Orders = import("/mods/fa-joe-ai/lua/Sim/Utils/Orders.lua")
 
 ---@class AIBuildBehaviorInput : AIPlatoonBehaviorInput
 ---@field Location Vector       # The location where we want to build.

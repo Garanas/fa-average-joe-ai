@@ -475,7 +475,7 @@ AIPlatoonBehavior = Class(moho.platoon_methods) {
     --- A utility function that draws the current status quo.
     ---@param self AIPlatoonBehavior
     Draw = function(self)
-        local DebugUtils = import("/mods/fa-joe-ai/lua/Sim/DebugUtils.lua")
+        local DebugUtils = import("/mods/fa-joe-ai/lua/Sim/Utils/DebugUtils.lua")
 
         -- draw behavior
         DebugUtils.DrawUnits(self:GetPlatoonUnits() or {}, self.BehaviorStateColor, 0)

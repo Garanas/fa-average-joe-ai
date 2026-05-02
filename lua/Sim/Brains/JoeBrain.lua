@@ -17,7 +17,12 @@ local StandardBrainOnCreateAI = StandardBrain.OnCreateAI
 ---@field GridPresence AIGridPresence
 ---@field ChunkComponent JoeBrainChunkComponent
 ---@field Bases JoeBase[]
+---@field Debug boolean
+---@field DrawThread? thread
 JoeBrain = Class(StandardBrain) {
+
+    Debug = false,
+
     ---@param self JoeBrain
     OnCreateAI = function(self)
         StandardBrainOnCreateAI(self, 'NoPlan')
@@ -28,7 +33,7 @@ JoeBrain = Class(StandardBrain) {
         self.GridReclaim = import("/lua/ai/gridreclaim.lua").Setup(self)
         self.GridRecon = import("/lua/ai/gridrecon.lua").Setup(self)
         self.GridPresence = import("/lua/ai/gridpresence.lua").Setup(self)
-        self.ChunkComponent = import("/mods/fa-joe-ai/lua/Sim/JoeBrainChunkComponent.lua").Setup(self)
+        self.ChunkComponent = import("/mods/fa-joe-ai/lua/Sim/Brains/Components/JoeBrainChunkComponent.lua").Setup(self)
 
         self.Bases = {}
     end,
@@ -40,6 +45,19 @@ JoeBrain = Class(StandardBrain) {
     ---@param base JoeBase
     AddBase = function(self, base)
         table.insert(self.Bases, base)
+    end,
+
+    --- Removes a base from this brain's roster. Called by `JoeBase:Retreat` after the base has cleaned up its own state.
+    ---@param self JoeBrain
+    ---@param base JoeBase
+    RemoveBase = function(self, base)
+        local bases = self.Bases
+        for k = 1, table.getn(bases) do
+            if bases[k] == base then
+                table.remove(bases, k)
+                return
+            end
+        end
     end,
 
 
@@ -650,6 +668,47 @@ JoeBrain = Class(StandardBrain) {
     ---@param unit JoeUnit
     OnUnitProductionInActive = function(self, unit)
         LOG("OnUnitProductionInActive")
+    end,
+
+    --#endregion
+    ---------------------------------------------------------------------------
+
+    ---------------------------------------------------------------------------
+    --#region Debug visualization
+
+    --- Turns on the brain-level draw thread. Idempotent.
+    ---@param self JoeBrain
+    EnableDebug = function(self)
+        if self.Debug then
+            return
+        end
+        self.Debug = true
+        self.DrawThread = ForkThread(self.DrawLoop, self)
+    end,
+
+    --- Turns off the brain-level draw thread. Idempotent.
+    ---@param self JoeBrain
+    DisableDebug = function(self)
+        self.Debug = false
+        if self.DrawThread then
+            KillThread(self.DrawThread)
+            self.DrawThread = nil
+        end
+    end,
+
+    --- The forked thread that calls `Draw` once per tick while `Debug` is true.
+    ---@param self JoeBrain
+    DrawLoop = function(self)
+        while self.Debug do
+            self:Draw()
+            WaitTicks(1)
+        end
+    end,
+
+    --- Renders the brain's debug visualization. Currently delegates to `ChunkComponent:Draw`; future brain components add their own `Draw` calls here.
+    ---@param self JoeBrain
+    Draw = function(self)
+        self.ChunkComponent:Draw()
     end,
 
     --#endregion

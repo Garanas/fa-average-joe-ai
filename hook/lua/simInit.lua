@@ -7,7 +7,7 @@ do
         OldBeginSession()
 
         -- Allows us to debug platoon behaviors by selecting units
-        local DebugSelectionThread = import("/mods/fa-joe-ai/lua/Sim/DebugUtils.lua").DebugSelectionThread
+        local DebugSelectionThread = import("/mods/fa-joe-ai/lua/Sim/Utils/DebugUtils.lua").DebugSelectionThread
         ForkThread(DebugSelectionThread)
     end
 

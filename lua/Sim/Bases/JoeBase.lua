@@ -3,7 +3,7 @@ local PlatoonBuilderModule = import("/mods/fa-joe-ai/lua/Sim/Behaviors/PlatoonBu
 
 local TableUtils = import("/mods/fa-joe-ai/lua/Shared/TableUtils.lua")
 
-local JoeBaseChunkComponent = import("/mods/fa-joe-ai/lua/Sim/JoeBaseChunkComponent.lua").JoeBaseChunkComponent
+local JoeBaseChunkComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseChunkComponent.lua").JoeBaseChunkComponent
 
 -- upvalue for performance
 local TableInsert = table.insert
@@ -48,6 +48,58 @@ JoeBase = ClassSimple {
 
         self.Trash:Add(ForkThread(self.RePrioritizeEngineersThread, self))
     end,
+
+    ---------------------------------------------------------------------------
+    --#region Lifecycle and section claims (cross-component coordination)
+
+    --- Records a claim on the given section for this base. Refuses if any base under this brain (including this one) already claims it. Mirrors successful claims to the brain so its union view stays in sync.
+    ---@param self JoeBase
+    ---@param sectionId NavSectionIdentifier
+    ---@return boolean    # true if the claim was recorded; false if already claimed
+    ClaimSection = function(self, sectionId)
+        if self.Brain.ChunkComponent:IsClaimed(sectionId) then
+            return false
+        end
+
+        self.ChunkComponent:Claim(sectionId)
+        self.Brain.ChunkComponent:NoteBaseClaim(sectionId, self)
+        return true
+    end,
+
+    --- Releases this base's claim on a single section. Mirrors the release to the brain. Quietly returns false if the section wasn't claimed by this base.
+    ---@param self JoeBase
+    ---@param sectionId NavSectionIdentifier
+    ---@return boolean
+    ReleaseSection = function(self, sectionId)
+        if not self.ChunkComponent:IsClaimed(sectionId) then
+            return false
+        end
+
+        self.ChunkComponent:Release(sectionId)
+        self.Brain.ChunkComponent:NoteBaseRelease(sectionId, self)
+        return true
+    end,
+
+    --- Releases every section this base claims. Iterates first to mirror each release to the brain, then clears the component's storage.
+    ---@param self JoeBase
+    ReleaseAllSections = function(self)
+        local brainComponent = self.Brain.ChunkComponent
+        for sectionId, _ in self.ChunkComponent.Sections do
+            brainComponent:NoteBaseRelease(sectionId, self)
+        end
+        self.ChunkComponent:ReleaseAll()
+    end,
+
+    --- Tears the base down: kills every thread/observer in the trash, releases every claimed section (mirroring to the brain), and removes the base from the brain's roster. After this call the base is no longer reachable through `brain.Bases`.
+    ---@param self JoeBase
+    Retreat = function(self)
+        self.Trash:Destroy()
+        self:ReleaseAllSections()
+        self.Brain:RemoveBase(self)
+    end,
+
+    --#endregion
+    ---------------------------------------------------------------------------
 
     ---------------------------------------------------------------------------
     --#region Functions to prioritize engineers
@@ -177,7 +229,7 @@ JoeBase = ClassSimple {
         DrawCircle(self.Location, 11, 'ffffff')
         DrawCircle(self.Location, 12, 'ffffff')
 
-        local DebugUtils = import("/mods/fa-joe-ai/lua/Sim/DebugUtils.lua")
+        local DebugUtils = import("/mods/fa-joe-ai/lua/Sim/Utils/DebugUtils.lua")
         local idleUnits = self.IdleBehavior:GetPlatoonUnits()
         DebugUtils.DrawUnits(idleUnits, 'ffffff', 0.1)
 
@@ -188,7 +240,7 @@ JoeBase = ClassSimple {
     --- Draws the units of every reclaim behavior currently assigned to this base.
     ---@param self JoeBase
     DrawReclaimingEngineers = function(self)
-        local DebugUtils = import("/mods/fa-joe-ai/lua/Sim/DebugUtils.lua")
+        local DebugUtils = import("/mods/fa-joe-ai/lua/Sim/Utils/DebugUtils.lua")
         for k = 1, table.getn(self.Engineers.Reclaiming) do
             local behavior = self.Engineers.Reclaiming[k]
             if not IsDestroyed(behavior) then

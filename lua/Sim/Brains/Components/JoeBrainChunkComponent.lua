@@ -12,11 +12,7 @@ local TableGetn = table.getn
 ---@class JoeBrainChunkComponent
 ---@field Brain JoeBrain
 ---@field Sections table<NavSectionIdentifier, JoeBase>
----@field Debug boolean
----@field DrawThread? thread
 JoeBrainChunkComponent = ClassSimple {
-
-    Debug = false,
 
     ---@param self JoeBrainChunkComponent
     ---@param brain JoeBrain
@@ -221,33 +217,7 @@ JoeBrainChunkComponent = ClassSimple {
     -----------------------------------------------------------------------------
     --#region Debug visualization
 
-    ---@param self JoeBrainChunkComponent
-    EnableDebug = function(self)
-        if self.Debug then
-            return
-        end
-        self.Debug = true
-        self.DrawThread = ForkThread(self.DrawLoop, self)
-    end,
-
-    ---@param self JoeBrainChunkComponent
-    DisableDebug = function(self)
-        self.Debug = false
-        if self.DrawThread then
-            KillThread(self.DrawThread)
-            self.DrawThread = nil
-        end
-    end,
-
-    ---@param self JoeBrainChunkComponent
-    DrawLoop = function(self)
-        while self.Debug do
-            self:Draw()
-            WaitTicks(1)
-        end
-    end,
-
-    --- Draws each claimed section's leaves, color-coded by the owning base's index in `brain.Bases`. Owners are derived per-tick (cheap) so newly-added bases pick up a stable color without extra bookkeeping.
+    --- Draws each claimed section's leaves, color-coded by the owning base's index in `brain.Bases`. Owners are derived per-tick (cheap) so newly-added bases pick up a stable color without extra bookkeeping. Pure render — caller (`JoeBrain:Draw`) decides cadence.
     ---@param self JoeBrainChunkComponent
     Draw = function(self)
         local bases = self.Brain.Bases

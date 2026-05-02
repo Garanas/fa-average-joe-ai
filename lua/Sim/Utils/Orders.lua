@@ -1,6 +1,6 @@
 local BoundingBoxUtils = import("/mods/fa-joe-ai/lua/Shared/BoundingBoxUtils.lua")
 local VectorUtils = import("/mods/fa-joe-ai/lua/Shared/VectorUtils.lua")
-local DebugUtils = import("/mods/fa-joe-ai/lua/Sim/DebugUtils.lua")
+local DebugUtils = import("/mods/fa-joe-ai/lua/Sim/Utils/DebugUtils.lua")
 
 --- Clears the area of friendly or neutral mobile units that are idle.
 ---@param army number           # the army that we're clearing the area for.

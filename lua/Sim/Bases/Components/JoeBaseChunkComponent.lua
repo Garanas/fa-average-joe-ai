@@ -37,17 +37,12 @@ JoeBaseChunkComponent = ClassSimple {
     end,
 
     -----------------------------------------------------------------------------
-    --#region Claims
+    --#region Claims (pure storage — JoeBase coordinates conflict checks and brain mirroring)
 
-    --- Records a claim on the given section. Refuses if any base (including this one) already claims the section — the brain's union view is the authority. Mirrors successful claims into the brain so the union stays in sync.
+    --- Records a claim on the given section. Pure storage; the caller (`JoeBase:ClaimSection`) is responsible for checking conflicts against the brain's union view and mirroring successful claims back to the brain.
     ---@param self JoeBaseChunkComponent
     ---@param sectionId NavSectionIdentifier
     Claim = function(self, sectionId)
-        -- refuse if any base already claims this section
-        if self.Base.Brain.ChunkComponent:IsClaimed(sectionId) then
-            return
-        end
-
         local section = NavGenerator.NavSections[sectionId]
         if not section then
             return
@@ -58,28 +53,18 @@ JoeBaseChunkComponent = ClassSimple {
             Section = section,
             Chunkified = false,
         }
-
-        self.Base.Brain.ChunkComponent:NoteBaseClaim(sectionId, self.Base)
     end,
 
-    --- Releases the claim on a single section. Mirrors to the brain.
+    --- Releases the claim on a single section. Pure storage; the caller mirrors the release to the brain.
     ---@param self JoeBaseChunkComponent
     ---@param sectionId NavSectionIdentifier
     Release = function(self, sectionId)
-        if not self.Sections[sectionId] then
-            return
-        end
         self.Sections[sectionId] = nil
-        self.Base.Brain.ChunkComponent:NoteBaseRelease(sectionId, self.Base)
     end,
 
-    --- Releases every claim. Used when the base retreats from an expansion.
+    --- Clears every claim. Pure storage; the caller is expected to mirror each release to the brain *before* calling this so the union stays in sync.
     ---@param self JoeBaseChunkComponent
     ReleaseAll = function(self)
-        local brainComponent = self.Base.Brain.ChunkComponent
-        for sectionId, _ in self.Sections do
-            brainComponent:NoteBaseRelease(sectionId, self.Base)
-        end
         self.Sections = {}
     end,
 
