@@ -39,10 +39,15 @@ JoeBaseChunkComponent = ClassSimple {
     -----------------------------------------------------------------------------
     --#region Claims
 
-    --- Records a claim on the given section. Mirrors the claim to the brain so the brain's set always reflects the union of all bases.
+    --- Records a claim on the given section. Refuses if any base (including this one) already claims the section — the brain's union view is the authority. Mirrors successful claims into the brain so the union stays in sync.
     ---@param self JoeBaseChunkComponent
     ---@param sectionId NavSectionIdentifier
     Claim = function(self, sectionId)
+        -- refuse if any base already claims this section
+        if self.Base.Brain.ChunkComponent:IsClaimed(sectionId) then
+            return
+        end
+
         local section = NavGenerator.NavSections[sectionId]
         if not section then
             return

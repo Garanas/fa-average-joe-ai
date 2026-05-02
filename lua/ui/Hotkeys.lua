@@ -121,6 +121,12 @@ local BaseHotkeys = {
         name = 'Joe AI - Assign reclaim behavior to selected engineers in base',
         action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/Base/AssignReclaimBehavior.lua").Handle()',
     },
+    {
+        category = KeyCategories.Base.Key,
+        key = 'average_joe_ai_add_section_to_base',
+        name = 'Joe AI - Add section under cursor to the base of the selected units',
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/Base/AddSection.lua").Handle()',
+    },
 }
 
 ---@type JoeHotkey[]

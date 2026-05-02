@@ -73,6 +73,47 @@ do
         end
     end
 
+    ---@class JoeDebugAddSectionToBaseData
+    ---@field Location Vector
+
+    --- Adds the section under `Location` to the base that the selected units belong to. The base's layer determines which grid is queried; layer-mismatched clicks (e.g. clicking on water with a land base selected) are reported and ignored.
+    ---@param data JoeDebugAddSectionToBaseData
+    ---@param units JoeUnit[]
+    Callbacks.JoeDebugAddSectionToBase = function(data, units)
+        -- assertion
+        if table.empty(units) then
+            print("No units to identify the base")
+            return
+        end
+
+        -- assertion
+        local base = units[1].JoeData.Base
+        if not base then
+            print("Selected unit is not part of a base")
+            return
+        end
+
+        local brain = base.Brain --[[@as JoeBrain]]
+        local layer = base.ChunkComponent.Layer
+        local section = brain.ChunkComponent:FindSection(layer, data.Location)
+        if not section then
+            print("No section under cursor on layer:", layer)
+            return
+        end
+
+        if brain.ChunkComponent:IsClaimed(section.Identifier) then
+            local owner = brain.ChunkComponent:GetOwner(section.Identifier)
+            if owner == base then
+                print("Section is already claimed by this base")
+            else
+                print("Section is already claimed by another base")
+            end
+            return
+        end
+
+        base.ChunkComponent:Claim(section.Identifier)
+    end
+
     ---@class JoeDebugAssignReclaimBehaviorData
     ---@field Location Vector
 
