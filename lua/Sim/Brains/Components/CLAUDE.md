@@ -4,7 +4,7 @@ Per-brain components are **pure data holders** with narrow scope. They store one
 
 ## Files in this tree
 
-- [`JoeBrainChunkComponent.lua`](JoeBrainChunkComponent.lua) — the brain's union view of claimed sections (`Sections[sectionId] → JoeBase`). Populated by bases via `NoteBaseClaim` / `NoteBaseRelease`. Hosts the BFS queries `FindClaimableArea` and `FindClaimableAreaToward` because they're brain-scope (need to consider all bases under the brain).
+- [`JoeBrainChunkComponent.lua`](JoeBrainChunkComponent.lua) — the brain's union view of claimed sections (`Sections[sectionId] → JoeBase`). Populated by bases via `ClaimSection` / `ReleaseSection` (same names as the corresponding `JoeBase` coordinator methods that call them). Hosts the BFS queries `FindClaimableArea` and `FindClaimableAreaToward` because they're brain-scope (need to consider all bases under the brain).
 
 ## Difference from base components
 
@@ -47,5 +47,5 @@ The `Setup(brain)` module export pattern matches the existing FAF grid component
 ## Pitfalls
 
 1. **Iterating bases from inside a brain component** is a gentle smell. It's sometimes necessary (e.g. drawing all bases' colors), but think first whether the operation belongs on `JoeBrain` instead.
-2. **Mutation from outside.** Bases mutate brain components only through methods explicitly intended as mirror points (`NoteBaseClaim`, `NoteBaseRelease`). Don't let other callers mutate `Sections` directly.
+2. **Mutation from outside.** Bases mutate brain components only through methods explicitly intended as mirror points (`ClaimSection`, `ReleaseSection` on the brain component, called from the matching `JoeBase` coordinator methods). Don't let other callers mutate `Sections` directly.
 3. **No forked threads in components.** Visualization and polling threads belong on `JoeBrain` (debug draw) or are forked by the action that needs them. A component owning a thread couples it to the component's lifetime in confusing ways — `JoeBrain:DisableDebug` killing the thread is more legible.

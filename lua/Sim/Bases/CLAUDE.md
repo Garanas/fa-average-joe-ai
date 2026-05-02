@@ -25,16 +25,18 @@ The cost is some boilerplate — every multi-component operation gets a `JoeBase
 
 ### Example: section claims
 
-`JoeBaseChunkComponent:Claim` is **pure storage** — it just writes to `self.Sections`. The brain mirror happens in `JoeBase:ClaimSection`:
+`JoeBaseChunkComponent:ClaimSection` is **pure storage** — it just writes to `self.Sections`. The brain mirror happens in `JoeBase:ClaimSection`:
 
 ```lua
 ClaimSection = function(self, sectionId)
     if self.Brain.ChunkComponent:IsClaimed(sectionId) then return false end
-    self.ChunkComponent:Claim(sectionId)
-    self.Brain.ChunkComponent:NoteBaseClaim(sectionId, self)
+    self.ChunkComponent:ClaimSection(sectionId)
+    self.Brain.ChunkComponent:ClaimSection(sectionId, self)
     return true
 end
 ```
+
+Three layers, same name: `JoeBase:ClaimSection` (coordinator), `JoeBaseChunkComponent:ClaimSection` (this-base storage), `JoeBrainChunkComponent:ClaimSection` (brain union). They're the same operation viewed at three scopes — calling them all `ClaimSection` makes the symmetry explicit. Method dispatch (`:`) keeps them disambiguated by receiver type.
 
 Same shape for `ReleaseSection`, `ReleaseAllSections`. If you find yourself reaching for `self.Brain.X` from inside a component, that's the smell — the operation belongs on `JoeBase`.
 

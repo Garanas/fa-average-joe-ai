@@ -42,7 +42,7 @@ JoeBaseChunkComponent = ClassSimple {
     --- Records a claim on the given section. Pure storage; the caller (`JoeBase:ClaimSection`) is responsible for checking conflicts against the brain's union view and mirroring successful claims back to the brain.
     ---@param self JoeBaseChunkComponent
     ---@param sectionId NavSectionIdentifier
-    Claim = function(self, sectionId)
+    ClaimSection = function(self, sectionId)
         local section = NavGenerator.NavSections[sectionId]
         if not section then
             return
@@ -58,13 +58,13 @@ JoeBaseChunkComponent = ClassSimple {
     --- Releases the claim on a single section. Pure storage; the caller mirrors the release to the brain.
     ---@param self JoeBaseChunkComponent
     ---@param sectionId NavSectionIdentifier
-    Release = function(self, sectionId)
+    ReleaseSection = function(self, sectionId)
         self.Sections[sectionId] = nil
     end,
 
     --- Clears every claim. Pure storage; the caller is expected to mirror each release to the brain *before* calling this so the union stays in sync.
     ---@param self JoeBaseChunkComponent
-    ReleaseAll = function(self)
+    ReleaseAllSections = function(self)
         self.Sections = {}
     end,
 

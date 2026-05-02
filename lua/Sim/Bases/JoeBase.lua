@@ -61,8 +61,8 @@ JoeBase = ClassSimple {
             return false
         end
 
-        self.ChunkComponent:Claim(sectionId)
-        self.Brain.ChunkComponent:NoteBaseClaim(sectionId, self)
+        self.ChunkComponent:ClaimSection(sectionId)
+        self.Brain.ChunkComponent:ClaimSection(sectionId, self)
         return true
     end,
 
@@ -75,8 +75,8 @@ JoeBase = ClassSimple {
             return false
         end
 
-        self.ChunkComponent:Release(sectionId)
-        self.Brain.ChunkComponent:NoteBaseRelease(sectionId, self)
+        self.ChunkComponent:ReleaseSection(sectionId)
+        self.Brain.ChunkComponent:ReleaseSection(sectionId, self)
         return true
     end,
 
@@ -85,9 +85,9 @@ JoeBase = ClassSimple {
     ReleaseAllSections = function(self)
         local brainComponent = self.Brain.ChunkComponent
         for sectionId, _ in self.ChunkComponent.Sections do
-            brainComponent:NoteBaseRelease(sectionId, self)
+            brainComponent:ReleaseSection(sectionId, self)
         end
-        self.ChunkComponent:ReleaseAll()
+        self.ChunkComponent:ReleaseAllSections()
     end,
 
     --- Tears the base down: kills every thread/observer in the trash, releases every claimed section (mirroring to the brain), and removes the base from the brain's roster. After this call the base is no longer reachable through `brain.Bases`.

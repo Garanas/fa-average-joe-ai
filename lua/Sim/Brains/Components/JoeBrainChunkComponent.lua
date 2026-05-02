@@ -6,7 +6,7 @@ local TableGetn = table.getn
 
 --- Manages the brain-level view of claimed nav-mesh sections, plus the queries that locate new claimable area.
 ---
---- The brain's claim set is *the union of every base's claim set*. Bases are the only writers; the brain mirrors via `NoteBaseClaim` / `NoteBaseRelease`. Each section's value here is the owning `JoeBase` reference — fast `IsClaimed` lookup, plus we know who owns it without scanning all bases.
+--- The brain's claim set is *the union of every base's claim set*. Bases are the only writers; the brain mirrors via `ClaimSection` / `ReleaseSection`. Each section's value here is the owning `JoeBase` reference — fast `IsClaimed` lookup, plus we know who owns it without scanning all bases.
 ---
 --- Section identifiers are globally unique across nav layers (they share a counter), so a single `Sections` table holds claims on Land, Water, etc. without collision; the layer is resolved per-query when walking the mesh.
 ---@class JoeBrainChunkComponent
@@ -24,20 +24,20 @@ JoeBrainChunkComponent = ClassSimple {
     -----------------------------------------------------------------------------
     --#region Mirror from base claims
 
-    --- Called by `JoeBaseChunkComponent:Claim` to mirror the claim into the brain set.
+    --- Called by `JoeBase:ClaimSection` (the coordinator) to mirror the claim into the brain set. Same name as the base-side method on purpose — they're the same operation at two layers.
     ---@param self JoeBrainChunkComponent
     ---@param sectionId NavSectionIdentifier
     ---@param base JoeBase
-    NoteBaseClaim = function(self, sectionId, base)
+    ClaimSection = function(self, sectionId, base)
         self.Sections[sectionId] = base
     end,
 
-    --- Called by `JoeBaseChunkComponent:Release` (or `ReleaseAll`) to mirror the release.
+    --- Called by `JoeBase:ReleaseSection` (or `JoeBase:ReleaseAllSections`) to mirror the release.
     --- Defensively only clears if the requesting base is the current owner — guards against an out-of-order release accidentally clearing another base's claim.
     ---@param self JoeBrainChunkComponent
     ---@param sectionId NavSectionIdentifier
     ---@param base JoeBase
-    NoteBaseRelease = function(self, sectionId, base)
+    ReleaseSection = function(self, sectionId, base)
         if self.Sections[sectionId] == base then
             self.Sections[sectionId] = nil
         end

@@ -22,7 +22,7 @@ Components in this folder are **pure storage**. They expose accessors and predic
 
 The base is the active party in claims:
 
-- A base calls `self.Brain.ChunkComponent:NoteBaseClaim(...)` — but only from inside a `JoeBase` method (e.g. `ClaimSection`), never from inside a base component.
+- A base calls `self.Brain.ChunkComponent:ClaimSection(...)` — but only from inside a `JoeBase` method (e.g. `JoeBase:ClaimSection`), never from inside a base component. Both methods share the name on purpose: the base coordinator and the brain mirror are the same operation, just at two layers.
 - The brain doesn't push state down into bases; bases pull from the brain.
 - The brain uses `self.Bases` to iterate and collect (e.g. for the chunk visualization).
 
