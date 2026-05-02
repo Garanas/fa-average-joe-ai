@@ -16,6 +16,7 @@ local StandardBrainOnCreateAI = StandardBrain.OnCreateAI
 ---@field GridRecon AIGridRecon
 ---@field GridPresence AIGridPresence
 ---@field ChunkComponent JoeBrainChunkComponent
+---@field ChunkLoader JoeBaseChunkLoader
 ---@field Bases JoeBase[]
 ---@field Debug boolean
 ---@field DrawThread? thread
@@ -34,6 +35,7 @@ JoeBrain = Class(StandardBrain) {
         self.GridRecon = import("/lua/ai/gridrecon.lua").Setup(self)
         self.GridPresence = import("/lua/ai/gridpresence.lua").Setup(self)
         self.ChunkComponent = import("/mods/fa-joe-ai/lua/Sim/Brains/Components/JoeBrainChunkComponent.lua").Setup(self)
+        self.ChunkLoader = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/JoeBaseChunkLoader.lua").CreateDefaultJoeBaseChunkLoader()
 
         self.Bases = {}
     end,
