@@ -170,7 +170,7 @@ JoeBase = ClassSimple {
         WARN(self:FormatMessage(message))
     end,
 
-    --- A utility function that draws the current status quo.
+    --- A utility function that draws the current status quo. Composes per-aspect draw helpers so they can also be invoked individually.
     ---@param self JoeBase
     Draw = function(self)
         DrawCircle(self.Location, 10, 'ffffff')
@@ -178,10 +178,17 @@ JoeBase = ClassSimple {
         DrawCircle(self.Location, 12, 'ffffff')
 
         local DebugUtils = import("/mods/fa-joe-ai/lua/Sim/DebugUtils.lua")
-
         local idleUnits = self.IdleBehavior:GetPlatoonUnits()
         DebugUtils.DrawUnits(idleUnits, 'ffffff', 0.1)
 
+        self.ChunkComponent:Draw()
+        self:DrawReclaimingEngineers()
+    end,
+
+    --- Draws the units of every reclaim behavior currently assigned to this base.
+    ---@param self JoeBase
+    DrawReclaimingEngineers = function(self)
+        local DebugUtils = import("/mods/fa-joe-ai/lua/Sim/DebugUtils.lua")
         for k = 1, table.getn(self.Engineers.Reclaiming) do
             local behavior = self.Engineers.Reclaiming[k]
             if not IsDestroyed(behavior) then

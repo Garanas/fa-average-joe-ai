@@ -73,39 +73,6 @@ do
         end
     end
 
-    ---@class JoeDebugToggleBaseChunkVisualizationData
-    ---@field ArmyIndex number
-    ---@field Location Vector
-
-    --- Toggles the per-base chunk visualization for whichever base owns the section under `Location`. The mouse position is resolved to a section (Land first, Water as fallback), then to its owning base via `brain.ChunkComponent.Sections`.
-    ---@param data JoeDebugToggleBaseChunkVisualizationData
-    Callbacks.JoeDebugToggleBaseChunkVisualization = function(data)
-        local brain = GetArmyBrain(data.ArmyIndex) --[[@as JoeBrain]]
-        if not brain or not brain.ChunkComponent then
-            print("No brain or chunk component for army index:", data.ArmyIndex)
-            return
-        end
-
-        local section = brain.ChunkComponent:FindSection("Land", data.Location)
-                     or brain.ChunkComponent:FindSection("Water", data.Location)
-        if not section then
-            print("No section under cursor")
-            return
-        end
-
-        local base = brain.ChunkComponent:GetOwner(section.Identifier)
-        if not base then
-            print("Section under cursor is not claimed by any base")
-            return
-        end
-
-        if base.ChunkComponent.Debug then
-            base.ChunkComponent:DisableDebug()
-        else
-            base.ChunkComponent:EnableDebug()
-        end
-    end
-
     ---@class JoeDebugAssignReclaimBehaviorData
     ---@field Location Vector
 

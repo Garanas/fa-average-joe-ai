@@ -26,11 +26,7 @@ end
 ---@field Base JoeBase
 ---@field Layer NavLayers
 ---@field Sections table<NavSectionIdentifier, JoeBaseSectionClaim>
----@field Debug boolean
----@field DrawThread? thread
 JoeBaseChunkComponent = ClassSimple {
-
-    Debug = false,
 
     ---@param self JoeBaseChunkComponent
     ---@param base JoeBase
@@ -111,33 +107,7 @@ JoeBaseChunkComponent = ClassSimple {
     -----------------------------------------------------------------------------
     --#region Debug visualization
 
-    ---@param self JoeBaseChunkComponent
-    EnableDebug = function(self)
-        if self.Debug then
-            return
-        end
-        self.Debug = true
-        self.DrawThread = ForkThread(self.DrawLoop, self)
-    end,
-
-    ---@param self JoeBaseChunkComponent
-    DisableDebug = function(self)
-        self.Debug = false
-        if self.DrawThread then
-            KillThread(self.DrawThread)
-            self.DrawThread = nil
-        end
-    end,
-
-    ---@param self JoeBaseChunkComponent
-    DrawLoop = function(self)
-        while self.Debug do
-            self:Draw()
-            WaitTicks(1)
-        end
-    end,
-
-    --- Draws every claimed section's leaves, brighter when the claim is chunkified.
+    --- Draws every claimed section's leaves, brighter when the claim is chunkified. Pure render — caller decides when to invoke (e.g. from `JoeBase:Draw`).
     ---@param self JoeBaseChunkComponent
     Draw = function(self)
         local layerColor = Shared.LayerColors[self.Layer] or 'ffffff'

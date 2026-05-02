@@ -117,12 +117,6 @@ local BaseHotkeys = {
     },
     {
         category = KeyCategories.Base.Key,
-        key = 'average_joe_ai_toggle_base_chunk_visualization',
-        name = 'Joe AI - Toggle base chunk visualization for the base under cursor',
-        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/ToggleBaseChunkVisualization.lua").Handle()',
-    },
-    {
-        category = KeyCategories.Base.Key,
         key = 'average_joe_ai_assign_reclaim_behavior_base',
         name = 'Joe AI - Assign reclaim behavior to selected engineers in base',
         action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/Base/AssignReclaimBehavior.lua").Handle()',
