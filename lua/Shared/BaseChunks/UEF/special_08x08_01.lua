@@ -7,11 +7,7 @@ Template ={
   Faction = "UEF",
   Locations = {
     T2AirStagingPlatform = {
-      {
-        4,
-        4,
-        0,
-      },
+      { 4, 4, 0 },
     },
   },
   Units = {
