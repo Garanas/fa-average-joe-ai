@@ -95,18 +95,18 @@
 local MapToEntityCategories = {
     -- Energy Structures
     T1EnergyProduction = { Category = categories.STRUCTURE * categories.ENERGYPRODUCTION * categories.TECH1, Color = 'ffff00', SizeX = 2, SizeZ = 2 },
-    T1HydroCarbon      = { Category = categories.STRUCTURE * categories.HYDROCARBON * categories.TECH1, Color = 'ffdd00', SizeX = 4, SizeZ = 4 },
+    T1HydroCarbon      = { Category = categories.STRUCTURE * categories.HYDROCARBON * categories.TECH1, Color = 'ffdd00', SizeX = 6, SizeZ = 6 },
     T2EnergyProduction = { Category = categories.STRUCTURE * categories.ENERGYPRODUCTION * categories.TECH2, Color = 'ffcc00', SizeX = 6, SizeZ = 6 },
     T3EnergyProduction = { Category = categories.STRUCTURE * categories.ENERGYPRODUCTION * categories.TECH3, Color = 'ffaa00', SizeX = 8, SizeZ = 8 },
-    EnergyStorage      = { Category = categories.STRUCTURE * categories.ENERGYSTORAGE, Color = '888844', SizeX = 1, SizeZ = 1 },
+    EnergyStorage      = { Category = categories.STRUCTURE * categories.ENERGYSTORAGE, Color = '888844', SizeX = 2, SizeZ = 2 },
 
     -- Mass Structures
-    T1Resource     = { Category = categories.STRUCTURE * categories.MASSEXTRACTION * categories.TECH1, Color = 'ff8800', SizeX = 1, SizeZ = 1 },
-    T2Resource     = { Category = categories.STRUCTURE * categories.MASSEXTRACTION * categories.TECH2, Color = 'ff7700', SizeX = 1, SizeZ = 1 },
-    T3Resource     = { Category = categories.STRUCTURE * categories.MASSEXTRACTION * categories.TECH3, Color = 'ff6600', SizeX = 1, SizeZ = 1 },
-    T1MassCreation = { Category = categories.STRUCTURE * categories.MASSFABRICATION * categories.TECH2, Color = 'ffaa44', SizeX = 1, SizeZ = 1 },
-    T3MassCreation = { Category = categories.STRUCTURE * categories.MASSFABRICATION * categories.TECH3, Color = 'ff9933', SizeX = 3, SizeZ = 3 },
-    MassStorage    = { Category = categories.STRUCTURE * categories.MASSSTORAGE, Color = '884422', SizeX = 1, SizeZ = 1 },
+    T1Resource     = { Category = categories.STRUCTURE * categories.MASSEXTRACTION * categories.TECH1, Color = 'ff8800', SizeX = 2, SizeZ = 2 },
+    T2Resource     = { Category = categories.STRUCTURE * categories.MASSEXTRACTION * categories.TECH2, Color = 'ff7700', SizeX = 2, SizeZ = 2 },
+    T3Resource     = { Category = categories.STRUCTURE * categories.MASSEXTRACTION * categories.TECH3, Color = 'ff6600', SizeX = 2, SizeZ = 2 },
+    T1MassCreation = { Category = categories.STRUCTURE * categories.MASSFABRICATION * categories.TECH2, Color = 'ffaa44', SizeX = 2, SizeZ = 2 },
+    T3MassCreation = { Category = categories.STRUCTURE * categories.MASSFABRICATION * categories.TECH3, Color = 'ff9933', SizeX = 6, SizeZ = 6 },
+    MassStorage    = { Category = categories.STRUCTURE * categories.MASSSTORAGE, Color = '884422', SizeX = 2, SizeZ = 2 },
 
     -- Land Factory Structures
     LandFactory          = { Category = categories.STRUCTURE * categories.FACTORY * categories.LAND, Color = '6699ff', SizeX = 8, SizeZ = 8 },
@@ -127,12 +127,12 @@ local MapToEntityCategories = {
     T2AirStagingPlatform = { Category = categories.STRUCTURE * categories.AIRSTAGINGPLATFORM, Color = '88ddff', SizeX = 6, SizeZ = 6 },
 
     -- Sea Factory Structures
-    NavalFactory        = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL, Color = '3377ee', SizeX = 14, SizeZ = 8 },
-    T1SeaFactory        = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH1, Color = '2266dd', SizeX = 14, SizeZ = 8 },
-    T2SeaFactory        = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH2, Color = '1155cc', SizeX = 14, SizeZ = 8 },
-    T2SupportSeaFactory = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH2 * categories.SUPPORTFACTORY, Color = '3377dd', SizeX = 14, SizeZ = 8 },
-    T3SeaFactory        = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH3, Color = '0044bb', SizeX = 14, SizeZ = 8 },
-    T3SupportSeaFactory = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH3 * categories.SUPPORTFACTORY, Color = '2266dd', SizeX = 14, SizeZ = 8 },
+    NavalFactory        = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL, Color = '3377ee', SizeX = 12, SizeZ = 14 },
+    T1SeaFactory        = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH1, Color = '2266dd', SizeX = 12, SizeZ = 14 },
+    T2SeaFactory        = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH2, Color = '1155cc', SizeX = 12, SizeZ = 14 },
+    T2SupportSeaFactory = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH2 * categories.SUPPORTFACTORY, Color = '3377dd', SizeX = 12, SizeZ = 14 },
+    T3SeaFactory        = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH3, Color = '0044bb', SizeX = 12, SizeZ = 14 },
+    T3SupportSeaFactory = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH3 * categories.SUPPORTFACTORY, Color = '2266dd', SizeX = 12, SizeZ = 14 },
 
     -- Defense Structures
     Wall             = { Category = categories.STRUCTURE * categories.WALL, Color = '884422', SizeX = 1, SizeZ = 1 },
@@ -143,7 +143,7 @@ local MapToEntityCategories = {
     T2AADefense      = { Category = categories.STRUCTURE * categories.ANTIAIR * categories.TECH2, Color = 'ee22ee', SizeX = 2, SizeZ = 2 },
     T3AADefense      = { Category = categories.STRUCTURE * categories.ANTIAIR * categories.TECH3, Color = 'cc11cc', SizeX = 2, SizeZ = 2 },
     T1NavalDefense   = { Category = categories.STRUCTURE * categories.ANTINAVY * categories.TECH1, Color = '00aaaa', SizeX = 1, SizeZ = 1 },
-    T2NavalDefense   = { Category = categories.STRUCTURE * categories.ANTINAVY * categories.TECH2, Color = '008888', SizeX = 2, SizeZ = 2 },
+    T2NavalDefense   = { Category = categories.STRUCTURE * categories.ANTINAVY * categories.TECH2, Color = '008888', SizeX = 3, SizeZ = 3 },
     T2ShieldDefense  = { Category = categories.STRUCTURE * categories.SHIELD * categories.TECH2, Color = '44ff44', SizeX = 6, SizeZ = 6 },
     T3ShieldDefense  = { Category = categories.STRUCTURE * categories.SHIELD * categories.TECH3, Color = '22dd22', SizeX = 6, SizeZ = 6 },
     T2MissileDefense = { Category = categories.STRUCTURE * categories.ANTIMISSILE * categories.TECH2, Color = 'ff8888', SizeX = 2, SizeZ = 2 },
@@ -153,29 +153,29 @@ local MapToEntityCategories = {
     T2Radar       = { Category = categories.STRUCTURE * categories.RADAR * categories.TECH2, Color = 'eeeeee', SizeX = 2, SizeZ = 2 },
     T3Radar       = { Category = categories.STRUCTURE * categories.RADAR * categories.TECH3, Color = 'cccccc', SizeX = 2, SizeZ = 2 },
     T2RadarJammer = { Category = categories.STRUCTURE * categories.COUNTERINTELLIGENCE * categories.TECH2, Color = 'aaaaaa', SizeX = 6, SizeZ = 6 },
-    T1Sonar       = { Category = categories.STRUCTURE * categories.SONAR * categories.TECH1, Color = '88ddff', SizeX = 2, SizeZ = 2 },
-    T2Sonar       = { Category = categories.STRUCTURE * categories.SONAR * categories.TECH2, Color = '66ccee', SizeX = 2, SizeZ = 2 },
-    T3Sonar       = { Category = categories.STRUCTURE * categories.SONAR * categories.TECH3, Color = '44bbdd', SizeX = 2, SizeZ = 2 },
+    T1Sonar       = { Category = categories.STRUCTURE * categories.SONAR * categories.TECH1, Color = '88ddff', SizeX = 1, SizeZ = 1 },
+    T2Sonar       = { Category = categories.STRUCTURE * categories.SONAR * categories.TECH2, Color = '66ccee', SizeX = 1, SizeZ = 1 },
+    T3Sonar       = { Category = categories.STRUCTURE * categories.SONAR * categories.TECH3, Color = '44bbdd', SizeX = 1, SizeZ = 1 },
 
     -- Artillery Structures
     T2Artillery = { Category = categories.STRUCTURE * categories.ARTILLERY * categories.TECH2, Color = 'aa1100', SizeX = 2, SizeZ = 2 },
-    T3Artillery = { Category = categories.STRUCTURE * categories.ARTILLERY * categories.TECH3, Color = '880000', SizeX = 2, SizeZ = 2 },
-    T4Artillery = { Category = categories.STRUCTURE * categories.ARTILLERY * categories.EXPERIMENTAL, Color = '660000', SizeX = 5, SizeZ = 5 },
+    T3Artillery = { Category = categories.STRUCTURE * categories.ARTILLERY * categories.TECH3, Color = '880000', SizeX = 8, SizeZ = 8 },
+    T4Artillery = { Category = categories.STRUCTURE * categories.ARTILLERY * categories.EXPERIMENTAL, Color = '660000', SizeX = 10, SizeZ = 10 },
 
     -- Strategic Missile Structures
-    T2StrategicMissile        = { Category = categories.STRUCTURE * categories.SILO * categories.TECH2, Color = '444444', SizeX = 3, SizeZ = 3 },
-    T3StrategicMissile        = { Category = categories.STRUCTURE * categories.SILO * categories.TECH3, Color = '222222', SizeX = 8, SizeZ = 8 },
-    T3StrategicMissileDefense = { Category = categories.STRUCTURE * categories.ANTIMISSILE * categories.SILO * categories.TECH3, Color = '999999', SizeX = 6, SizeZ = 6 },
+    T2StrategicMissile        = { Category = categories.STRUCTURE * categories.SILO * categories.TECH2, Color = '444444', SizeX = 2, SizeZ = 2 },
+    T3StrategicMissile        = { Category = categories.STRUCTURE * categories.SILO * categories.TECH3, Color = '222222', SizeX = 6, SizeZ = 6 },
+    T3StrategicMissileDefense = { Category = categories.STRUCTURE * categories.ANTIMISSILE * categories.SILO * categories.TECH3, Color = '999999', SizeX = 3, SizeZ = 3 },
 
     -- Experimentals (mobile units, footprints are best-guess for planning)
-    T4LandExperimental1     = { Category = categories.MOBILE * categories.LAND * categories.EXPERIMENTAL, Color = 'ff00aa', SizeX = 5, SizeZ = 5 },
-    T4LandExperimental2     = { Category = categories.MOBILE * categories.LAND * categories.EXPERIMENTAL, Color = 'dd0099', SizeX = 5, SizeZ = 5 },
-    T4AirExperimental1      = { Category = categories.MOBILE * categories.AIR * categories.EXPERIMENTAL, Color = 'cc44dd', SizeX = 5, SizeZ = 5 },
-    T4SeaExperimental1      = { Category = categories.MOBILE * categories.NAVAL * categories.EXPERIMENTAL, Color = '8822aa', SizeX = 5, SizeZ = 5 },
-    T4SatelliteExperimental = { Category = categories.MOBILE * categories.SATELLITE * categories.EXPERIMENTAL, Color = 'aa44cc', SizeX = 4, SizeZ = 4 },
+    T4LandExperimental1     = { Category = categories.MOBILE * categories.LAND * categories.EXPERIMENTAL, Color = 'ff00aa', SizeX = 9, SizeZ = 9 },
+    T4LandExperimental2     = { Category = categories.MOBILE * categories.LAND * categories.EXPERIMENTAL, Color = 'dd0099', SizeX = 9, SizeZ = 9 },
+    T4AirExperimental1      = { Category = categories.MOBILE * categories.AIR * categories.EXPERIMENTAL, Color = 'cc44dd', SizeX = 8, SizeZ = 8 },
+    T4SeaExperimental1      = { Category = categories.MOBILE * categories.NAVAL * categories.EXPERIMENTAL, Color = '8822aa', SizeX = 16, SizeZ = 16 },
+    T4SatelliteExperimental = { Category = categories.MOBILE * categories.SATELLITE * categories.EXPERIMENTAL, Color = 'aa44cc', SizeX = 2, SizeZ = 2 },
 
     -- Misc / Support Structures
-    T2EngineerSupport = { Category = categories.STRUCTURE * (categories.PODSTAGINGPLATFORM + categories.ENGINEERSTATION) * categories.TECH2, Color = '00aaaa', SizeX = 4, SizeZ = 4 },
+    T2EngineerSupport = { Category = categories.STRUCTURE * (categories.PODSTAGINGPLATFORM + categories.ENGINEERSTATION) * categories.TECH2, Color = '00aaaa', SizeX = 2, SizeZ = 2 },
 }
 
 --- Categories of units do not change during run time. It's safe to cache the results.
