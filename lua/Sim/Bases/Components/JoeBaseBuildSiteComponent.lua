@@ -1,5 +1,6 @@
 local DebugUtils = import("/mods/fa-joe-ai/lua/Sim/Utils/DebugUtils.lua")
 local JoeBuildingIdentifierModule = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/JoeBuildingIdentifiers.lua")
+local NavGenerator = import("/lua/sim/navgenerator.lua")
 
 local TableInsert = table.insert
 local TableGetn = table.getn
@@ -109,16 +110,17 @@ JoeBaseBuildSiteComponent = ClassSimple {
     -----------------------------------------------------------------------------
     --#region Mapping templates onto sections
 
-    --- Materialises every `Locations` entry of the given template as a build site, anchored on the section's center. Returns the array of newly-added sites so the caller can act on them immediately.
+    --- Materialises every `Locations` entry of the given template as a build site, anchored on a specific nav-mesh leaf (centered on `leaf.px`/`leaf.pz`). The leaf's owning section is recorded on each new site for cascade-on-release. Returns the array of newly-added sites so the caller can act on them immediately.
     ---@param self JoeBaseBuildSiteComponent
     ---@param template JoeBaseChunk
-    ---@param section NavSection
+    ---@param leaf NavLeaf
     ---@return JoeBuildSite[]
-    MapTemplate = function(self, template, section)
-        -- center the template on the section's centroid
+    MapTemplate = function(self, template, leaf)
         local size = template.Size
-        local anchorX = section.Center[1] - 0.5 * size
-        local anchorZ = section.Center[3] - 0.5 * size
+        local anchorX = leaf.px - 0.5 * size
+        local anchorZ = leaf.pz - 0.5 * size
+
+        local section = NavGenerator.NavSections[leaf.Section]
 
         local newSites = {}
         for identifier, locations in template.Locations do

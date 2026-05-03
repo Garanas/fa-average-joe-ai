@@ -168,36 +168,72 @@ JoeBase = ClassSimple {
         return nil
     end,
 
-    --- Returns the first chunk template loaded by the brain that contains at least one slot for `identifier`. Stops at the first match — a richer "best fit" strategy can replace this when needed.
+    --- Picks a template that fits a single leaf, **size-first**: the largest fitting template wins. Templates whose `Size` exceeds `leaf.Size` are skipped. Among same-size candidates, identifier-bearing templates are preferred as a tie-break.
     ---@param self JoeBase
+    ---@param leaf NavLeaf
     ---@param identifier JoeBuildingIdentifier
     ---@return JoeBaseChunk?
-    FindTemplateForIdentifier = function(self, identifier)
+    ---@return boolean   # true if the chosen template contains the identifier
+    FindTemplateForLeaf = function(self, leaf, identifier)
+        local best = nil
+        local bestSize = -1
+        local bestHasIdentifier = false
+
         local templates = self.Brain.ChunkLoader.Templates
         for k = 1, TableGetn(templates) do
             local template = templates[k]
-            local locations = template.Locations[identifier]
-            if locations and TableGetn(locations) > 0 then
-                return template
+            if template.Size <= leaf.Size then
+                local locations = template.Locations[identifier]
+                local hasIdentifier = locations ~= nil and TableGetn(locations) > 0
+
+                if template.Size > bestSize then
+                    best = template
+                    bestSize = template.Size
+                    bestHasIdentifier = hasIdentifier
+                elseif template.Size == bestSize and hasIdentifier and not bestHasIdentifier then
+                    -- same size, prefer the one that contains the identifier
+                    best = template
+                    bestHasIdentifier = true
+                end
             end
         end
-        return nil
+
+        return best, bestHasIdentifier
     end,
 
-    --- Picks a template that satisfies `identifier`, maps it onto the section, and marks the section chunkified. Returns true on success, false if no fitting template exists.
+    --- Maps a size-best-fit template onto every pathable leaf of the section. Tracks whether any of the chosen templates happen to contain a slot for `identifier`; returns true only when at least one does — that's what makes the section useful for the current query. The section is marked chunkified whenever any template was applied (build sites placed are still useful for future queries with other identifiers, even if this one wasn't satisfied).
+    ---
+    --- Unpathable leaves (`Label <= 0`) and leaves smaller than every available template are skipped entirely.
     ---@param self JoeBase
     ---@param section NavSection
     ---@param identifier JoeBuildingIdentifier
     ---@return boolean
     ApplyTemplateForIdentifier = function(self, section, identifier)
-        local template = self:FindTemplateForIdentifier(identifier)
-        if not template then
-            return false
+        local leaves = section.Leaves
+        local leafCount = TableGetn(leaves)
+
+        local appliedAny = false
+        local hasIdentifierMatch = false
+
+        for k = 1, leafCount do
+            local leaf = leaves[k]
+            if leaf.Label > 0 then
+                local template, isMatch = self:FindTemplateForLeaf(leaf, identifier)
+                if template then
+                    self.BuildSiteComponent:MapTemplate(template, leaf)
+                    appliedAny = true
+                    if isMatch then
+                        hasIdentifierMatch = true
+                    end
+                end
+            end
         end
 
-        self.BuildSiteComponent:MapTemplate(template, section)
-        self.ChunkComponent:MarkChunkified(section.Identifier)
-        return true
+        if appliedAny then
+            self.ChunkComponent:MarkChunkified(section.Identifier)
+        end
+
+        return hasIdentifierMatch
     end,
 
     --- Asks the brain for unclaimed nav sections reachable from this base's location and claims the first one. Returns the section claimed, or nil if no expansion was possible.
