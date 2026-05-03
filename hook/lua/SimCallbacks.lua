@@ -216,6 +216,45 @@ do
         JoeBaseBuilder.Extend(base):AssignUnits(units):End()
     end
 
+    local JoeBuildingIdentifierModule = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/JoeBuildingIdentifiers.lua")
+
+    ---@class JoeDebugPushBuildJobData
+    ---@field UnitId UnitId
+    ---@field LocationHint? Vector
+
+    --- Pushes a build job onto the queue of the selected engineer's base. The unit id (from the active build command mode) is resolved to a `JoeBuildingIdentifier` and stored on the spec's `Identifier` field. If `LocationHint` is provided, it's attached to the spec verbatim.
+    ---@param data JoeDebugPushBuildJobData
+    ---@param units JoeUnit[]
+    Callbacks.JoeDebugPushBuildJob = function(data, units)
+        if table.empty(units) then
+            print("No engineer selected")
+            return
+        end
+
+        local engineer = units[1]
+        local base = engineer.JoeData.Base
+        if not base then
+            print("Selected engineer is not part of a base")
+            return
+        end
+
+        local identifier = JoeBuildingIdentifierModule.MapToIdentifier(data.UnitId)
+
+        ---@type JoeBuildJobSpec
+        local spec = {
+            Identifier = identifier,
+            LocationHint = data.LocationHint,
+        }
+
+        base.BuildQueueComponent:PushJob(spec)
+        print(
+            "PushBuildJob:", data.UnitId,
+            "->", identifier,
+            data.LocationHint and "(with hint)" or "(no hint)",
+            "; queue size:", table.getn(base.BuildQueueComponent.Pending)
+        )
+    end
+
     ---@class JoeDebugAssignReclaimBehaviorData
     ---@field Location Vector
 

@@ -5,6 +5,7 @@ local TableUtils = import("/mods/fa-joe-ai/lua/Shared/TableUtils.lua")
 
 local JoeBaseChunkComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseChunkComponent.lua").JoeBaseChunkComponent
 local JoeBaseBuildSiteComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseBuildSiteComponent.lua").JoeBaseBuildSiteComponent
+local JoeBaseBuildQueueComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseBuildQueueComponent.lua").JoeBaseBuildQueueComponent
 
 local JoeBuildingIdentifierModule = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/JoeBuildingIdentifiers.lua")
 
@@ -32,6 +33,7 @@ local TableGetn = table.getn
 ---@field IdleBehavior BaseIdleBehavior
 ---@field ChunkComponent JoeBaseChunkComponent
 ---@field BuildSiteComponent JoeBaseBuildSiteComponent
+---@field BuildQueueComponent JoeBaseBuildQueueComponent
 ---@field Units JoeUnit[]
 JoeBase = ClassSimple {
 
@@ -51,6 +53,7 @@ JoeBase = ClassSimple {
 
         self.ChunkComponent = JoeBaseChunkComponent(self)
         self.BuildSiteComponent = JoeBaseBuildSiteComponent(self)
+        self.BuildQueueComponent = JoeBaseBuildQueueComponent(self)
 
         self.Trash:Add(ForkThread(self.RePrioritizeEngineersThread, self))
     end,
