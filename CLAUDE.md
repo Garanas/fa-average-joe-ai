@@ -23,6 +23,16 @@ These load automatically when working in the relevant subtree — read them firs
 - [`lua/Sim/Utils/CLAUDE.md`](lua/Sim/Utils/CLAUDE.md) — pure-function utility modules. Drawing, entity sorting, map-area math, unit helpers, order helpers.
 - [`lua/Shared/BaseChunks/CLAUDE.md`](lua/Shared/BaseChunks/CLAUDE.md) — base chunks: faction-agnostic building identifiers, on-disk (`JoeBaseChunk`) vs runtime (`JoeLoadedBaseChunk`) types, authoring workflow.
 
+## Model / Controller philosophy
+
+The architecture is layered as **model + controllers**:
+
+- **Model** — `JoeBase` and its components. The source of truth for one piece of the map: claimed leaves, build sites with their reservation/blocked flags, queued/active/complete build jobs, engineer assignments. Validates its own data each tick (`JoeBase.TickThread`). **Does not make policy decisions.**
+- **Army-level controller** — `JoeBrain`. Reads base state, decides what to build (pushes jobs onto base queues), where to expand, how to dispatch roaming forces.
+- **Unit-level controllers** — platoon behaviors in [`lua/Sim/Behaviors/`](lua/Sim/Behaviors/). Read base state to make tactical decisions (which candidate site is best, when to abandon a job), execute, and mutate the model so the next tick sees an accurate picture.
+
+The lines aren't perfectly drawn yet — `JoeBase` currently does some controller-shaped work (engineer recycling, idle assignment) that we plan to migrate upward over time. The rule when writing new code is the strict version: if you're deciding *what to do*, you're a controller; if you're answering *what is the current state*, you're the model. Selection policies that depend on the unit type (an ACU isn't an engineer) belong in the consuming behavior, not on the base.
+
 ## Architectural patterns
 
 - **AI brains** extend `AIBrain`. [`lua/Sim/Brains/JoeBrain.lua`](lua/Sim/Brains/JoeBrain.lua) composes grid-based features (`GridReclaim`, `GridRecon`, `GridPresence`).

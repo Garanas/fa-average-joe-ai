@@ -2,6 +2,14 @@
 
 A **base** is a goal-defined unit of territory + structures + assigned engineers, tied to a single nav-mesh layer (Land or Water) and to a single brain. The brain holds many bases; each base owns a piece of the map and a slice of the army's economic/defensive output.
 
+## Role: model
+
+The base is the **model** layer of the AI (see the model/controller philosophy in the [top-level CLAUDE.md](../../../CLAUDE.md)): it answers "what is the current state of this piece of the map?" — claimed leaves, build sites with their reservation/blocked flags, queued/active/complete build jobs, engineer assignments. It validates its own data periodically via `JoeBase.TickThread`.
+
+In the long-term shape the base **does not make policy decisions**: what to build, where to expand, who to dispatch are decided by `JoeBrain` (army scope) or platoon behaviors (unit scope). Some controller-shaped work still lives here (engineer recycling, idle assignment) and will migrate upward over time.
+
+If you find yourself reaching for a method like `JoeBase:DecideWhatToBuild`, that belongs on the brain. If you find yourself scoring build candidates inside the base, that belongs on the consuming behavior — different unit types want different policies (an ACU isn't an engineer). The base returns *state*; controllers decide what to do with it.
+
 ## Files in this tree
 
 - [`JoeBase.lua`](JoeBase.lua) — the base class. Holds component refs, the trash bag, and the **coordinator methods** (see below).

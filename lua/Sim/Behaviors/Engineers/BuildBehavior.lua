@@ -14,6 +14,32 @@ local function ResolveUnitIdForBuilder(identifier, engineer)
     return EntityCategoryGetUnitList(category)[1]
 end
 
+--- Picks the candidate build site closest to the engineer's current XZ position. Engineer-specific selection policy: shorter travel = sooner construction. The base returns *candidates*; this behavior decides among them. Other behaviors (e.g. a future ACU build behavior) will want a different policy — keep selection logic per-behavior rather than baking it into the base.
+---@param sites JoeBuildSite[]
+---@param engineer JoeUnit
+---@return JoeBuildSite
+local function SelectBuildSite(sites, engineer)
+    local ex, _, ez = engineer:GetPositionXYZ()
+
+    local best = sites[1]
+    local dx = best.Point[1] - ex
+    local dz = best.Point[2] - ez
+    local bestDistSq = dx * dx + dz * dz
+
+    for k = 2, table.getn(sites) do
+        local site = sites[k]
+        local sx = site.Point[1] - ex
+        local sz = site.Point[2] - ez
+        local distSq = sx * sx + sz * sz
+        if distSq < bestDistSq then
+            best = site
+            bestDistSq = distSq
+        end
+    end
+
+    return best
+end
+
 --- Read-only input parameters supplied by the platoon builder before `Start` runs.
 ---@class AIBuildBehaviorInput : AIPlatoonBehaviorInput
 
@@ -136,8 +162,8 @@ BuildBehavior = Class(AIPlatoonBehavior) {
                 return
             end
 
-            -- preliminary build check on the first candidate. If the engine refuses (terrain, occupation grid), disable the site and try again — `AcquireBuildSitesForIdentifier` will skip blocked sites on the next call. The full overlap pass in `UnitUtils.ValidateBuildSite` runs later in the build flow.
-            local site = sites[1]
+            -- pick the most preferred candidate, then sanity-check it. If the engine refuses (terrain, occupation grid), disable the site and try again — `AcquireBuildSitesForIdentifier` will skip blocked sites on the next call, so the next iteration picks a different candidate. The full overlap pass in `UnitUtils.ValidateBuildSite` runs later in the build flow.
+            local site = SelectBuildSite(sites, engineer)
             local location = { site.Point[1], 0, site.Point[2] }
             if not brain:CanBuildStructureAt(unitId, location) then
                 site:Block()

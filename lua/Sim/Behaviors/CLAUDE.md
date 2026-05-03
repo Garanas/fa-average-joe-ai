@@ -9,6 +9,11 @@ Two callers compose behaviors above this layer:
 
 Behaviors aren't aware of which level owns them. They take input, run to `Completed` (or `Error`), and let the caller re-task whatever's left.
 
+## Role: controller (unit-level)
+
+Behaviors are the **unit-level controllers** in the model/controller framing (see the [top-level CLAUDE.md](../../../CLAUDE.md)). They read the model — mostly the owning base's components — to decide tactical things (which candidate build site is closest, which path to take, when to abandon a job) and they mutate the model to keep it accurate (claim a build site via `RegisterBuildSite`, mark one blocked via `JoeBuildSite:Block`, register a unit on a job via `RegisterUnit`).
+
+**Selection policies that depend on the unit type live in the behavior, not on the base.** An ACU treats danger differently from a T1 engineer; a reclaim engineer prioritises mass density; a future repair behavior will care about damaged-unit proximity. The base returns the unfiltered candidate list; each behavior picks among them with its own logic. See `SelectBuildSite` in [Engineers/BuildBehavior.lua](Engineers/BuildBehavior.lua) for the current example — engineer-specific "closest wins."
 
 ## Files in this tree
 
