@@ -1,6 +1,18 @@
 -- Hooks into: https://github.com/FAForever/fa/blob/develop/lua/SimCallbacks.lua
 
 do
+    local OldDoCallback = DoCallback
+
+    --- Wraps the engine's DoCallback so any callback whose name contains "JoeDebug" announces itself in the log. Lets the per-callback bodies stay free of print boilerplate.
+    DoCallback = function(name, data, units)
+        if string.find(name, "JoeDebug", 1, true) then
+            print(name)
+        end
+        return OldDoCallback(name, data, units)
+    end
+end
+
+do
 
     local PlatoonBuilderUtils = import("/mods/fa-joe-ai/lua/Sim/Behaviors/PlatoonUtils.lua")
     local PlatoonBuilderModule = import("/mods/fa-joe-ai/lua/Sim/Behaviors/PlatoonBuilder.lua")
@@ -9,7 +21,7 @@ do
     local EntityUtils = import("/mods/fa-joe-ai/lua/Sim/Utils/EntityUtils.lua")
 
     ---@class JoeDebugCreatePlatoonData
-    ---@field BehaviorName string 
+    ---@field BehaviorName string
     ---@field BehaviorInput? AIPlatoonBehaviorInput
 
     ---@param data JoeDebugCreatePlatoonData
@@ -41,17 +53,21 @@ do
     ---@field Location Vector
     ---@field ArmyIndex number
 
-    --- Creates a base at `Location` for the focus army's brain, without requiring any selected units. Uses the builder pattern so registration is an explicit step (`AssignBrain`) rather than a side effect.
+    --- Creates a base at `Location` for the focus army's brain. Any selected units are assigned to the base as its initial units; an empty selection still creates the base with no starting units.
     ---@param data JoeDebugCreateBaseAtLocationData
-    Callbacks.JoeDebugCreateBaseAtLocation = function(data)
+    ---@param units JoeUnit[]
+    Callbacks.JoeDebugCreateBaseAtLocation = function(data, units)
         local brain = GetArmyBrain(data.ArmyIndex) --[[@as JoeBrain]]
         if not brain then
             print("No brain for army index:", data.ArmyIndex)
             return
         end
 
-        JoeBaseBuilder.Build(brain, data.Location)
-            :End()
+        local builder = JoeBaseBuilder.Build(brain, data.Location)
+        if not table.empty(units) then
+            builder:AssignUnits(units)
+        end
+        builder:End()
     end
 
     ---@class JoeDebugToggleBrainChunkVisualizationData
@@ -146,6 +162,58 @@ do
             "-> sites:", count,
             "first at:", first.Point[1], first.Point[2]
         )
+    end
+
+    ---@class JoeDebugAssignUnitsToBaseData
+    ---@field Location Vector
+    ---@field ArmyIndex number
+
+    --- Assigns the selected units to whichever base is at `Location`. Two ways the base is found, in this order:
+    ---   1. **Unit-wise** — any unit within a small box around `Location` whose `JoeData.Base` is non-nil; that unit's base wins.
+    ---   2. **Section-wise** — fallback to the section under `Location` (Land first, Water as fallback) and use its owning base.
+    --- If neither resolves, the assignment is reported and skipped.
+    ---@param data JoeDebugAssignUnitsToBaseData
+    ---@param units JoeUnit[]
+    Callbacks.JoeDebugAssignUnitsToBase = function(data, units)
+        if table.empty(units) then
+            print("No units selected")
+            return
+        end
+
+        local lx = data.Location[1]
+        local lz = data.Location[3]
+
+        -- 1. unit under mouse -> that unit's base
+        local base = nil
+        local nearby = GetUnitsInRect(lx - 2, lz - 2, lx + 2, lz + 2)
+        if nearby then
+            for k = 1, table.getn(nearby) do
+                local entity = nearby[k] --[[@as JoeUnit]]
+                if entity.JoeData and entity.JoeData.Base then
+                    base = entity.JoeData.Base
+                    break
+                end
+            end
+        end
+
+        -- 2. fallback: section under mouse -> its owning base
+        if not base then
+            local brain = GetArmyBrain(data.ArmyIndex) --[[@as JoeBrain]]
+            if brain and brain.ChunkComponent then
+                local section = brain.ChunkComponent:FindSection("Land", data.Location)
+                             or brain.ChunkComponent:FindSection("Water", data.Location)
+                if section then
+                    base = brain.ChunkComponent:GetOwner(section.Identifier)
+                end
+            end
+        end
+
+        if not base then
+            print("No base under cursor (no unit with a base, no claimed section)")
+            return
+        end
+
+        JoeBaseBuilder.Extend(base):AssignUnits(units):End()
     end
 
     ---@class JoeDebugAssignReclaimBehaviorData

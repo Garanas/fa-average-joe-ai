@@ -133,6 +133,12 @@ local BaseHotkeys = {
         name = "Joe AI - Acquire build sites at the engineer's base for the current command-mode unit",
         action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/Base/AcquireBuildSitesForBase.lua").Handle()',
     },
+    {
+        category = KeyCategories.Base.Key,
+        key = 'average_joe_ai_assign_units_to_base',
+        name = 'Joe AI - Assign selected units to the base under cursor (unit or section)',
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/Base/AssignToBase.lua").Handle()',
+    },
 }
 
 ---@type JoeHotkey[]

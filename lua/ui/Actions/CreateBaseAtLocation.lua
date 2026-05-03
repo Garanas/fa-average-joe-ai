@@ -1,4 +1,4 @@
---- Creates a new base at the mouse cursor for the focus army's brain. The brain owns registration via `JoeBrain:CreateBaseAtLocation`.
+--- Creates a new base at the mouse cursor for the focus army's brain. Any currently selected units are sent along and assigned to the base as its initial units.
 function Handle()
 
     ---@type JoeDebugCreateBaseAtLocationData
@@ -7,5 +7,5 @@ function Handle()
         ArmyIndex = GetFocusArmy(),
     }
 
-    SimCallback({ Func = "JoeDebugCreateBaseAtLocation", Args = data }, false)
+    SimCallback({ Func = "JoeDebugCreateBaseAtLocation", Args = data }, true)
 end
