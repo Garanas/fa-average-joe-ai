@@ -105,36 +105,10 @@ BuildBehavior = Class(AIPlatoonBehavior) {
             -- Job is non-nil here: we only enter this state via AcquireJob's success path.
             local job = self.BehaviorState.Job --[[@as JoeBuildJob]]
             local base = self.BehaviorState.Base
-
-            -- TODO: thread job.Spec.LocationHint through so the BFS biases toward it.
-            local sites = base:AcquireBuildSitesForIdentifier(job.Spec.Identifier)
-            if table.empty(sites) then
-                self:Warn('No build site for ' .. tostring(job.Spec.Identifier))
-                base.BuildQueueComponent:FailJob(job, false)
-                self:ChangeState(self.AcquireJob)
-                return
-            end
-
-            local site = sites[1]
-            base.BuildQueueComponent:RegisterBuildSite(job, site)
-            self.BehaviorState.Site = site
-
-            self:ChangeState(self.ClearBuildSite)
-        end,
-    },
-
-    ClearBuildSite = State {
-        BehaviorStateName = 'ClearBuildSite',
-        BehaviorStateColor = 'ff8800',
-
-        ---@param self AIBuildBehavior
-        Main = function(self)
-            -- Job and Site are non-nil here: AcquireSite resolved both before transitioning in.
-            local job = self.BehaviorState.Job --[[@as JoeBuildJob]]
-            local site = self.BehaviorState.Site --[[@as JoeBuildSite]]
             local engineer = self.BehaviorState.Engineer
-            local base = self.BehaviorState.Base
+            local brain = self:GetBrain()
 
+            -- resolve the faction-specific structure once for this engineer; we need it to sanity-check the site below
             local unitId = ResolveUnitIdForBuilder(job.Spec.Identifier, engineer)
             if not unitId then
                 self:Warn('No faction-specific unit for ' .. tostring(job.Spec.Identifier))
@@ -152,6 +126,43 @@ BuildBehavior = Class(AIPlatoonBehavior) {
             end
 
             self.BehaviorState.UnitId = unitId
+
+            -- TODO: thread job.Spec.LocationHint through so the BFS biases toward it.
+            local sites = base:AcquireBuildSitesForIdentifier(job.Spec.Identifier)
+            if table.empty(sites) then
+                self:Warn('No build site for ' .. tostring(job.Spec.Identifier))
+                base.BuildQueueComponent:FailJob(job, false)
+                self:ChangeState(self.AcquireJob)
+                return
+            end
+
+            -- preliminary build check on the first candidate. If the engine refuses (terrain, occupation grid), disable the site and try again — `AcquireBuildSitesForIdentifier` will skip blocked sites on the next call. The full overlap pass in `UnitUtils.ValidateBuildSite` runs later in the build flow.
+            local site = sites[1]
+            local location = { site.Point[1], 0, site.Point[2] }
+            if not brain:CanBuildStructureAt(unitId, location) then
+                site:Block()
+                self:ChangeState(self.AcquireSite)
+                return
+            end
+
+            base.BuildQueueComponent:RegisterBuildSite(job, site)
+            self.BehaviorState.Site = site
+
+            self:ChangeState(self.ClearBuildSite)
+        end,
+    },
+
+    ClearBuildSite = State {
+        BehaviorStateName = 'ClearBuildSite',
+        BehaviorStateColor = 'ff8800',
+
+        ---@param self AIBuildBehavior
+        Main = function(self)
+            -- Site and UnitId are non-nil here: AcquireSite resolved them before transitioning in.
+            local site = self.BehaviorState.Site --[[@as JoeBuildSite]]
+            local engineer = self.BehaviorState.Engineer
+            local unitId = self.BehaviorState.UnitId --[[@as UnitId]]
+            local blueprint = __blueprints[unitId]
 
             local tx = site.Point[1]
             local tz = site.Point[2]

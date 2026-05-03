@@ -55,7 +55,7 @@ JoeBase = ClassSimple {
         self.BuildSiteComponent = JoeBaseBuildSiteComponent(self)
         self.BuildQueueComponent = JoeBaseBuildQueueComponent(self)
 
-        self.Trash:Add(ForkThread(self.RePrioritizeEngineersThread, self))
+        self.Trash:Add(ForkThread(self.TickThread, self))
     end,
 
     ---------------------------------------------------------------------------
@@ -342,14 +342,31 @@ JoeBase = ClassSimple {
         end
     end,
 
-    --- Monitoring thread to periodically re-prioritize engineers assigned to this base.
+    --- Periodic maintenance tick for this base: recycles engineer behaviors and runs component validation passes. Fired from `__init` into `self.Trash` so `Retreat` cleans it up.
     ---@param self JoeBase
-    RePrioritizeEngineersThread = function(self)
+    TickThread = function(self)
         while true do
             self:RecycleEngineers()
+            self:ValidateBuildQueues()
 
             WaitTicks(10)
         end
+    end,
+
+    --#endregion
+    ---------------------------------------------------------------------------
+
+    ---------------------------------------------------------------------------
+    --#region Periodic validation (cross-component coordination)
+
+    --- Runs each per-state validator on the build queue. The base owns the orchestration order so cross-component reconciliation (e.g. site state vs. job state) can grow here when invariants stretch beyond a single component.
+    ---@param self JoeBase
+    ValidateBuildQueues = function(self)
+        local queue = self.BuildQueueComponent
+        queue:ValidatePending()
+        queue:ValidateClaimed()
+        queue:ValidateBuilding()
+        queue:ValidateBuilt()
     end,
 
     --#endregion

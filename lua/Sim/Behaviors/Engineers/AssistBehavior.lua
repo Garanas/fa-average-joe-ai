@@ -1,4 +1,5 @@
 local AIPlatoonBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/PlatoonBehavior.lua").AIPlatoonBehavior
+local JoeBuildingIdentifierModule = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/JoeBuildingIdentifiers.lua")
 
 --- Read-only input parameters supplied by the platoon builder before `Start` runs.
 ---@class AIAssistBehaviorInput : AIPlatoonBehaviorInput
@@ -71,7 +72,13 @@ AssistBehavior = Class(AIPlatoonBehavior) {
             end
 
             self.BehaviorState.Job = job
-            self:ChangeState(self.Assist)
+
+            -- 'Claimed' jobs have a build site but no unit yet — pre-position at the site so we're ready when construction starts. 'Building' jobs go straight to assisting the live unit.
+            if job.State == 'Claimed' then
+                self:ChangeState(self.MoveToSite)
+            else
+                self:ChangeState(self.Assist)
+            end
         end,
     },
 
@@ -83,6 +90,78 @@ AssistBehavior = Class(AIPlatoonBehavior) {
         Main = function(self)
             WaitTicks(50)
             self:ChangeState(self.FindTarget)
+        end,
+    },
+
+    MoveToSite = State {
+        BehaviorStateName = 'MoveToSite',
+        BehaviorStateColor = 'aa88ff',
+
+        ---@param self AIAssistBehavior
+        Main = function(self)
+            local job = self.BehaviorState.Job --[[@as JoeBuildJob]]
+            local site = job.BuildSite
+
+            if not site then
+                -- BuildSite cleared between FindTarget and now (job failed); bail.
+                self:ChangeState(self.LeaveAssist)
+                return
+            end
+
+            local supportSquad = self:GetSquadUnits('Support')
+
+            -- pick a non-destroyed support engineer to derive an approach direction
+            local first
+            for k = 1, table.getn(supportSquad) do
+                local unit = supportSquad[k]
+                if not IsDestroyed(unit) then
+                    first = unit
+                    break
+                end
+            end
+            if not first then
+                self:ChangeState(self.LeaveAssist)
+                return
+            end
+
+            -- stop just outside the build footprint so we don't crowd the claimer engineer when it arrives
+            local metadata = JoeBuildingIdentifierModule.MapToMetadata(site.Identifier)
+            local margin = 0.5 * math.max(metadata.SizeX, metadata.SizeZ) + 2
+
+            local fx, _, fz = first:GetPositionXYZ()
+            local tx = site.Point[1]
+            local tz = site.Point[2]
+            local dx = fx - tx
+            local dz = fz - tz
+            local dist = math.sqrt(dx * dx + dz * dz)
+
+            local moveX, moveZ
+            if dist > 0.001 then
+                moveX = tx + (dx / dist) * margin
+                moveZ = tz + (dz / dist) * margin
+            else
+                -- already on top of the site; pick an arbitrary direction
+                moveX = tx + margin
+                moveZ = tz
+            end
+
+            IssueMove(supportSquad, { moveX, GetSurfaceHeight(moveX, moveZ), moveZ })
+
+            -- poll for the job leaving Claimed
+            while true do
+                WaitTicks(self.AssistPollInterval)
+
+                if job.State == 'Building' then
+                    self:ChangeState(self.Assist)
+                    return
+                end
+
+                if job.State ~= 'Claimed' then
+                    -- job left active (Failed / re-queued)
+                    self:ChangeState(self.LeaveAssist)
+                    return
+                end
+            end
         end,
     },
 
