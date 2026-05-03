@@ -65,6 +65,12 @@ local BaseChunkKeys = {
         name = 'Joe AI - Create AI base chunk template (128x128)',
         action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/CreateBaseChunkTemplate.lua").Handle(128)',
     },
+    {
+        category = KeyCategories.BaseChunks.Key,
+        key = 'average_joe_ai_export_building_footprints',
+        name = 'Joe AI - Export building identifier footprints to game.log',
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/ExportBuildingIdentifierFootprints.lua").Handle()',
+    },
 }
 
 ---@type JoeHotkey[]

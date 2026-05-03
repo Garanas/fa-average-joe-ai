@@ -13,10 +13,10 @@
 --- | 'T2Resource'
 --- | 'T3Resource'
 --- | 'T3MassCreation'
---- | 'T3MassExtraction'
 --- | 'MassStorage'
 ---
 --- -- Land Factory Structures
+--- | 'LandFactory'
 --- | 'T1LandFactory'
 --- | 'T2LandFactory'
 --- | 'T2SupportLandFactory'
@@ -25,6 +25,7 @@
 --- | 'T3QuantumGate'
 ---
 --- -- Air Factory Structures
+--- | 'AirFactory'
 --- | 'T1AirFactory'
 --- | 'T2AirFactory'
 --- | 'T2SupportAirFactory'
@@ -33,6 +34,7 @@
 --- | 'T2AirStagingPlatform'
 ---
 --- -- Sea Factory Structures
+--- | 'NavalFactory'
 --- | 'T1SeaFactory'
 --- | 'T2SeaFactory'
 --- | 'T2SupportSeaFactory'
@@ -80,8 +82,6 @@
 --- | 'T4SatelliteExperimental'
 ---
 --- -- Misc / Support Structures
---- | '1x1Concrete'
---- | '2x2Concrete'
 --- | 'T2EngineerSupport'
 
 --- Per-identifier metadata. Each entry holds the entity category for unit-id resolution plus a debug color and an expected footprint size used by chunk planning and visualization.
@@ -109,6 +109,7 @@ local MapToEntityCategories = {
     MassStorage    = { Category = categories.STRUCTURE * categories.MASSSTORAGE, Color = '884422', SizeX = 1, SizeZ = 1 },
 
     -- Land Factory Structures
+    LandFactory          = { Category = categories.STRUCTURE * categories.FACTORY * categories.LAND, Color = '6699ff', SizeX = 8, SizeZ = 8 },
     T1LandFactory        = { Category = categories.STRUCTURE * categories.FACTORY * categories.LAND * categories.TECH1, Color = '4488ff', SizeX = 8, SizeZ = 8 },
     T2LandFactory        = { Category = categories.STRUCTURE * categories.FACTORY * categories.LAND * categories.TECH2, Color = '3377ee', SizeX = 8, SizeZ = 8 },
     T2SupportLandFactory = { Category = categories.STRUCTURE * categories.FACTORY * categories.LAND * categories.TECH2 * categories.SUPPORTFACTORY, Color = '5599ff', SizeX = 8, SizeZ = 8 },
@@ -117,6 +118,7 @@ local MapToEntityCategories = {
     T3QuantumGate        = { Category = categories.STRUCTURE * categories.FACTORY * categories.LAND * categories.TECH3 * categories.GATE, Color = 'aa44ff', SizeX = 8, SizeZ = 8 },
 
     -- Air Factory Structures
+    AirFactory           = { Category = categories.STRUCTURE * categories.FACTORY * categories.AIR, Color = '22eeff', SizeX = 8, SizeZ = 8 },
     T1AirFactory         = { Category = categories.STRUCTURE * categories.FACTORY * categories.AIR * categories.TECH1, Color = '00ddff', SizeX = 8, SizeZ = 8 },
     T2AirFactory         = { Category = categories.STRUCTURE * categories.FACTORY * categories.AIR * categories.TECH2, Color = '00ccee', SizeX = 8, SizeZ = 8 },
     T2SupportAirFactory  = { Category = categories.STRUCTURE * categories.FACTORY * categories.AIR * categories.TECH2 * categories.SUPPORTFACTORY, Color = '22ddff', SizeX = 8, SizeZ = 8 },
@@ -125,6 +127,7 @@ local MapToEntityCategories = {
     T2AirStagingPlatform = { Category = categories.STRUCTURE * categories.AIRSTAGINGPLATFORM, Color = '88ddff', SizeX = 6, SizeZ = 6 },
 
     -- Sea Factory Structures
+    NavalFactory        = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL, Color = '3377ee', SizeX = 14, SizeZ = 8 },
     T1SeaFactory        = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH1, Color = '2266dd', SizeX = 14, SizeZ = 8 },
     T2SeaFactory        = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH2, Color = '1155cc', SizeX = 14, SizeZ = 8 },
     T2SupportSeaFactory = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH2 * categories.SUPPORTFACTORY, Color = '3377dd', SizeX = 14, SizeZ = 8 },
@@ -179,9 +182,9 @@ local MapToEntityCategories = {
 ---@type table<UnitId, JoeBuildingIdentifier>
 local MappedUnits = {}
 
---- The order in which to map units to building identifiers. This is important for cases where multiple identifiers could match a single unit.
+--- The order in which to map units to building identifiers. This is important for cases where multiple identifiers could match a single unit. Exposed at module scope so callers can iterate the canonical identifier set without duplicating it.
 ---@type JoeBuildingIdentifier[]
-local MappingOrder = {
+MappingOrder = {
     -- Most restrictive
     "T1Resource",
     "T2Resource",
@@ -248,6 +251,9 @@ local MappingOrder = {
     "T1Sonar",
     "T2Sonar",
     "T3Sonar",
+
+    -- Misc / Support Structures
+    "T2EngineerSupport",
 
     -- Various units may have a small amount of resource production, lowest priority
     "T1EnergyProduction",
