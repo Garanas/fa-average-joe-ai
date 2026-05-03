@@ -5,10 +5,10 @@ Components are **pure data holders** with narrow scope. They carry one aspect of
 ## Files in this tree
 
 - [`JoeBaseChunkComponent.lua`](JoeBaseChunkComponent.lua) — claimed nav-mesh sections for this base. Pure storage of `Sections[sectionId] → JoeBaseSectionClaim`. Layer is locked at construction (inferred from `base.Location`).
+- [`JoeBaseBuildSiteComponent.lua`](JoeBaseBuildSiteComponent.lua) — concrete build sites materialised by mapping a `JoeBaseChunk` template onto a section. Defines two classes in one file: `JoeBuildSite` (the per-slot record — `Point`, `Identifier`, `Unit`, `Section`) and `JoeBaseBuildSiteComponent` (the per-base list + queries). Build-site state is **not** stored — it's a derived property computed from the assigned `Unit` (`IsFree` / `IsBuilding` / `IsBuilt` / `IsLost` / `GetState`).
 
 Future likely additions:
 
-- `JoeBaseBuildSiteComponent` — concrete build sites (`{Position, UnitId, State, SectionId}`) generated when sections are chunkified via templates from `Shared/BaseChunks/`.
 - `JoeBaseEconomyComponent` — desired structure mix, current production rates, what the base wants next.
 
 ## What a component looks like

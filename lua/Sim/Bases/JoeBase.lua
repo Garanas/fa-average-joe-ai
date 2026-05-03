@@ -4,6 +4,7 @@ local PlatoonBuilderModule = import("/mods/fa-joe-ai/lua/Sim/Behaviors/PlatoonBu
 local TableUtils = import("/mods/fa-joe-ai/lua/Shared/TableUtils.lua")
 
 local JoeBaseChunkComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseChunkComponent.lua").JoeBaseChunkComponent
+local JoeBaseBuildSiteComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseBuildSiteComponent.lua").JoeBaseBuildSiteComponent
 
 -- upvalue for performance
 local TableInsert = table.insert
@@ -27,6 +28,7 @@ local TableInsert = table.insert
 ---@field Location Vector
 ---@field IdleBehavior BaseIdleBehavior
 ---@field ChunkComponent JoeBaseChunkComponent
+---@field BuildSiteComponent JoeBaseBuildSiteComponent
 ---@field Units JoeUnit[]
 JoeBase = ClassSimple {
 
@@ -45,6 +47,7 @@ JoeBase = ClassSimple {
         self.IdleBehavior = PlatoonBuilderModule.Build(self.Brain, PlatoonBuilderUtils.PlatoonBehaviors.Base.IdleBehavior):End() --[[@as BaseIdleBehavior]]
 
         self.ChunkComponent = JoeBaseChunkComponent(self)
+        self.BuildSiteComponent = JoeBaseBuildSiteComponent(self)
 
         self.Trash:Add(ForkThread(self.RePrioritizeEngineersThread, self))
     end,
