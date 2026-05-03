@@ -14,9 +14,12 @@ local function ResolveUnitIdForBuilder(identifier, engineer)
     return EntityCategoryGetUnitList(category)[1]
 end
 
+--- Read-only input parameters supplied by the platoon builder before `Start` runs.
+---@class AIBuildBehaviorInput : AIPlatoonBehaviorInput
+
 --- Per-build-behavior runtime state. Stashed on `self.BehaviorState` so a state's `Main` can read what previous states resolved without recomputing. Fields populated as the behavior progresses; the optional ones are nil between jobs.
 ---@class AIBuildBehaviorState
----@field Engineer JoeUnit         # The platoon's primary engineer (the queue claimer).
+---@field Engineer JoeUnit          # The platoon's primary engineer (the queue claimer).
 ---@field Base JoeBase              # The base whose `BuildQueueComponent` we're draining.
 ---@field Job? JoeBuildJob          # The currently-claimed job. Nil when in `WaitForJob`.
 ---@field Site? JoeBuildSite        # The resolved build site for the current job.
@@ -28,6 +31,7 @@ end
 ---
 --- Engineer events: `OnStartBuild` registers the unit with the queue (so assistants and the validation poll can see it); `OnStopBuild` either completes or re-queues the job depending on the unit's state.
 ---@class AIBuildBehavior : AIPlatoonBehavior
+---@field PlatoonBehaviorInput AIBuildBehaviorInput
 ---@field BehaviorState AIBuildBehaviorState
 BuildBehavior = Class(AIPlatoonBehavior) {
     BehaviorName = 'BuildBehavior',
@@ -68,6 +72,7 @@ BuildBehavior = Class(AIPlatoonBehavior) {
         Main = function(self)
             local engineer = self.BehaviorState.Engineer
             local base = self.BehaviorState.Base
+
             local job = base.BuildQueueComponent:ClaimJob(engineer)
 
             if not job then

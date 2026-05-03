@@ -1,9 +1,20 @@
 local AIPlatoonBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/PlatoonBehavior.lua").AIPlatoonBehavior
 
+--- Read-only input parameters supplied by the platoon builder before `Start` runs.
+---@class AIAssistBehaviorInput : AIPlatoonBehaviorInput
+
+--- Per-assist-behavior runtime state. Stashed on `self.BehaviorState` so a state's `Main` can read what previous states resolved without recomputing.
+---@class AIAssistBehaviorState
+---@field Engineer JoeUnit          # The Support engineer this behavior assists with.
+---@field Base JoeBase              # The base whose `BuildQueueComponent` we're watching.
+---@field Job? JoeBuildJob          # The currently-assisted job. Nil when in `WaitForTarget`.
+
 --- Engineer behavior that piggy-backs on someone else's build. The platoon's Support engineer never claims a job itself — it watches the base's `BuildQueueComponent` for `Building`-state jobs that still have assistant capacity, joins as an assistant, and `IssueGuard`s the claimer engineer so the engine takes care of helping with construction.
 ---
 --- When the assisted job ends (the unit was completed, destroyed, or the job otherwise leaves `Building` state) the assistant leaves and looks for a new target. The factory-assist case will be handled by an upcoming structure manager — for now the assist behavior is purely build-job-shaped.
 ---@class AIAssistBehavior : AIPlatoonBehavior
+---@field PlatoonBehaviorInput AIAssistBehaviorInput
+---@field BehaviorState AIAssistBehaviorState
 AssistBehavior = Class(AIPlatoonBehavior) {
     BehaviorName = 'AssistBehavior',
 
@@ -30,7 +41,7 @@ AssistBehavior = Class(AIPlatoonBehavior) {
             self.BehaviorState.Engineer = engineer
             self.BehaviorState.Base = engineer.JoeData.Base
 
-            IssueClearCommands(self:GetPlatoonUnits())
+            IssueClearCommands(supportSquad)
             self:ChangeState(self.FindTarget)
         end,
     },

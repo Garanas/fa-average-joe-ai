@@ -272,7 +272,7 @@ JoeBase = ClassSimple {
     FindEngineersToReclaim = function(self)
         local candidates = {}
 
-        local idleUnits, _ = self.IdleBehavior:GetPlatoonUnits()
+        local idleUnits = self.IdleBehavior:GetPlatoonUnits()
         local reclaimUnits = EntityCategoryFilterDown(categories.RECLAIM, idleUnits)
         for k = 1, table.getn(reclaimUnits) do
             local unit = reclaimUnits[k]

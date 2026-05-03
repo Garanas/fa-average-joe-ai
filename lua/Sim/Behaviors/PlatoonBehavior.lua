@@ -5,6 +5,8 @@ local AIPlatoonMoho = moho.platoon_methods
 local IsDestroyed = IsDestroyed
 
 local TableGetn = table.getn
+local TableInsert = table.insert
+local TableSetn = table.setn
 
 --- A social contract between the platoon behavior and who ownership over the platoon behavior. This is a read-only table to parameterize the behavior.
 ---@class AIPlatoonBehaviorInput    
@@ -115,11 +117,8 @@ AIPlatoonBehavior = Class(moho.platoon_methods) {
             self:Log(string.format('Switching to state %s', tostring(state.BehaviorStateName)))
         end
 
-        -- Clear out the trash of the old state
+        -- Clear out the trash of the old state. `BehaviorState` is intentionally not cleared — states share runtime data; reset specific fields explicitly if a state needs a clean slate.
         self.BehaviorStateTrash:Destroy()
-        for k, _ in self.BehaviorState do
-            self.BehaviorState[k] = nil
-        end
 
         -- Switcheroo on the meta table
         setmetatable(self, state)
@@ -372,32 +371,23 @@ AIPlatoonBehavior = Class(moho.platoon_methods) {
     --- Returns all units that are part of this platoon.
     ---@param self AIPlatoonBehavior
     ---@return JoeUnit[]   # Table of alive (non-destroyed) units
-    ---@return number   # Number of units
     GetPlatoonUnits = function(self)
 
         -- this function is hooked because the cfunction returns units
         -- that are destroyed. We filter those out and return the remainder
 
         local units = AIPlatoonMoho.GetPlatoonUnits(self)
-
-        -- populate the cache
-        local head = 1
-        for _, unit in units do
-            if not IsDestroyed(unit) then
-                units[head] = unit
-                head = head + 1
-            end
-        end
-
-        -- discard remaining elements of the cache
         local count = TableGetn(units)
-        if count >= head then
-            for k = head, count do
-                units[k] = nil
+
+        TableSetn(units, 0)
+        for k = 1, count do
+            local unit = units[k]
+            if not IsDestroyed(unit) then
+                TableInsert(units, unit)
             end
         end
 
-        return units, head - 1
+        return units
     end,
 
     --- Returns the position of the unit that is nearest to the center of the platoon.
@@ -415,7 +405,8 @@ AIPlatoonBehavior = Class(moho.platoon_methods) {
         end
 
         -- retrieve units
-        local units, unitCount = self:GetPlatoonUnits()
+        local units = self:GetPlatoonUnits()
+        local unitCount = TableGetn(units)
         if unitCount == 0 then
             return nil
         end

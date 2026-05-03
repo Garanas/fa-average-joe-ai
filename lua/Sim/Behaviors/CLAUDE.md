@@ -68,10 +68,11 @@ FooBehavior = Class(AIPlatoonBehavior) {
 State transitions are implemented by a **metatable swap on the platoon** (see [PlatoonBehavior.lua:94-136](PlatoonBehavior.lua#L94-L136)). When `ChangeState(self, newState)` runs it:
 
 1. Destroys `BehaviorStateTrash` (anything scoped to the leaving state).
-2. Clears `self.BehaviorState` (per-state scratch storage).
-3. Calls `setmetatable(self, newState)` — from this point on, dispatching `self:OnFoo(...)` hits `newState.OnFoo` if present, otherwise falls through to the base class no-op.
-4. `ForkThread`s `state.Main(self)` as the new main coroutine.
-5. **Kills the old main thread last** — because that thread might be the one calling `ChangeState`.
+2. Calls `setmetatable(self, newState)` — from this point on, dispatching `self:OnFoo(...)` hits `newState.OnFoo` if present, otherwise falls through to the base class no-op.
+3. `ForkThread`s `state.Main(self)` as the new main coroutine.
+4. **Kills the old main thread last** — because that thread might be the one calling `ChangeState`.
+
+`self.BehaviorState` is **not** touched by `ChangeState` — values resolved by one state flow into the next. See "State storage" below.
 
 Two consequences worth understanding:
 
@@ -92,14 +93,14 @@ Three lifetimes are available on `self`:
 | Field | Lifetime | Use for |
 |---|---|---|
 | `self.BehaviorTrash` | full behavior (cleared on `OnDestroy`) | observers/threads that should outlive state transitions |
-| `self.BehaviorStateTrash` | current state only (cleared on every `ChangeState`) | watchdog threads, draw helpers, anything per-state |
-| `self.BehaviorState` | current state only (cleared on every `ChangeState`) | per-state scratch data (e.g. the unit being constructed — see [BuildBehavior.lua:105](Engineers/BuildBehavior.lua#L105)) |
+| `self.BehaviorStateTrash` | current state only (cleared on every `ChangeState`) | watchdog threads, draw helpers, anything per-state that needs cleanup |
+| `self.BehaviorState` | full behavior (persists across `ChangeState`) | all behavior runtime data — values resolved by one state flow into the next |
 
-Anything you need to survive a transition belongs as a plain field on `self` (e.g. `self.SomethingRemembered`), not in `BehaviorState`.
+`BehaviorState` is the canonical home for behavior runtime data. Annotate it with an `AIXBehaviorState` class so the shape is discoverable (see [BuildBehavior.lua](Engineers/BuildBehavior.lua) for the pattern). Keep `self`-fields for engine and infrastructure (`BehaviorTrash`, `Debug`, etc.) — behavior data goes in `BehaviorState`. If a state truly needs a clean slate, reset specific fields explicitly (`self.BehaviorState.Job = nil`); there is no automatic clear.
 
 ## Input: the `PlatoonBehaviorInput` contract
 
-Each behavior declares its own `AIXBehaviorInput` (extending `AIPlatoonBehaviorInput`) describing what the caller must provide. The builder writes it to `self.PlatoonBehaviorInput` once, before `Start` runs. **Treat it as read-only** — it's the social contract between caller and behavior. Mutate `self.BehaviorState` or `self`-fields instead.
+Each behavior declares its own `AIXBehaviorInput` (extending `AIPlatoonBehaviorInput`) describing what the caller must provide. The builder writes it to `self.PlatoonBehaviorInput` once, before `Start` runs. **Treat it as read-only** — it's the social contract between caller and behavior. Mutate `self.BehaviorState` instead.
 
 ## Squads
 
