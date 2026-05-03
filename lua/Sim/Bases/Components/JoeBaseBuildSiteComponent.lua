@@ -1,5 +1,6 @@
 local TableInsert = table.insert
 local TableGetn = table.getn
+local TableSetn = table.setn
 
 --- A single build site for one structure. The site is the materialised result of mapping a base-chunk template onto a section: the template's `Locations` contribute one site per entry. State is *not* stored — it is derived from the assigned `Unit` on demand.
 ---@class JoeBuildSite
@@ -125,35 +126,44 @@ JoeBaseBuildSiteComponent = ClassSimple {
     -----------------------------------------------------------------------------
     --#region Queries and storage operations
 
-    --- Returns the first free site matching `identifier`, or nil. Linear scan — fine for the prototype's site counts; revisit if a base ever has thousands of sites.
+    --- Collects every free site matching `identifier` into `cache`. The cache is cleared first and returned for chaining. Pass a reused table to avoid allocations on hot paths; pass nil to allocate a fresh one. Linear scan — fine for the prototype's site counts. See `Sim/CLAUDE.md` §3.2 for the caller-supplied cache convention.
     ---@param self JoeBaseBuildSiteComponent
     ---@param identifier JoeBuildingIdentifier
-    ---@return JoeBuildSite?
-    FindFreeFor = function(self, identifier)
+    ---@param cache? JoeBuildSite[]
+    ---@return JoeBuildSite[]
+    CollectFreeFor = function(self, identifier, cache)
+        cache = cache or {}
+        TableSetn(cache, 0)
+
         local sites = self.Sites
         for k = 1, TableGetn(sites) do
             local site = sites[k]
             if site.Identifier == identifier and site:IsFree() then
-                return site
+                TableInsert(cache, site)
             end
         end
-        return nil
+
+        return cache
     end,
 
-    --- Returns every site whose `Section.Identifier` matches. Useful for "show me what's planned for this section" tooling and for cascade-on-release.
+    --- Collects every site whose `Section.Identifier` matches into `cache`. Cleared first, returned for chaining. Same caller-supplied-cache convention as `CollectFreeFor` — see `Sim/CLAUDE.md` §3.2.
     ---@param self JoeBaseBuildSiteComponent
     ---@param sectionId NavSectionIdentifier
+    ---@param cache? JoeBuildSite[]
     ---@return JoeBuildSite[]
-    GetSitesBySection = function(self, sectionId)
-        local result = {}
+    GetSitesBySection = function(self, sectionId, cache)
+        cache = cache or {}
+        TableSetn(cache, 0)
+
         local sites = self.Sites
         for k = 1, TableGetn(sites) do
             local site = sites[k]
             if site.Section.Identifier == sectionId then
-                TableInsert(result, site)
+                TableInsert(cache, site)
             end
         end
-        return result
+
+        return cache
     end,
 
     --- Drops every site whose section matches. Called by `JoeBase:ReleaseSection` so released territory takes its sites with it.

@@ -6,8 +6,11 @@ local TableUtils = import("/mods/fa-joe-ai/lua/Shared/TableUtils.lua")
 local JoeBaseChunkComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseChunkComponent.lua").JoeBaseChunkComponent
 local JoeBaseBuildSiteComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseBuildSiteComponent.lua").JoeBaseBuildSiteComponent
 
+local JoeBuildingIdentifierModule = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/JoeBuildingIdentifiers.lua")
+
 -- upvalue for performance
 local TableInsert = table.insert
+local TableGetn = table.getn
 
 --- Data structure for storing information used to debug this base. This information may not be synchronized between players. Any field in this table should not be used for the behavior itself!
 ---@class JoeBaseDebugData
@@ -99,6 +102,123 @@ JoeBase = ClassSimple {
         self.Trash:Destroy()
         self:ReleaseAllSections()
         self.Brain:RemoveBase(self)
+    end,
+
+    --#endregion
+    ---------------------------------------------------------------------------
+
+    ---------------------------------------------------------------------------
+    --#region Build-site planning (find-or-create flow)
+
+    --- Ensures at least one free build site exists for the given identifier and returns every free site that matches. Order of attempts:
+    ---
+    ---  1. Existing free sites already mapped on this base.
+    ---  2. A claimed-but-unchunkified section: find a template containing this identifier, apply it.
+    ---  3. Claim a new (unclaimed) section adjacent to the base, then apply the template.
+    ---
+    --- Returns an empty list if every attempt fails. The cache table (if provided) is cleared and reused — pass it back on subsequent calls to avoid allocating.
+    ---@param self JoeBase
+    ---@param identifier JoeBuildingIdentifier
+    ---@param cache? JoeBuildSite[]
+    ---@return JoeBuildSite[]
+    AcquireBuildSitesForIdentifier = function(self, identifier, cache)
+        local buildSites = self.BuildSiteComponent
+
+        -- 1. existing free sites. CollectFreeFor allocates if cache is nil and always returns the cache table — reassign so it's guaranteed non-nil from here on.
+        cache = buildSites:CollectFreeFor(identifier, cache)
+        if TableGetn(cache) > 0 then
+            return cache
+        end
+
+        -- 2. claimed-but-unchunkified section
+        local section = self:FindUnchunkifiedSection()
+        if section and self:ApplyTemplateForIdentifier(section, identifier) then
+            return buildSites:CollectFreeFor(identifier, cache)
+        end
+
+        -- 3. claim a new section, then apply
+        section = self:ClaimAdjacentSection()
+        if section and self:ApplyTemplateForIdentifier(section, identifier) then
+            return buildSites:CollectFreeFor(identifier, cache)
+        end
+
+        -- 4. give up — cache is already empty from step 1
+        return cache
+    end,
+
+    --- Resolves `unitId` to its `JoeBuildingIdentifier` and delegates to `AcquireBuildSitesForIdentifier`.
+    ---@param self JoeBase
+    ---@param unitId UnitId
+    ---@param cache? JoeBuildSite[]
+    ---@return JoeBuildSite[]
+    AcquireBuildSitesForUnit = function(self, unitId, cache)
+        local identifier = JoeBuildingIdentifierModule.MapToIdentifier(unitId)
+        return self:AcquireBuildSitesForIdentifier(identifier, cache)
+    end,
+
+    --- Returns the first claimed section that has not yet had a template applied to it, or nil if every claimed section is already chunkified.
+    ---@param self JoeBase
+    ---@return NavSection?
+    FindUnchunkifiedSection = function(self)
+        for _, claim in self.ChunkComponent.Sections do
+            if not claim.Chunkified then
+                return claim.Section
+            end
+        end
+        return nil
+    end,
+
+    --- Returns the first chunk template loaded by the brain that contains at least one slot for `identifier`. Stops at the first match — a richer "best fit" strategy can replace this when needed.
+    ---@param self JoeBase
+    ---@param identifier JoeBuildingIdentifier
+    ---@return JoeBaseChunk?
+    FindTemplateForIdentifier = function(self, identifier)
+        local templates = self.Brain.ChunkLoader.Templates
+        for k = 1, TableGetn(templates) do
+            local template = templates[k]
+            local locations = template.Locations[identifier]
+            if locations and TableGetn(locations) > 0 then
+                return template
+            end
+        end
+        return nil
+    end,
+
+    --- Picks a template that satisfies `identifier`, maps it onto the section, and marks the section chunkified. Returns true on success, false if no fitting template exists.
+    ---@param self JoeBase
+    ---@param section NavSection
+    ---@param identifier JoeBuildingIdentifier
+    ---@return boolean
+    ApplyTemplateForIdentifier = function(self, section, identifier)
+        local template = self:FindTemplateForIdentifier(identifier)
+        if not template then
+            return false
+        end
+
+        self.BuildSiteComponent:MapTemplate(template, section)
+        self.ChunkComponent:MarkChunkified(section.Identifier)
+        return true
+    end,
+
+    --- Asks the brain for unclaimed nav sections reachable from this base's location and claims the first one. Returns the section claimed, or nil if no expansion was possible.
+    ---@param self JoeBase
+    ---@return NavSection?
+    ClaimAdjacentSection = function(self)
+        local layer = self.ChunkComponent.Layer
+        -- TODO: areaTarget is a magic number; tune once we have real workloads.
+        local sections = self.Brain.ChunkComponent:FindClaimableArea(layer, self.Location, 0.01, self)
+
+        for k = 1, TableGetn(sections) do
+            local section = sections[k]
+            -- the BFS includes our own claims (so we can re-traverse) — skip those
+            if not self.ChunkComponent:IsClaimed(section.Identifier) then
+                if self:ClaimSection(section.Identifier) then
+                    return section
+                end
+            end
+        end
+
+        return nil
     end,
 
     --#endregion

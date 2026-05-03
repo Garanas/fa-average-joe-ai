@@ -172,6 +172,50 @@ Same idea, different shape: use a single module-level scratch table as a hash-se
 
 The trade-off: shared scratch state is **not re-entrant**. If `DrawSquare` ever called itself transitively, the inner call would clobber the outer's `tl`. Keep these locals tightly scoped to the file that owns them.
 
+#### Variant: caller-supplied cache
+
+When a function returns a list and is called repeatedly across different call sites, neither module-scope nor instance-scope scratch fits — different callers want their own buffers, and the function shouldn't dictate where the cache lives. Take the cache as the last (optional) parameter:
+
+```lua
+-- /mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseBuildSiteComponent.lua
+---@param cache? JoeBuildSite[]
+---@return JoeBuildSite[]
+CollectFreeFor = function(self, identifier, cache)
+    cache = cache or {}
+    TableSetn(cache, 0)
+
+    local sites = self.Sites
+    for k = 1, TableGetn(sites) do
+        local site = sites[k]
+        if site.Identifier == identifier and site:IsFree() then
+            TableInsert(cache, site)
+        end
+    end
+
+    return cache
+end
+```
+
+Three rules of the contract:
+
+1. **The function clears the cache, then refills it.** `TableSetn(cache, 0)` resets the length so subsequent `TableInsert` calls overwrite from index 1.
+2. **If the caller doesn't pass one, the function allocates a fresh table** (`cache = cache or {}`). The signature stays optional from the caller's perspective.
+3. **The function always returns the cache.** This lets calls chain — `cache = obj:CollectFreeFor(id, cache)` — and promotes a `cache?` (optional) into a non-optional return type.
+
+The caller allocates once at the outer scope and hands the same table back every call:
+
+```lua
+local sitesCache = {}
+while running do
+    local sites = base:AcquireBuildSitesForIdentifier(id, sitesCache)
+    -- use sites — next iteration's call refills the same table in place
+end
+```
+
+**Pitfall.** `TableSetn(cache, 0)` declares the length zero but does *not* nil out leftover indices. They linger as references and can keep otherwise-dead objects alive. Acceptable when subsequent calls have similar payloads; otherwise iterate `for i = 1, oldLen do cache[i] = nil end` before refilling.
+
+**Style: prefer `TableInsert` over `head/head+1` accounting.** Both compile to roughly the same work, but `TableInsert` keeps the length tracking implicit and the loop body short. Reserve manual head pointers for cases where you also need to skip indices or write to non-contiguous slots.
+
 ### 3.3 Structure-of-arrays for stack-style buffers
 
 `Compress` uses four parallel arrays (`cox`, `coz`, `csize`, `cindex`) instead of an array of `{ox, oz, size, index}` tables ([`NavGenerator.lua:505-508`](sim/NavGenerator.lua#L505-L508)). Rationale:

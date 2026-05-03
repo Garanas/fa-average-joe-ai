@@ -114,6 +114,40 @@ do
         base:ClaimSection(section.Identifier)
     end
 
+    ---@class JoeDebugAcquireBuildSitesForBaseData
+    ---@field UnitId UnitId
+
+    --- Exercises `JoeBase:AcquireBuildSitesForUnit` for the selected engineer's base and reports the result. Does *not* issue any build order — the purpose is to verify that the find-or-create flow returns a sensible list (or correctly returns empty when it can't satisfy the request).
+    ---@param data JoeDebugAcquireBuildSitesForBaseData
+    ---@param units JoeUnit[]
+    Callbacks.JoeDebugAcquireBuildSitesForBase = function(data, units)
+        if table.empty(units) then
+            print("No engineer selected")
+            return
+        end
+
+        local engineer = units[1]
+        local base = engineer.JoeData.Base
+        if not base then
+            print("Selected engineer is not part of a base")
+            return
+        end
+
+        local sites = base:AcquireBuildSitesForUnit(data.UnitId)
+        local count = table.getn(sites)
+        if count == 0 then
+            print("AcquireBuildSitesForUnit:", data.UnitId, "-> no sites available")
+            return
+        end
+
+        local first = sites[1]
+        print(
+            "AcquireBuildSitesForUnit:", data.UnitId,
+            "-> sites:", count,
+            "first at:", first.Point[1], first.Point[2]
+        )
+    end
+
     ---@class JoeDebugAssignReclaimBehaviorData
     ---@field Location Vector
 
