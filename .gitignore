@@ -1,3 +1,7 @@
 
 # Contains personal information, such as a path to the repository
 .vscode/*
+
+# Source code that we want to use as context
+
+vendor/**/*

@@ -84,87 +84,95 @@
 --- | '2x2Concrete'
 --- | 'T2EngineerSupport'
 
+--- Per-identifier metadata. Each entry holds the entity category for unit-id resolution plus a debug color and an expected footprint size used by chunk planning and visualization.
+---@class JoeBuildingIdentifierMetadata
+---@field Category EntityCategory   # The entity category that selects matching unit IDs.
+---@field Color Color               # Hex color used by debug-draw helpers.
+---@field SizeX number              # Expected footprint X (in build cells).
+---@field SizeZ number              # Expected footprint Z (in build cells).
+
+---@type table<JoeBuildingIdentifier, JoeBuildingIdentifierMetadata>
 local MapToEntityCategories = {
     -- Energy Structures
-    T1EnergyProduction = categories.STRUCTURE * categories.ENERGYPRODUCTION * categories.TECH1,
-    T1HydroCarbon = categories.STRUCTURE * categories.HYDROCARBON * categories.TECH1,
-    T2EnergyProduction = categories.STRUCTURE * categories.ENERGYPRODUCTION * categories.TECH2,
-    T3EnergyProduction = categories.STRUCTURE * categories.ENERGYPRODUCTION * categories.TECH3,
-    EnergyStorage = categories.STRUCTURE * categories.ENERGYSTORAGE,
+    T1EnergyProduction = { Category = categories.STRUCTURE * categories.ENERGYPRODUCTION * categories.TECH1, Color = 'ffff00', SizeX = 2, SizeZ = 2 },
+    T1HydroCarbon      = { Category = categories.STRUCTURE * categories.HYDROCARBON * categories.TECH1, Color = 'ffdd00', SizeX = 4, SizeZ = 4 },
+    T2EnergyProduction = { Category = categories.STRUCTURE * categories.ENERGYPRODUCTION * categories.TECH2, Color = 'ffcc00', SizeX = 6, SizeZ = 6 },
+    T3EnergyProduction = { Category = categories.STRUCTURE * categories.ENERGYPRODUCTION * categories.TECH3, Color = 'ffaa00', SizeX = 8, SizeZ = 8 },
+    EnergyStorage      = { Category = categories.STRUCTURE * categories.ENERGYSTORAGE, Color = '888844', SizeX = 1, SizeZ = 1 },
 
     -- Mass Structures
-    T1Resource = categories.STRUCTURE * categories.MASSEXTRACTION * categories.TECH1,
-    T2Resource = categories.STRUCTURE * categories.MASSEXTRACTION * categories.TECH2,
-    T3Resource = categories.STRUCTURE * categories.MASSEXTRACTION * categories.TECH3,
-    T1MassCreation = categories.STRUCTURE * categories.MASSFABRICATION * categories.TECH2,
-    T3MassCreation = categories.STRUCTURE * categories.MASSFABRICATION * categories.TECH3,
-    MassStorage = categories.STRUCTURE * categories.MASSSTORAGE,
+    T1Resource     = { Category = categories.STRUCTURE * categories.MASSEXTRACTION * categories.TECH1, Color = 'ff8800', SizeX = 1, SizeZ = 1 },
+    T2Resource     = { Category = categories.STRUCTURE * categories.MASSEXTRACTION * categories.TECH2, Color = 'ff7700', SizeX = 1, SizeZ = 1 },
+    T3Resource     = { Category = categories.STRUCTURE * categories.MASSEXTRACTION * categories.TECH3, Color = 'ff6600', SizeX = 1, SizeZ = 1 },
+    T1MassCreation = { Category = categories.STRUCTURE * categories.MASSFABRICATION * categories.TECH2, Color = 'ffaa44', SizeX = 1, SizeZ = 1 },
+    T3MassCreation = { Category = categories.STRUCTURE * categories.MASSFABRICATION * categories.TECH3, Color = 'ff9933', SizeX = 3, SizeZ = 3 },
+    MassStorage    = { Category = categories.STRUCTURE * categories.MASSSTORAGE, Color = '884422', SizeX = 1, SizeZ = 1 },
 
     -- Land Factory Structures
-    T1LandFactory = categories.STRUCTURE * categories.FACTORY * categories.LAND * categories.TECH1,
-    T2LandFactory = categories.STRUCTURE * categories.FACTORY * categories.LAND * categories.TECH2,
-    T2SupportLandFactory = categories.STRUCTURE * categories.FACTORY * categories.LAND * categories.TECH2 * categories.SUPPORTFACTORY,
-    T3LandFactory = categories.STRUCTURE * categories.FACTORY * categories.LAND * categories.TECH3,
-    T3SupportLandFactory = categories.STRUCTURE * categories.FACTORY * categories.LAND * categories.TECH3 * categories.SUPPORTFACTORY,
-    T3QuantumGate = categories.STRUCTURE * categories.FACTORY * categories.LAND * categories.TECH3 * categories.GATE,
+    T1LandFactory        = { Category = categories.STRUCTURE * categories.FACTORY * categories.LAND * categories.TECH1, Color = '4488ff', SizeX = 8, SizeZ = 8 },
+    T2LandFactory        = { Category = categories.STRUCTURE * categories.FACTORY * categories.LAND * categories.TECH2, Color = '3377ee', SizeX = 8, SizeZ = 8 },
+    T2SupportLandFactory = { Category = categories.STRUCTURE * categories.FACTORY * categories.LAND * categories.TECH2 * categories.SUPPORTFACTORY, Color = '5599ff', SizeX = 8, SizeZ = 8 },
+    T3LandFactory        = { Category = categories.STRUCTURE * categories.FACTORY * categories.LAND * categories.TECH3, Color = '2266dd', SizeX = 8, SizeZ = 8 },
+    T3SupportLandFactory = { Category = categories.STRUCTURE * categories.FACTORY * categories.LAND * categories.TECH3 * categories.SUPPORTFACTORY, Color = '4488ee', SizeX = 8, SizeZ = 8 },
+    T3QuantumGate        = { Category = categories.STRUCTURE * categories.FACTORY * categories.LAND * categories.TECH3 * categories.GATE, Color = 'aa44ff', SizeX = 8, SizeZ = 8 },
 
     -- Air Factory Structures
-    T1AirFactory = categories.STRUCTURE * categories.FACTORY * categories.AIR * categories.TECH1,
-    T2AirFactory = categories.STRUCTURE * categories.FACTORY * categories.AIR * categories.TECH2,
-    T2SupportAirFactory = categories.STRUCTURE * categories.FACTORY * categories.AIR * categories.TECH2 * categories.SUPPORTFACTORY,
-    T3AirFactory = categories.STRUCTURE * categories.FACTORY * categories.AIR * categories.TECH3,
-    T3SupportAirFactory = categories.STRUCTURE * categories.FACTORY * categories.AIR * categories.TECH3 * categories.SUPPORTFACTORY,
-    T2AirStagingPlatform = categories.STRUCTURE * categories.AIRSTAGINGPLATFORM,
+    T1AirFactory         = { Category = categories.STRUCTURE * categories.FACTORY * categories.AIR * categories.TECH1, Color = '00ddff', SizeX = 8, SizeZ = 8 },
+    T2AirFactory         = { Category = categories.STRUCTURE * categories.FACTORY * categories.AIR * categories.TECH2, Color = '00ccee', SizeX = 8, SizeZ = 8 },
+    T2SupportAirFactory  = { Category = categories.STRUCTURE * categories.FACTORY * categories.AIR * categories.TECH2 * categories.SUPPORTFACTORY, Color = '22ddff', SizeX = 8, SizeZ = 8 },
+    T3AirFactory         = { Category = categories.STRUCTURE * categories.FACTORY * categories.AIR * categories.TECH3, Color = '00bbee', SizeX = 8, SizeZ = 8 },
+    T3SupportAirFactory  = { Category = categories.STRUCTURE * categories.FACTORY * categories.AIR * categories.TECH3 * categories.SUPPORTFACTORY, Color = '44ccff', SizeX = 8, SizeZ = 8 },
+    T2AirStagingPlatform = { Category = categories.STRUCTURE * categories.AIRSTAGINGPLATFORM, Color = '88ddff', SizeX = 6, SizeZ = 6 },
 
     -- Sea Factory Structures
-    T1SeaFactory = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH1,
-    T2SeaFactory = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH2,
-    T2SupportSeaFactory = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH2 * categories.SUPPORTFACTORY,
-    T3SeaFactory = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH3,
-    T3SupportSeaFactory = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH3 * categories.SUPPORTFACTORY,
+    T1SeaFactory        = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH1, Color = '2266dd', SizeX = 14, SizeZ = 8 },
+    T2SeaFactory        = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH2, Color = '1155cc', SizeX = 14, SizeZ = 8 },
+    T2SupportSeaFactory = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH2 * categories.SUPPORTFACTORY, Color = '3377dd', SizeX = 14, SizeZ = 8 },
+    T3SeaFactory        = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH3, Color = '0044bb', SizeX = 14, SizeZ = 8 },
+    T3SupportSeaFactory = { Category = categories.STRUCTURE * categories.FACTORY * categories.NAVAL * categories.TECH3 * categories.SUPPORTFACTORY, Color = '2266dd', SizeX = 14, SizeZ = 8 },
 
     -- Defense Structures
-    Wall = categories.STRUCTURE * categories.WALL,
-    T1GroundDefense = categories.STRUCTURE * categories.DIRECTFIRE * categories.TECH1,
-    T2GroundDefense = categories.STRUCTURE * categories.DIRECTFIRE * categories.TECH2,
-    T3GroundDefense = categories.STRUCTURE * categories.DIRECTFIRE * categories.TECH3,
-    T1AADefense = categories.STRUCTURE * categories.ANTIAIR * categories.TECH1,
-    T2AADefense = categories.STRUCTURE * categories.ANTIAIR * categories.TECH2,
-    T3AADefense = categories.STRUCTURE * categories.ANTIAIR * categories.TECH3,
-    T1NavalDefense = categories.STRUCTURE * categories.ANTINAVY * categories.TECH1,
-    T2NavalDefense = categories.STRUCTURE * categories.ANTINAVY * categories.TECH2,
-    T2ShieldDefense = categories.STRUCTURE * categories.SHIELD * categories.TECH2,
-    T3ShieldDefense = categories.STRUCTURE * categories.SHIELD * categories.TECH3,
-    T2MissileDefense = categories.STRUCTURE * categories.ANTIMISSILE * categories.TECH2,
+    Wall             = { Category = categories.STRUCTURE * categories.WALL, Color = '884422', SizeX = 1, SizeZ = 1 },
+    T1GroundDefense  = { Category = categories.STRUCTURE * categories.DIRECTFIRE * categories.TECH1, Color = 'ff3300', SizeX = 1, SizeZ = 1 },
+    T2GroundDefense  = { Category = categories.STRUCTURE * categories.DIRECTFIRE * categories.TECH2, Color = 'ee2200', SizeX = 2, SizeZ = 2 },
+    T3GroundDefense  = { Category = categories.STRUCTURE * categories.DIRECTFIRE * categories.TECH3, Color = 'cc1100', SizeX = 2, SizeZ = 2 },
+    T1AADefense      = { Category = categories.STRUCTURE * categories.ANTIAIR * categories.TECH1, Color = 'ff44ff', SizeX = 1, SizeZ = 1 },
+    T2AADefense      = { Category = categories.STRUCTURE * categories.ANTIAIR * categories.TECH2, Color = 'ee22ee', SizeX = 2, SizeZ = 2 },
+    T3AADefense      = { Category = categories.STRUCTURE * categories.ANTIAIR * categories.TECH3, Color = 'cc11cc', SizeX = 2, SizeZ = 2 },
+    T1NavalDefense   = { Category = categories.STRUCTURE * categories.ANTINAVY * categories.TECH1, Color = '00aaaa', SizeX = 1, SizeZ = 1 },
+    T2NavalDefense   = { Category = categories.STRUCTURE * categories.ANTINAVY * categories.TECH2, Color = '008888', SizeX = 2, SizeZ = 2 },
+    T2ShieldDefense  = { Category = categories.STRUCTURE * categories.SHIELD * categories.TECH2, Color = '44ff44', SizeX = 6, SizeZ = 6 },
+    T3ShieldDefense  = { Category = categories.STRUCTURE * categories.SHIELD * categories.TECH3, Color = '22dd22', SizeX = 6, SizeZ = 6 },
+    T2MissileDefense = { Category = categories.STRUCTURE * categories.ANTIMISSILE * categories.TECH2, Color = 'ff8888', SizeX = 2, SizeZ = 2 },
 
     -- Intelligence Structures
-    T1Radar = categories.STRUCTURE * categories.RADAR * categories.TECH1,
-    T2Radar = categories.STRUCTURE * categories.RADAR * categories.TECH2,
-    T3Radar = categories.STRUCTURE * categories.RADAR * categories.TECH3,
-    T2RadarJammer = categories.STRUCTURE * categories.COUNTERINTELLIGENCE * categories.TECH2,
-    T1Sonar = categories.STRUCTURE * categories.SONAR * categories.TECH1,
-    T2Sonar = categories.STRUCTURE * categories.SONAR * categories.TECH2,
-    T3Sonar = categories.STRUCTURE * categories.SONAR * categories.TECH3,
+    T1Radar       = { Category = categories.STRUCTURE * categories.RADAR * categories.TECH1, Color = 'ffffff', SizeX = 2, SizeZ = 2 },
+    T2Radar       = { Category = categories.STRUCTURE * categories.RADAR * categories.TECH2, Color = 'eeeeee', SizeX = 2, SizeZ = 2 },
+    T3Radar       = { Category = categories.STRUCTURE * categories.RADAR * categories.TECH3, Color = 'cccccc', SizeX = 2, SizeZ = 2 },
+    T2RadarJammer = { Category = categories.STRUCTURE * categories.COUNTERINTELLIGENCE * categories.TECH2, Color = 'aaaaaa', SizeX = 6, SizeZ = 6 },
+    T1Sonar       = { Category = categories.STRUCTURE * categories.SONAR * categories.TECH1, Color = '88ddff', SizeX = 2, SizeZ = 2 },
+    T2Sonar       = { Category = categories.STRUCTURE * categories.SONAR * categories.TECH2, Color = '66ccee', SizeX = 2, SizeZ = 2 },
+    T3Sonar       = { Category = categories.STRUCTURE * categories.SONAR * categories.TECH3, Color = '44bbdd', SizeX = 2, SizeZ = 2 },
 
     -- Artillery Structures
-    T2Artillery = categories.STRUCTURE * categories.ARTILLERY * categories.TECH2,
-    T3Artillery = categories.STRUCTURE * categories.ARTILLERY * categories.TECH3,
-    T4Artillery = categories.STRUCTURE * categories.ARTILLERY * categories.EXPERIMENTAL,
+    T2Artillery = { Category = categories.STRUCTURE * categories.ARTILLERY * categories.TECH2, Color = 'aa1100', SizeX = 2, SizeZ = 2 },
+    T3Artillery = { Category = categories.STRUCTURE * categories.ARTILLERY * categories.TECH3, Color = '880000', SizeX = 2, SizeZ = 2 },
+    T4Artillery = { Category = categories.STRUCTURE * categories.ARTILLERY * categories.EXPERIMENTAL, Color = '660000', SizeX = 5, SizeZ = 5 },
 
     -- Strategic Missile Structures
-    T2StrategicMissile = categories.STRUCTURE * categories.SILO * categories.TECH2,
-    T3StrategicMissile = categories.STRUCTURE * categories.SILO * categories.TECH3,
-    T3StrategicMissileDefense = categories.STRUCTURE * categories.ANTIMISSILE * categories.SILO * categories.TECH3,
+    T2StrategicMissile        = { Category = categories.STRUCTURE * categories.SILO * categories.TECH2, Color = '444444', SizeX = 3, SizeZ = 3 },
+    T3StrategicMissile        = { Category = categories.STRUCTURE * categories.SILO * categories.TECH3, Color = '222222', SizeX = 8, SizeZ = 8 },
+    T3StrategicMissileDefense = { Category = categories.STRUCTURE * categories.ANTIMISSILE * categories.SILO * categories.TECH3, Color = '999999', SizeX = 6, SizeZ = 6 },
 
-    -- Experimentals
-    T4LandExperimental1 = categories.MOBILE * categories.LAND * categories.EXPERIMENTAL,
-    T4LandExperimental2 = categories.MOBILE * categories.LAND * categories.EXPERIMENTAL,
-    T4AirExperimental1 = categories.MOBILE * categories.AIR * categories.EXPERIMENTAL,
-    T4SeaExperimental1 = categories.MOBILE * categories.NAVAL * categories.EXPERIMENTAL,
-    T4SatelliteExperimental = categories.MOBILE * categories.SATELLITE * categories.EXPERIMENTAL,
+    -- Experimentals (mobile units, footprints are best-guess for planning)
+    T4LandExperimental1     = { Category = categories.MOBILE * categories.LAND * categories.EXPERIMENTAL, Color = 'ff00aa', SizeX = 5, SizeZ = 5 },
+    T4LandExperimental2     = { Category = categories.MOBILE * categories.LAND * categories.EXPERIMENTAL, Color = 'dd0099', SizeX = 5, SizeZ = 5 },
+    T4AirExperimental1      = { Category = categories.MOBILE * categories.AIR * categories.EXPERIMENTAL, Color = 'cc44dd', SizeX = 5, SizeZ = 5 },
+    T4SeaExperimental1      = { Category = categories.MOBILE * categories.NAVAL * categories.EXPERIMENTAL, Color = '8822aa', SizeX = 5, SizeZ = 5 },
+    T4SatelliteExperimental = { Category = categories.MOBILE * categories.SATELLITE * categories.EXPERIMENTAL, Color = 'aa44cc', SizeX = 4, SizeZ = 4 },
 
     -- Misc / Support Structures
-    T2EngineerSupport = categories.STRUCTURE * (categories.PODSTAGINGPLATFORM + categories.ENGINEERSTATION) * categories.TECH2,
+    T2EngineerSupport = { Category = categories.STRUCTURE * (categories.PODSTAGINGPLATFORM + categories.ENGINEERSTATION) * categories.TECH2, Color = '00aaaa', SizeX = 4, SizeZ = 4 },
 }
 
 --- Categories of units do not change during run time. It's safe to cache the results.
@@ -253,16 +261,23 @@ local MappingOrder = {
     "MassStorage",
 }
 
+--- Returns the full metadata record for a building identifier (category, color, footprint).
+---@param identifier JoeBuildingIdentifier
+---@return JoeBuildingIdentifierMetadata
+function MapToMetadata(identifier)
+    local entry = MapToEntityCategories[identifier]
+    if not entry then
+        error('No metadata mapped for chunk identifier: ' .. tostring(identifier))
+    end
+
+    return entry
+end
+
 --- Maps a building template to an entity category.
 ---@param identifier JoeBuildingIdentifier
 ---@return EntityCategory
 function MapToCategory(identifier)
-    local category = MapToEntityCategories[identifier]
-    if not category then
-        error('No entity category mapped for chunk identifier: ' .. tostring(identifier))
-    end
-
-    return category
+    return MapToMetadata(identifier).Category
 end
 
 --- Maps a building template to an entity category suitable for a specific engineer.

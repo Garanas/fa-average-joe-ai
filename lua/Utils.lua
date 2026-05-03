@@ -4,6 +4,10 @@ local TableInsert = table.insert
 local TableConcat = table.concat
 
 local StringFormat = string.format
+local StringLen = string.len
+
+--- Tables whose compact form is at most this many characters are written on a single line; longer ones expand across multiple lines.
+local MaxInlineLength = 80
 
 --- Escapes a string for valid Lua syntax
 ---@param str string
@@ -16,17 +20,17 @@ local function EscapeString(str)
     return "\"" .. str .. "\""
 end
 
---- Determines whether a key is a valid Lua identifier
----@param str string
----@return string
+--- Determines whether a value is a valid Lua identifier (i.e. a string usable as an unquoted table key).
+---@param str any
+---@return string?
 local function IsIdentifier(str)
-    return type(str) == "string" and string.match(str, "^[A-Za-z_][A-Za-z0-9_]*$")
+    return type(str) == "string" and string.match(str, "^[A-Za-z_][A-Za-z0-9_]*$") or nil
 end
 
---- Recursively converts a table to a Lua-compatible string.
---- @param tbl table
---- @param indent string
---- @return string
+--- Recursively converts a table to a Lua-compatible string. Tables whose compact form fits within `MaxInlineLength` are inlined on a single line; longer tables expand across multiple lines.
+---@param tbl table
+---@param indent? string
+---@return string
 function SerializeTable(tbl, indent)
     indent = indent or ""
     local lines = {}
@@ -56,7 +60,15 @@ function SerializeTable(tbl, indent)
     end
 
     TableInsert(lines, indent .. "}")
-    return TableConcat(lines, "")
+    local serialized = TableConcat(lines, "")
+
+    -- attempt to inline it
+    if (STR_Utf8Len(serialized) <= MaxInlineLength) then
+        local inlined = serialized:gsub("%s+", " ")
+        return inlined
+    else
+        return serialized
+    end
 end
 
 --- Serializes any Lua value into a Lua-compatible string.

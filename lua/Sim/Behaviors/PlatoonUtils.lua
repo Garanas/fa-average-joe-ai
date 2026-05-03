@@ -10,6 +10,7 @@ PlatoonBehaviors = {
     -- engineer behavior
     ReclaimBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/Engineers/ReclaimBehavior.lua").ReclaimBehavior,
     BuildBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/Engineers/BuildBehavior.lua").BuildBehavior,
+    AssistBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/Engineers/AssistBehavior.lua").AssistBehavior,
 
     -- base behavior
     Base = {

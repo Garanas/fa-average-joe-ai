@@ -1,6 +1,13 @@
+
+local TableInsert = table.insert
+
+local error = error
+local warn = WARN
+local pcall = pcall
+
 --- Responsible for managing the base chunk templates that are loaded from files.
 ---@class JoeBaseChunkLoader
----@field Templates AILoadedBaseChunkTemplate[] # List of base chunk templates managed by this instance.
+---@field Templates JoeLoadedBaseChunk[] # List of base chunk templates managed by this instance.
 JoeBaseChunkLoader = ClassSimple {
 
     ---@param self JoeBaseChunkLoader
@@ -8,14 +15,30 @@ JoeBaseChunkLoader = ClassSimple {
         self.Templates = {}
     end,
 
-    --- Adds a base chunk template to the manager.
+    --- Adds a base chunk template to the manager. The template should already have its loader fields (`Source`, `SourceField`) attached.
     ---@param self JoeBaseChunkLoader
-    ---@param template JoeBaseChunkTemplate
+    ---@param template JoeLoadedBaseChunk
     AddTemplate = function(self, template)
-        table.insert(self.Templates, template)
+        TableInsert(self.Templates, template)
     end,
 
-    --- Loads a base chunk template from a file.
+    --- Returns all loaded templates of the given size that contain at least one location for the given building identifier.
+    ---@param self JoeBaseChunkLoader
+    ---@param identifier JoeBuildingIdentifier
+    ---@param size number
+    ---@param cache? JoeLoadedBaseChunk[]    # optional table to reuse; cleared before being filled.
+    ---@return JoeLoadedBaseChunk[]
+    FindTemplates = function(self, identifier, size, cache)
+        cache = cache or {}
+        for _, template in self.Templates do
+            if template.Size == size and template.Locations[identifier] then
+                TableInsert(cache, template)
+            end
+        end
+        return cache
+    end,
+
+    --- Loads a base chunk from a file and registers it as a template.
     ---@param self JoeBaseChunkLoader
     ---@param file string
     ---@param field? string     # defaults to "Template"
@@ -27,16 +50,17 @@ JoeBaseChunkLoader = ClassSimple {
             error("Failed to load template from file: " .. tostring(templateModule))
         end
 
-        local template = templateModule[field] --[[@as AILoadedBaseChunkTemplate?]]
+        local template = templateModule[field] --[[@as JoeBaseChunk?]]
         if not template then
             error("Field '" .. tostring(field) .. "' not found in template file: " .. tostring(file))
         end
 
-        -- add information that we can only compute during runtime
-        template.Source = file
-        template.SourceField = field
+        -- promote the on-disk JoeBaseChunk to a runtime JoeLoadedBaseChunk by stamping loader fields
+        local runtimeTemplate = template --[[@as JoeLoadedBaseChunk]]
+        runtimeTemplate.Source = file
+        runtimeTemplate.SourceField = field
 
-        self:AddTemplate(template)
+        self:AddTemplate(runtimeTemplate)
     end,
 }
 
@@ -47,7 +71,7 @@ CreateDefaultJoeBaseChunkLoader = function()
 
     local ok, msg = pcall(
         function()
-            -- Load templates from files or other sources if needed
+            -- Load templates from files in a deterministic manner. We can not load in all templates using a glob.
             baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/air_16x16_01.lua")
             baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/power_08x08_01.lua")
             baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/power_16x16_01.lua")

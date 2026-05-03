@@ -15,8 +15,15 @@ local StandardBrainOnCreateAI = StandardBrain.OnCreateAI
 ---@field GridReclaim AIGridReclaim
 ---@field GridRecon AIGridRecon
 ---@field GridPresence AIGridPresence
+---@field ChunkComponent JoeBrainChunkComponent
+---@field ChunkLoader JoeBaseChunkLoader
 ---@field Bases JoeBase[]
+---@field Debug boolean
+---@field DrawThread? thread
 JoeBrain = Class(StandardBrain) {
+
+    Debug = false,
+
     ---@param self JoeBrain
     OnCreateAI = function(self)
         StandardBrainOnCreateAI(self, 'NoPlan')
@@ -27,6 +34,10 @@ JoeBrain = Class(StandardBrain) {
         self.GridReclaim = import("/lua/ai/gridreclaim.lua").Setup(self)
         self.GridRecon = import("/lua/ai/gridrecon.lua").Setup(self)
         self.GridPresence = import("/lua/ai/gridpresence.lua").Setup(self)
+        self.ChunkComponent = import("/mods/fa-joe-ai/lua/Sim/Brains/Components/JoeBrainChunkComponent.lua").Setup(self)
+        self.ChunkLoader = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/JoeBaseChunkLoader.lua").CreateDefaultJoeBaseChunkLoader()
+
+        self.Bases = {}
     end,
 
     ---------------------------------------------------------------------------
@@ -35,20 +46,67 @@ JoeBrain = Class(StandardBrain) {
     ---@param self JoeBrain
     ---@param base JoeBase
     AddBase = function(self, base)
+        table.insert(self.Bases, base)
+    end,
+
+    --- Removes a base from this brain's roster. Called by `JoeBase:Retreat` after the base has cleaned up its own state.
+    ---@param self JoeBrain
+    ---@param base JoeBase
+    RemoveBase = function(self, base)
+        local bases = self.Bases
+        for k = 1, table.getn(bases) do
+            if bases[k] == base then
+                table.remove(bases, k)
+                return
+            end
+        end
     end,
 
 
+    --- Returns the base most relevant to the given XZ position. First checks whether the position falls inside an already-claimed nav-mesh leaf (Land first, Water as fallback) — if so, returns that leaf's owning base directly. Otherwise falls back to the base whose `Location` is closest in XZ. Returns nil if the brain has no bases and no claimed leaves cover the position.
     ---@param self JoeBrain
     ---@param lx number     # in world coordinates
     ---@param lz number     # in world coordinates
+    ---@return JoeBase?
     FindNearestBaseXZ = function(self, lx, lz)
+        -- First try: is the position already inside a claimed leaf? Then we know the owner directly.
+        local chunkComponent = self.ChunkComponent
+        local position = { lx, 0, lz }
+        local leaf = chunkComponent:FindLeaf("Land", position)
+                  or chunkComponent:FindLeaf("Water", position)
+        if leaf then
+            local owner = chunkComponent:GetOwner(leaf.Identifier)
+            if owner then
+                return owner
+            end
+        end
 
+        -- Fall back: nearest base by squared XZ distance to base.Location.
+        local bases = self.Bases
+        local nearest = nil
+        local nearestDistSq
+
+        for k = 1, table.getn(bases) do
+            local base = bases[k]
+            local pos = base.Location
+            local dx = pos[1] - lx
+            local dz = pos[3] - lz
+            local distSq = dx * dx + dz * dz
+
+            if (not nearestDistSq) or distSq < nearestDistSq then
+                nearest = base
+                nearestDistSq = distSq
+            end
+        end
+
+        return nearest
     end,
 
     ---@param self JoeBrain
     ---@param location Vector
+    ---@return JoeBase?
     FindNearestBase = function(self, location)
-
+        return self:FindNearestBaseXZ(location[1], location[3])
     end,
 
     --#endregion
@@ -62,8 +120,6 @@ JoeBrain = Class(StandardBrain) {
     ---@param builder Unit
     ---@param layer Layer
     OnUnitStartBeingBuilt = function(self, unit, builder, layer)
-        -- for debugging
-        LOG("OnUnitStartBeingBuilt")
     end,
 
     ---@param self EasyAIBrain
@@ -71,17 +127,11 @@ JoeBrain = Class(StandardBrain) {
     ---@param builder Unit
     ---@param layer Layer
     OnUnitStopBeingBuilt = function(self, unit, builder, layer)
-        -- for debugging
-        LOG("OnUnitStopBeingBuilt")
-
-        local platoon = self:GetPlatoonUniquelyNamed("ArmyPool")
-        LOG(table.getn(platoon:GetPlatoonUnits()))
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     OnUnitDestroy = function(self, unit)
-        LOG("OnUnitDestroy")
     end,
 
     ---@param self EasyAIBrain
@@ -94,8 +144,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnHealthChanged(unit, new, old)
         end
-
-        LOG("OnUnitHealthChanged")
     end,
 
     ---@param self EasyAIBrain
@@ -107,8 +155,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnStopReclaim(unit, target)
         end
-
-        LOG("OnUnitStopReclaim")
     end,
 
     ---@param self EasyAIBrain
@@ -120,8 +166,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnStartReclaim(unit, target)
         end
-
-        LOG("OnUnitStartReclaim")
     end,
 
     ---@param self EasyAIBrain
@@ -133,8 +177,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnStartRepair(unit, target)
         end
-
-        LOG("OnUnitStartRepair")
     end,
 
     ---@param self EasyAIBrain
@@ -146,8 +188,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnStopRepair(unit, target)
         end
-
-        LOG("OnUnitStopRepair")
     end,
 
     ---@param self EasyAIBrain
@@ -161,57 +201,48 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnKilled(unit, instigator, damageType, overkillRatio)
         end
-
-        LOG("OnUnitKilled")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     ---@param reclaimer Unit
     OnUnitReclaimed = function(self, unit, reclaimer)
-        LOG("OnUnitReclaimed")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     ---@param target Unit
     OnUnitStartCapture = function(self, unit, target)
-        LOG("OnUnitStartCapture")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     ---@param target Unit
     OnUnitStopCapture = function(self, unit, target)
-        LOG("OnUnitStopCapture")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     ---@param target Unit
     OnUnitFailedCapture = function(self, unit, target)
-        LOG("OnUnitFailedCapture")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     ---@param captor Unit
     OnUnitStartBeingCaptured = function(self, unit, captor)
-        LOG("OnUnitStartBeingCaptured")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     ---@param captor Unit
     OnUnitStopBeingCaptured = function(self, unit, captor)
-        LOG("OnUnitStopBeingCaptured")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     ---@param captor Unit
     OnUnitFailedBeingCaptured = function(self, unit, captor)
-        LOG("OnUnitFailedBeingCaptured")
     end,
 
     ---@param self EasyAIBrain
@@ -222,8 +253,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnSiloBuildStart(unit, weapon)
         end
-
-        LOG("OnUnitSiloBuildStart")
     end,
 
     ---@param self EasyAIBrain
@@ -234,8 +263,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnSiloBuildEnd(unit, weapon)
         end
-
-        LOG("OnUnitSiloBuildEnd")
     end,
 
     ---@param self EasyAIBrain
@@ -248,8 +275,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnStartBuild(unit, target, order)
         end
-
-        LOG("OnUnitStartBuild")
     end,
 
     ---@param self EasyAIBrain
@@ -259,12 +284,9 @@ JoeBrain = Class(StandardBrain) {
     OnUnitStopBuild = function(self, unit, target, order)
         -- awareness of event for AI
         local aiPlatoon = unit.JoeData.Behavior
-        LOG(aiPlatoon)
         if aiPlatoon then
             aiPlatoon:OnStopBuild(unit, target)
         end
-
-        LOG("OnUnitStopBuild")
     end,
 
     ---@param self EasyAIBrain
@@ -273,19 +295,16 @@ JoeBrain = Class(StandardBrain) {
     ---@param old number
     ---@param new number
     OnUnitBuildProgress = function(self, unit, target, old, new)
-        LOG("OnUnitBuildProgress")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     OnUnitPaused = function(self, unit)
-        LOG("OnUnitPaused")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     OnUnitUnpaused = function(self, unit)
-        LOG("OnUnitUnpaused")
     end,
 
     ---@param self EasyAIBrain
@@ -294,13 +313,11 @@ JoeBrain = Class(StandardBrain) {
     ---@param old number
     ---@param new number
     OnUnitBeingBuiltProgress = function(self, unit, builder, old, new)
-        LOG("OnUnitBeingBuiltProgress")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     OnUnitFailedToBeBuilt = function(self, unit)
-        LOG("OnUnitFailedToBeBuilt")
     end,
 
     ---@param self EasyAIBrain
@@ -313,8 +330,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnTransportAttach(unit, attachBone, attachedUnit)
         end
-
-        LOG("OnUnitTransportAttach")
     end,
 
     ---@param self EasyAIBrain
@@ -327,8 +342,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnTransportDetach(unit, attachBone, detachedUnit)
         end
-
-        LOG("OnUnitTransportDetach")
     end,
 
     ---@param self EasyAIBrain
@@ -339,8 +352,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnTransportAborted(unit)
         end
-
-        LOG("OnUnitTransportAborted")
     end,
 
     ---@param self EasyAIBrain
@@ -351,8 +362,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnTransportOrdered(unit)
         end
-
-        LOG("OnUnitTransportOrdered")
     end,
 
     ---@param self EasyAIBrain
@@ -364,8 +373,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnAttachedKilled(unit)
         end
-
-        LOG("OnUnitAttachedKilled")
     end,
 
     ---@param self EasyAIBrain
@@ -376,8 +383,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnStartTransportLoading(unit)
         end
-
-        LOG("OnUnitStartTransportLoading")
     end,
 
     ---@param self EasyAIBrain
@@ -388,8 +393,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnStopTransportLoading(unit)
         end
-
-        LOG("OnUnitStopTransportLoading")
     end,
 
     ---@param self EasyAIBrain
@@ -397,13 +400,11 @@ JoeBrain = Class(StandardBrain) {
     ---@param transport Unit
     ---@param bone Bone
     OnUnitStartTransportBeamUp = function(self, unit, transport, bone)
-        LOG("OnUnitStartTransportBeamUp")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     OnUnitStoptransportBeamUp = function(self, unit)
-        LOG("OnUnitStoptransportBeamUp")
     end,
 
     ---@param self EasyAIBrain
@@ -411,7 +412,6 @@ JoeBrain = Class(StandardBrain) {
     ---@param transport Unit
     ---@param bone Bone
     OnUnitAttachedToTransport = function(self, unit, transport, bone)
-        LOG("OnUnitAttachedToTransport")
     end,
 
     ---@param self EasyAIBrain
@@ -419,7 +419,6 @@ JoeBrain = Class(StandardBrain) {
     ---@param transport Unit
     ---@param bone Bone
     OnUnitDetachedFromTransport = function(self, unit, transport, bone)
-        LOG("OnUnitDetachedFromTransport")
     end,
 
     ---@param self EasyAIBrain
@@ -431,8 +430,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnAddToStorage(unit, carrier)
         end
-
-        LOG("OnUnitAddToStorage")
     end,
 
     ---@param self EasyAIBrain
@@ -444,8 +441,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnRemoveFromStorage(unit, carrier)
         end
-
-        LOG("OnUnitRemoveFromStorage")
     end,
 
     ---@param self EasyAIBrain
@@ -454,13 +449,11 @@ JoeBrain = Class(StandardBrain) {
     ---@param location Vector
     ---@param orientation Quaternion
     OnUnitTeleportUnit = function(self, unit, teleporter, location, orientation)
-        LOG("OnUnitTeleportUnit")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     OnUnitFailedTeleport = function(self, unit)
-        LOG("OnUnitFailedTeleport")
     end,
 
     ---@param self EasyAIBrain
@@ -471,8 +464,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnShieldEnabled(unit)
         end
-
-        LOG("OnUnitShieldEnabled")
     end,
 
     ---@param self EasyAIBrain
@@ -483,20 +474,16 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnShieldDisabled(unit)
         end
-
-        LOG("OnUnitShieldDisabled")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     OnUnitNukeArmed = function(self, unit)
-        LOG("OnUnitNukeArmed")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     OnUnitNukeLaunched = function(self, unit)
-        LOG("OnUnitNukeLaunched")
     end,
 
     ---@param self EasyAIBrain
@@ -508,8 +495,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnWorkBegin(unit, work)
         end
-
-        LOG("OnUnitWorkBegin")
     end,
 
     ---@param self EasyAIBrain
@@ -521,15 +506,12 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnWorkEnd(unit, work)
         end
-
-        LOG("OnUnitWorkEnd")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     ---@param work any
     OnUnitWorkFail = function(self, unit, work)
-        LOG("OnUnitWorkFail")
     end,
 
     ---@param self EasyAIBrain
@@ -542,8 +524,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnMissileImpactShield(unit, target, shield, position)
         end
-
-        LOG("OnUnitMissileImpactShield")
     end,
 
     ---@param self EasyAIBrain
@@ -556,8 +536,6 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnMissileImpactTerrain(unit, target, position)
         end
-
-        LOG("OnUnitMissileImpactTerrain")
     end,
 
     ---@param self EasyAIBrain
@@ -572,46 +550,79 @@ JoeBrain = Class(StandardBrain) {
         if aiPlatoon then
             aiPlatoon:OnMissileIntercepted(unit, target, defense, position)
         end
-
-        LOG("OnUnitMissileIntercepted")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     ---@param target Unit
     OnUnitStartSacrifice = function(self, unit, target)
-        LOG("OnUnitStartSacrifice")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     ---@param target Unit
     OnUnitStopSacrifice = function(self, unit, target)
-        LOG("OnUnitStopSacrifice")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     OnUnitConsumptionActive = function(self, unit)
-        LOG("OnUnitConsumptionActive")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     OnUnitConsumptionInActive = function(self, unit)
-        LOG("OnUnitConsumptionInActive")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     OnUnitProductionActive = function(self, unit)
-        LOG("OnUnitProductionActive")
     end,
 
     ---@param self EasyAIBrain
     ---@param unit JoeUnit
     OnUnitProductionInActive = function(self, unit)
-        LOG("OnUnitProductionInActive")
+    end,
+
+    --#endregion
+    ---------------------------------------------------------------------------
+
+    ---------------------------------------------------------------------------
+    --#region Debug visualization
+
+    --- Turns on the brain-level draw thread. Idempotent.
+    ---@param self JoeBrain
+    EnableDebug = function(self)
+        if self.Debug then
+            return
+        end
+        self.Debug = true
+        self.DrawThread = ForkThread(self.DrawLoop, self)
+    end,
+
+    --- Turns off the brain-level draw thread. Idempotent.
+    ---@param self JoeBrain
+    DisableDebug = function(self)
+        self.Debug = false
+        if self.DrawThread then
+            KillThread(self.DrawThread)
+            self.DrawThread = nil
+        end
+    end,
+
+    --- The forked thread that calls `Draw` once per tick while `Debug` is true.
+    ---@param self JoeBrain
+    DrawLoop = function(self)
+        while self.Debug do
+            self:Draw()
+            WaitTicks(1)
+        end
+    end,
+
+    --- Renders the brain's debug visualization. Currently delegates to `ChunkComponent:Draw`; future brain components add their own `Draw` calls here.
+    ---@param self JoeBrain
+    Draw = function(self)
+        self.ChunkComponent:Draw()
     end,
 
     --#endregion

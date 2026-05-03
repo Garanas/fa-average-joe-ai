@@ -99,6 +99,18 @@ local BehaviorHotkeys = {
         name = 'Joe AI - Apply engineer reclaim behavior to selected units',
         action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/ApplyReclaimBehavior.lua").Handle()',
     },
+    {
+        category = KeyCategories.Behavior.Key,
+        key = 'average_joe_ai_apply_build_behavior',
+        name = "Joe AI - Apply build behavior to selected units (consumes the base's job queue)",
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/ApplyParameterFreeBehavior.lua").Handle("BuildBehavior")',
+    },
+    {
+        category = KeyCategories.Behavior.Key,
+        key = 'average_joe_ai_apply_assist_behavior',
+        name = "Joe AI - Apply assist behavior to selected units (helps active build jobs)",
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/ApplyParameterFreeBehavior.lua").Handle("AssistBehavior")',
+    },
 }
 
 ---@type JoeHotkey[]
@@ -106,14 +118,50 @@ local BaseHotkeys = {
     {
         category = KeyCategories.Base.Key,
         key = 'average_joe_ai_create_base_at_location',
-        name = 'Joe AI - Create AI base at location',
-        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/CreateBase.lua").Handle()',
+        name = 'Joe AI - Create AI base at location for focus army',
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/CreateBaseAtLocation.lua").Handle()',
+    },
+    {
+        category = KeyCategories.Base.Key,
+        key = 'average_joe_ai_toggle_brain_chunk_visualization',
+        name = 'Joe AI - Toggle brain chunk visualization for focus army',
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/ToggleBrainChunkVisualization.lua").Handle()',
     },
     {
         category = KeyCategories.Base.Key,
         key = 'average_joe_ai_assign_reclaim_behavior_base',
         name = 'Joe AI - Assign reclaim behavior to selected engineers in base',
         action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/Base/AssignReclaimBehavior.lua").Handle()',
+    },
+    {
+        category = KeyCategories.Base.Key,
+        key = 'average_joe_ai_add_leaf_to_base',
+        name = 'Joe AI - Add leaf under cursor to the base of the selected units',
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/Base/AddLeaf.lua").Handle()',
+    },
+    {
+        category = KeyCategories.Base.Key,
+        key = 'average_joe_ai_acquire_build_sites_for_base',
+        name = "Joe AI - Acquire build sites at the engineer's base for the current command-mode unit",
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/Base/AcquireBuildSitesForBase.lua").Handle()',
+    },
+    {
+        category = KeyCategories.Base.Key,
+        key = 'average_joe_ai_assign_units_to_base',
+        name = 'Joe AI - Assign selected units to the base under cursor (unit or section)',
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/Base/AssignToBase.lua").Handle()',
+    },
+    {
+        category = KeyCategories.Base.Key,
+        key = 'average_joe_ai_push_build_job',
+        name = "Joe AI - Push current command-mode unit as a build job on the engineer's base",
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/Base/PushBuildJob.lua").Handle()',
+    },
+    {
+        category = KeyCategories.Base.Key,
+        key = 'average_joe_ai_push_build_job_at_cursor',
+        name = "Joe AI - Push current command-mode unit as a build job with the cursor position as a hint",
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/Base/PushBuildJobAtCursor.lua").Handle()',
     },
 }
 

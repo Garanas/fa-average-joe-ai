@@ -1,5 +1,5 @@
 local ReclaimUtils = import("/mods/fa-joe-ai/lua/sim/ReclaimUtils.lua")
-local EntityUtils = import("/mods/fa-joe-ai/lua/sim/EntityUtils.lua")
+local EntityUtils = import("/mods/fa-joe-ai/lua/Sim/Utils/EntityUtils.lua")
 
 local TableGetn = table.getn
 local TableSetn = table.setn
