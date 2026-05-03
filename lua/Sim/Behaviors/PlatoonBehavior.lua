@@ -18,6 +18,7 @@ local TableSetn = table.setn
 ---@class AIPlatoonBehaviorState : State
 ---@field BehaviorStateName string      # Name of the state, primarily used for debugging purposes.
 ---@field BehaviorStateColor Color      # Color of the state, primarily used for debugging purposes.
+---@field BehaviorStateTerminal boolean # When true, the state is terminal: the behavior has reached an end (Completed/Error) and will not advance on its own. Owners may inspect this to decide whether to re-task or destroy the platoon.
 
 --- Describes the behavior of a platoon with one or more units.
 ---@class AIPlatoonBehavior : moho.platoon_methods
@@ -31,6 +32,7 @@ AIPlatoonBehavior = Class(moho.platoon_methods) {
     BehaviorName = 'PlatoonBase',
     BehaviorStateName = 'Unknown',
     BehaviorStateColor = '000000',
+    BehaviorStateTerminal = false,
 
     --- Called by the platoon builder when the behavior is created.
     ---@param self AIPlatoonBehavior
@@ -67,6 +69,7 @@ AIPlatoonBehavior = Class(moho.platoon_methods) {
     Completed = State {
         BehaviorStateName = 'Completed',
         BehaviorStateColor =  '00ff00',
+        BehaviorStateTerminal = true,
 
         ---@param self AIPlatoonBehavior
         Main = function(self)
@@ -78,6 +81,7 @@ AIPlatoonBehavior = Class(moho.platoon_methods) {
 
         BehaviorStateName = 'Error',
         BehaviorStateColor =  'ff0000',
+        BehaviorStateTerminal = true,
 
         ---@param self AIPlatoonBehavior
         Main = function(self)
