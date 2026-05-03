@@ -357,6 +357,7 @@ JoeBase = ClassSimple {
         DebugUtils.DrawUnits(idleUnits, 'ffffff', 0.1)
 
         self.ChunkComponent:Draw()
+        self.BuildSiteComponent:Draw()
         self:DrawReclaimingEngineers()
     end,
 

@@ -1,3 +1,6 @@
+local DebugUtils = import("/mods/fa-joe-ai/lua/Sim/Utils/DebugUtils.lua")
+local JoeBuildingIdentifierModule = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/JoeBuildingIdentifiers.lua")
+
 local TableInsert = table.insert
 local TableGetn = table.getn
 local TableSetn = table.setn
@@ -69,6 +72,22 @@ JoeBuildSite = ClassSimple {
             return 'Building'
         end
         return 'Built'
+    end,
+
+    --#endregion
+
+    -----------------------------------------------------------------------------
+    --#region Debug visualization
+
+    --- Draws the site's expected footprint as an outlined rectangle, color-coded by the building identifier. The rectangle is centered on `Point` with `SizeX`/`SizeZ` pulled from the identifier metadata, plus a small inset so adjacent sites stay visually separable.
+    ---@param self JoeBuildSite
+    Draw = function(self)
+        local metadata = JoeBuildingIdentifierModule.MapToMetadata(self.Identifier)
+        local cx = self.Point[1]
+        local cz = self.Point[2]
+        local hx = 0.5 * metadata.SizeX
+        local hz = 0.5 * metadata.SizeZ
+        DebugUtils.DrawSquareXZ(cx - hx, cz - hz, cx + hx, cz + hz, metadata.Color, 0.1)
     end,
 
     --#endregion
@@ -181,6 +200,20 @@ JoeBaseBuildSiteComponent = ClassSimple {
                 sites[head] = site
                 head = head + 1
             end
+        end
+    end,
+
+    --#endregion
+
+    -----------------------------------------------------------------------------
+    --#region Debug visualization
+
+    --- Draws every build site this base owns. Pure render — caller decides cadence.
+    ---@param self JoeBaseBuildSiteComponent
+    Draw = function(self)
+        local sites = self.Sites
+        for k = 1, TableGetn(sites) do
+            sites[k]:Draw()
         end
     end,
 
