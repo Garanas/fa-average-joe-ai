@@ -182,8 +182,11 @@ JoeBaseBuildSiteComponent = ClassSimple {
                 local loc = locations[k]
                 ---@type JoeBaseChunkLocation
                 local worldPoint = {
-                    anchorX + loc[1],
-                    anchorZ + loc[2],
+
+                    -- add offset here so that structures align properly with the in-game grid. In order to have templates work, we previously did -0.5. 
+
+                    anchorX + loc[1] + 0.5, 
+                    anchorZ + loc[2] + 0.5,
                     loc[3],
                 }
 
