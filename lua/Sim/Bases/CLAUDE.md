@@ -23,6 +23,8 @@ If you find yourself reaching for a method like `JoeBase:DecideWhatToBuild`, tha
 1. Components talk to other components.
 2. The base talks to its brain.
 
+This is the model's **internal-consistency layer** — it keeps data coherent across components and across the brain mirror. It does **not** introduce policy decisions; deciding *what* to claim or build is a controller concern (see "Role: model" above).
+
 Components themselves are kept dumb on purpose — they store data and expose accessors, nothing more. Cross-component invariants and brain mirroring live in `JoeBase`. This makes:
 
 - Components independently testable (no sibling mocks).
@@ -53,14 +55,14 @@ Same shape for `ReleaseLeaf`, `ReleaseAllLeaves`. If you find yourself reaching 
 | Stage | What happens |
 |---|---|
 | **Build** | `JoeBaseBuilder.Build(brain, location)` calls `JoeBase(brain, location)` and registers the base via `brain:AddBase(base)`. The base's chunk component infers its layer from the location. |
-| **Live** | The base claims leaves, assigns engineer behaviors, and grows. The trash bag (`self.Trash`) tracks anything thread-shaped that should die with the base. |
+| **Live** | The base claims leaves and grows its build sites. The trash bag (`self.Trash`) tracks anything thread-shaped that should die with the base. *Today the base also assigns engineer behaviors directly; long-term that work migrates to the brain (see "Role: model" above).* |
 | **Retreat** | `base:Retreat()` destroys the trash (kills threads), releases every claimed leaf (mirroring each release to the brain and dropping attached build sites), and removes the base from `brain.Bases`. After this call the base is unreachable through the brain. |
 
 Order in `Retreat` matters: kill threads *first* so they can't observe inconsistent state during data cleanup, *then* release leaves, *then* unregister.
 
 ## Future base subtypes
 
-There's only `JoeBase` today, but the structure is meant to host subtypes — e.g. main base vs. expansion vs. defensive outpost — that share the coordinator pattern and component slots but differ in policy (which behaviors to run, how aggressively to claim, etc.). When that lands, the convention is: **subclass `JoeBase`, override behaviour-shaped methods, keep the component contracts identical**.
+There's only `JoeBase` today, but the structure is meant to host subtypes — e.g. main base vs. expansion vs. defensive outpost — that share the coordinator pattern and component slots but differ **structurally**: a naval base has different layer rules, a forward outpost may omit some components, an expansion base may init smaller defaults. Policy differences (how aggressively to claim, which behaviors to run) belong in the brain or the behaviors that consume the base, not in subtypes. When subtyping lands, the convention is: **subclass `JoeBase` for structural variation, keep the component contracts identical, leave decisions to the controllers**.
 
 ## Conventions
 
@@ -68,3 +70,4 @@ There's only `JoeBase` today, but the structure is meant to host subtypes — e.
 2. **No `self.Brain.X` inside a component.** Brain-talking is a `JoeBase` responsibility.
 3. **Trash everything thread-shaped.** Forked threads that should die with the base go in `self.Trash`. `Retreat` cleans them up uniformly.
 4. **Don't self-register.** Bases are registered with the brain by their builder (`AssignBrain`), not from `__init`.
+5. **No policy decisions on the base.** If you're choosing between options (which structure to build next, which engineer to dispatch, where to expand), that's a controller concern — push it to the brain or out to the behavior. The base records and validates; controllers decide.

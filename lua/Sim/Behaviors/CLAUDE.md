@@ -67,6 +67,7 @@ FooBehavior = Class(AIPlatoonBehavior) {
 - File: `FooBehavior.lua`. Exported global: `FooBehavior`. Class annotation: `AIFooBehavior`. Input annotation: `AIFooBehaviorInput`.
 - `BehaviorName` is a string used in logs.
 - `BehaviorStateName` and `BehaviorStateColor` are per-state and used by debug drawing.
+- `BehaviorStateTerminal` is per-state and defaults to `false`. Set it to `true` on states that are end-of-the-line for the behavior (the inherited `Completed` and `Error` are the canonical examples). Owners — bases or the brain — read `self.BehaviorStateTerminal` on a platoon to decide whether the behavior has finished and the units are free to be re-tasked, without having to compare against specific state references.
 
 ## How states work
 
