@@ -19,36 +19,36 @@ Components themselves are kept dumb on purpose — they store data and expose ac
 
 - Components independently testable (no sibling mocks).
 - Brain ↔ base traffic grep-able (`self.Brain.X` only ever appears in `JoeBase`).
-- Cross-cutting operations (e.g. "claim section + register build sites + cascade on retreat") have one obvious home.
+- Cross-cutting operations (e.g. "claim leaf + drop attached build sites + cascade on retreat") have one obvious home.
 
 The cost is some boilerplate — every multi-component operation gets a `JoeBase` method that mostly forwards. Worth it.
 
-### Example: section claims
+### Example: leaf claims
 
-`JoeBaseChunkComponent:ClaimSection` is **pure storage** — it just writes to `self.Sections`. The brain mirror happens in `JoeBase:ClaimSection`:
+The unit of claim is a `NavLeaf`, not a `NavSection` — multiple bases can share a single underlying section by claiming different leaves inside it. `JoeBaseChunkComponent:ClaimLeaf` is **pure storage** — it just writes to `self.Leaves`. The brain mirror happens in `JoeBase:ClaimLeaf`:
 
 ```lua
-ClaimSection = function(self, sectionId)
-    if self.Brain.ChunkComponent:IsClaimed(sectionId) then return false end
-    self.ChunkComponent:ClaimSection(sectionId)
-    self.Brain.ChunkComponent:ClaimSection(sectionId, self)
+ClaimLeaf = function(self, leafId)
+    if self.Brain.ChunkComponent:IsClaimed(leafId) then return false end
+    self.ChunkComponent:ClaimLeaf(leafId)
+    self.Brain.ChunkComponent:ClaimLeaf(leafId, self)
     return true
 end
 ```
 
-Three layers, same name: `JoeBase:ClaimSection` (coordinator), `JoeBaseChunkComponent:ClaimSection` (this-base storage), `JoeBrainChunkComponent:ClaimSection` (brain union). They're the same operation viewed at three scopes — calling them all `ClaimSection` makes the symmetry explicit. Method dispatch (`:`) keeps them disambiguated by receiver type.
+Three layers, same name: `JoeBase:ClaimLeaf` (coordinator), `JoeBaseChunkComponent:ClaimLeaf` (this-base storage), `JoeBrainChunkComponent:ClaimLeaf` (brain union). They're the same operation viewed at three scopes — calling them all `ClaimLeaf` makes the symmetry explicit. Method dispatch (`:`) keeps them disambiguated by receiver type.
 
-Same shape for `ReleaseSection`, `ReleaseAllSections`. If you find yourself reaching for `self.Brain.X` from inside a component, that's the smell — the operation belongs on `JoeBase`.
+Same shape for `ReleaseLeaf`, `ReleaseAllLeaves`. If you find yourself reaching for `self.Brain.X` from inside a component, that's the smell — the operation belongs on `JoeBase`.
 
 ## Lifecycle
 
 | Stage | What happens |
 |---|---|
 | **Build** | `JoeBaseBuilder.Build(brain, location)` calls `JoeBase(brain, location)` and registers the base via `brain:AddBase(base)`. The base's chunk component infers its layer from the location. |
-| **Live** | The base claims sections, assigns engineer behaviors, and grows. The trash bag (`self.Trash`) tracks anything thread-shaped that should die with the base. |
-| **Retreat** | `base:Retreat()` destroys the trash (kills threads), releases every claimed section (mirroring each release to the brain), and removes the base from `brain.Bases`. After this call the base is unreachable through the brain. |
+| **Live** | The base claims leaves, assigns engineer behaviors, and grows. The trash bag (`self.Trash`) tracks anything thread-shaped that should die with the base. |
+| **Retreat** | `base:Retreat()` destroys the trash (kills threads), releases every claimed leaf (mirroring each release to the brain and dropping attached build sites), and removes the base from `brain.Bases`. After this call the base is unreachable through the brain. |
 
-Order in `Retreat` matters: kill threads *first* so they can't observe inconsistent state during data cleanup, *then* release sections, *then* unregister.
+Order in `Retreat` matters: kill threads *first* so they can't observe inconsistent state during data cleanup, *then* release leaves, *then* unregister.
 
 ## Future base subtypes
 

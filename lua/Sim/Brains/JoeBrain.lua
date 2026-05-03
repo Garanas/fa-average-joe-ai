@@ -63,19 +63,19 @@ JoeBrain = Class(StandardBrain) {
     end,
 
 
-    --- Returns the base most relevant to the given XZ position. First checks whether the position falls inside an already-claimed nav section (Land first, Water as fallback) — if so, returns that section's owning base directly. Otherwise falls back to the base whose `Location` is closest in XZ. Returns nil if the brain has no bases and no claimed sections cover the position.
+    --- Returns the base most relevant to the given XZ position. First checks whether the position falls inside an already-claimed nav-mesh leaf (Land first, Water as fallback) — if so, returns that leaf's owning base directly. Otherwise falls back to the base whose `Location` is closest in XZ. Returns nil if the brain has no bases and no claimed leaves cover the position.
     ---@param self JoeBrain
     ---@param lx number     # in world coordinates
     ---@param lz number     # in world coordinates
     ---@return JoeBase?
     FindNearestBaseXZ = function(self, lx, lz)
-        -- First try: is the position already inside a claimed section? Then we know the owner directly.
+        -- First try: is the position already inside a claimed leaf? Then we know the owner directly.
         local chunkComponent = self.ChunkComponent
         local position = { lx, 0, lz }
-        local section = chunkComponent:FindSection("Land", position)
-                     or chunkComponent:FindSection("Water", position)
-        if section then
-            local owner = chunkComponent:GetOwner(section.Identifier)
+        local leaf = chunkComponent:FindLeaf("Land", position)
+                  or chunkComponent:FindLeaf("Water", position)
+        if leaf then
+            local owner = chunkComponent:GetOwner(leaf.Identifier)
             if owner then
                 return owner
             end

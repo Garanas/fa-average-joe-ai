@@ -59,51 +59,54 @@ JoeBase = ClassSimple {
     end,
 
     ---------------------------------------------------------------------------
-    --#region Lifecycle and section claims (cross-component coordination)
+    --#region Lifecycle and leaf claims (cross-component coordination)
 
-    --- Records a claim on the given section for this base. Refuses if any base under this brain (including this one) already claims it. Mirrors successful claims to the brain so its union view stays in sync.
+    --- Records a claim on the given leaf for this base. Refuses if any base under this brain (including this one) already claims it. Mirrors successful claims to the brain so its union view stays in sync.
     ---@param self JoeBase
-    ---@param sectionId NavSectionIdentifier
+    ---@param leafId NavLeafIdentifier
     ---@return boolean    # true if the claim was recorded; false if already claimed
-    ClaimSection = function(self, sectionId)
-        if self.Brain.ChunkComponent:IsClaimed(sectionId) then
+    ClaimLeaf = function(self, leafId)
+        if self.Brain.ChunkComponent:IsClaimed(leafId) then
             return false
         end
 
-        self.ChunkComponent:ClaimSection(sectionId)
-        self.Brain.ChunkComponent:ClaimSection(sectionId, self)
+        self.ChunkComponent:ClaimLeaf(leafId)
+        self.Brain.ChunkComponent:ClaimLeaf(leafId, self)
         return true
     end,
 
-    --- Releases this base's claim on a single section. Mirrors the release to the brain. Quietly returns false if the section wasn't claimed by this base.
+    --- Releases this base's claim on a single leaf. Mirrors the release to the brain. Quietly returns false if the leaf wasn't claimed by this base.
     ---@param self JoeBase
-    ---@param sectionId NavSectionIdentifier
+    ---@param leafId NavLeafIdentifier
     ---@return boolean
-    ReleaseSection = function(self, sectionId)
-        if not self.ChunkComponent:IsClaimed(sectionId) then
+    ReleaseLeaf = function(self, leafId)
+        if not self.ChunkComponent:IsClaimed(leafId) then
             return false
         end
 
-        self.ChunkComponent:ReleaseSection(sectionId)
-        self.Brain.ChunkComponent:ReleaseSection(sectionId, self)
+        self.BuildSiteComponent:ReleaseSitesFromLeaf(leafId)
+        self.ChunkComponent:ReleaseLeaf(leafId)
+        self.Brain.ChunkComponent:ReleaseLeaf(leafId, self)
         return true
     end,
 
-    --- Releases every section this base claims. Iterates first to mirror each release to the brain, then clears the component's storage.
+    --- Releases every leaf this base claims. Iterates first to mirror each release to the brain (and drop attached build sites), then clears the component's storage.
     ---@param self JoeBase
-    ReleaseAllSections = function(self)
+    ReleaseAllLeaves = function(self)
         local brainComponent = self.Brain.ChunkComponent
-        for sectionId, _ in self.ChunkComponent.Sections do
-            brainComponent:ReleaseSection(sectionId, self)
+        local buildSites = self.BuildSiteComponent
+        for leafId, _ in self.ChunkComponent.Leaves do
+            buildSites:ReleaseSitesFromLeaf(leafId)
+            brainComponent:ReleaseLeaf(leafId, self)
         end
-        self.ChunkComponent:ReleaseAllSections()
+        self.ChunkComponent:ReleaseAllLeaves()
     end,
 
-    --- Tears the base down: kills every thread/observer in the trash, releases every claimed section (mirroring to the brain), and removes the base from the brain's roster. After this call the base is no longer reachable through `brain.Bases`.
+    --- Tears the base down: kills every thread/observer in the trash, releases every claimed leaf (mirroring to the brain), and removes the base from the brain's roster. After this call the base is no longer reachable through `brain.Bases`.
     ---@param self JoeBase
     Retreat = function(self)
         self.Trash:Destroy()
-        self:ReleaseAllSections()
+        self:ReleaseAllLeaves()
         self.Brain:RemoveBase(self)
     end,
 
@@ -116,8 +119,8 @@ JoeBase = ClassSimple {
     --- Ensures at least one free build site exists for the given identifier and returns every free site that matches. Order of attempts:
     ---
     ---  1. Existing free sites already mapped on this base.
-    ---  2. A claimed-but-unchunkified section: find a template containing this identifier, apply it.
-    ---  3. Claim a new (unclaimed) section adjacent to the base, then apply the template.
+    ---  2. A claimed-but-unchunkified leaf: find a template containing this identifier, apply it.
+    ---  3. Claim a new (unclaimed) leaf adjacent to the base, then apply the template.
     ---
     --- Returns an empty list if every attempt fails. The cache table (if provided) is cleared and reused — pass it back on subsequent calls to avoid allocating.
     ---@param self JoeBase
@@ -133,15 +136,15 @@ JoeBase = ClassSimple {
             return cache
         end
 
-        -- 2. claimed-but-unchunkified section
-        local section = self:FindUnchunkifiedSection()
-        if section and self:ApplyTemplateForIdentifier(section, identifier) then
+        -- 2. claimed-but-unchunkified leaf
+        local leaf = self:FindUnchunkifiedLeaf()
+        if leaf and self:ApplyTemplateForLeaf(leaf, identifier) then
             return buildSites:CollectFreeFor(identifier, cache)
         end
 
-        -- 3. claim a new section, then apply
-        section = self:ClaimAdjacentSection()
-        if section and self:ApplyTemplateForIdentifier(section, identifier) then
+        -- 3. claim a new leaf, then apply
+        leaf = self:ClaimAdjacentLeaf()
+        if leaf and self:ApplyTemplateForLeaf(leaf, identifier) then
             return buildSites:CollectFreeFor(identifier, cache)
         end
 
@@ -159,13 +162,13 @@ JoeBase = ClassSimple {
         return self:AcquireBuildSitesForIdentifier(identifier, cache)
     end,
 
-    --- Returns the first claimed section that has not yet had a template applied to it, or nil if every claimed section is already chunkified.
+    --- Returns the first claimed leaf that has not yet had a template applied to it, or nil if every claimed leaf is already chunkified.
     ---@param self JoeBase
-    ---@return NavSection?
-    FindUnchunkifiedSection = function(self)
-        for _, claim in self.ChunkComponent.Sections do
+    ---@return NavLeaf?
+    FindUnchunkifiedLeaf = function(self)
+        for _, claim in self.ChunkComponent.Leaves do
             if not claim.Chunkified then
-                return claim.Section
+                return claim.Leaf
             end
         end
         return nil
@@ -204,55 +207,43 @@ JoeBase = ClassSimple {
         return best, bestHasIdentifier
     end,
 
-    --- Maps a size-best-fit template onto every pathable leaf of the section. Tracks whether any of the chosen templates happen to contain a slot for `identifier`; returns true only when at least one does — that's what makes the section useful for the current query. The section is marked chunkified whenever any template was applied (build sites placed are still useful for future queries with other identifiers, even if this one wasn't satisfied).
-    ---
-    --- Unpathable leaves (`Label <= 0`) and leaves smaller than every available template are skipped entirely.
+    --- Picks a size-best-fit template for the given leaf and maps it. Marks the leaf chunkified iff a template was applied. Returns true when the chosen template actually contains a slot for `identifier` — that's what makes the leaf useful for the current query. False means either no template fits or the picked template was a fallback (no identifier match), and the orchestrator should try a different leaf.
     ---@param self JoeBase
-    ---@param section NavSection
+    ---@param leaf NavLeaf
     ---@param identifier JoeBuildingIdentifier
     ---@return boolean
-    ApplyTemplateForIdentifier = function(self, section, identifier)
-        local leaves = section.Leaves
-        local leafCount = TableGetn(leaves)
-
-        local appliedAny = false
-        local hasIdentifierMatch = false
-
-        for k = 1, leafCount do
-            local leaf = leaves[k]
-            if leaf.Label > 0 then
-                local template, isMatch = self:FindTemplateForLeaf(leaf, identifier)
-                if template then
-                    self.BuildSiteComponent:MapTemplate(template, leaf)
-                    appliedAny = true
-                    if isMatch then
-                        hasIdentifierMatch = true
-                    end
-                end
-            end
+    ApplyTemplateForLeaf = function(self, leaf, identifier)
+        if leaf.Label <= 0 then
+            return false
         end
 
-        if appliedAny then
-            self.ChunkComponent:MarkChunkified(section.Identifier)
+        local template, isMatch = self:FindTemplateForLeaf(leaf, identifier)
+        if not template then
+            return false
         end
 
-        return hasIdentifierMatch
+        self.BuildSiteComponent:MapTemplate(template, leaf)
+        self.ChunkComponent:MarkChunkified(leaf.Identifier)
+        return isMatch
     end,
 
-    --- Asks the brain for unclaimed nav sections reachable from this base's location and claims the first one. Returns the section claimed, or nil if no expansion was possible.
+    --- Asks the brain for unclaimed nav-mesh leaves reachable from this base's location and claims the first one of sufficient size. Uses `ChunkComponent.MinClaimSize` (default 16) as the size floor and as the area target — one MinClaimSize×MinClaimSize leaf is enough. Returns the leaf claimed, or nil if no expansion was possible.
     ---@param self JoeBase
-    ---@return NavSection?
-    ClaimAdjacentSection = function(self)
-        local layer = self.ChunkComponent.Layer
-        -- TODO: areaTarget is a magic number; tune once we have real workloads.
-        local sections = self.Brain.ChunkComponent:FindClaimableArea(layer, self.Location, 0.01, self)
+    ---@return NavLeaf?
+    ClaimAdjacentLeaf = function(self)
+        local chunkComponent = self.ChunkComponent
+        local layer = chunkComponent.Layer
+        local minSize = chunkComponent.MinClaimSize
+        local areaTarget = minSize * minSize
 
-        for k = 1, TableGetn(sections) do
-            local section = sections[k]
+        local leaves = self.Brain.ChunkComponent:FindClaimableArea(layer, self.Location, areaTarget, minSize, self)
+
+        for k = 1, TableGetn(leaves) do
+            local leaf = leaves[k]
             -- the BFS includes our own claims (so we can re-traverse) — skip those
-            if not self.ChunkComponent:IsClaimed(section.Identifier) then
-                if self:ClaimSection(section.Identifier) then
-                    return section
+            if not chunkComponent:IsClaimed(leaf.Identifier) then
+                if self:ClaimLeaf(leaf.Identifier) then
+                    return leaf
                 end
             end
         end

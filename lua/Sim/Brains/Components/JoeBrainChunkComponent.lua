@@ -4,42 +4,42 @@ local Shared = import("/lua/shared/navgenerator.lua")
 local TableInsert = table.insert
 local TableGetn = table.getn
 
---- Manages the brain-level view of claimed nav-mesh sections, plus the queries that locate new claimable area.
+--- Manages the brain-level view of claimed nav-mesh leaves, plus the BFS queries that locate new claimable area.
 ---
---- The brain's claim set is *the union of every base's claim set*. Bases are the only writers; the brain mirrors via `ClaimSection` / `ReleaseSection`. Each section's value here is the owning `JoeBase` reference — fast `IsClaimed` lookup, plus we know who owns it without scanning all bases.
+--- The brain's claim set is *the union of every base's claim set*. Bases are the only writers; the brain mirrors via `ClaimLeaf` / `ReleaseLeaf`. Each leaf's value here is the owning `JoeBase` reference — fast `IsClaimed` lookup, plus we know who owns it without scanning all bases.
 ---
---- Section identifiers are globally unique across nav layers (they share a counter), so a single `Sections` table holds claims on Land, Water, etc. without collision; the layer is resolved per-query when walking the mesh.
+--- Leaf identifiers are globally unique across nav layers (they share a counter), so a single `Leaves` table holds claims on Land, Water, etc. without collision; the layer is resolved per-query when walking the mesh.
 ---@class JoeBrainChunkComponent
 ---@field Brain JoeBrain
----@field Sections table<NavSectionIdentifier, JoeBase>
+---@field Leaves table<NavLeafIdentifier, JoeBase>
 JoeBrainChunkComponent = ClassSimple {
 
     ---@param self JoeBrainChunkComponent
     ---@param brain JoeBrain
     __init = function(self, brain)
         self.Brain = brain
-        self.Sections = {}
+        self.Leaves = {}
     end,
 
     -----------------------------------------------------------------------------
     --#region Mirror from base claims
 
-    --- Called by `JoeBase:ClaimSection` (the coordinator) to mirror the claim into the brain set. Same name as the base-side method on purpose — they're the same operation at two layers.
+    --- Called by `JoeBase:ClaimLeaf` (the coordinator) to mirror the claim into the brain set. Same name as the base-side method on purpose — they're the same operation at two layers.
     ---@param self JoeBrainChunkComponent
-    ---@param sectionId NavSectionIdentifier
+    ---@param leafId NavLeafIdentifier
     ---@param base JoeBase
-    ClaimSection = function(self, sectionId, base)
-        self.Sections[sectionId] = base
+    ClaimLeaf = function(self, leafId, base)
+        self.Leaves[leafId] = base
     end,
 
-    --- Called by `JoeBase:ReleaseSection` (or `JoeBase:ReleaseAllSections`) to mirror the release.
+    --- Called by `JoeBase:ReleaseLeaf` (or `JoeBase:ReleaseAllLeaves`) to mirror the release.
     --- Defensively only clears if the requesting base is the current owner — guards against an out-of-order release accidentally clearing another base's claim.
     ---@param self JoeBrainChunkComponent
-    ---@param sectionId NavSectionIdentifier
+    ---@param leafId NavLeafIdentifier
     ---@param base JoeBase
-    ReleaseSection = function(self, sectionId, base)
-        if self.Sections[sectionId] == base then
-            self.Sections[sectionId] = nil
+    ReleaseLeaf = function(self, leafId, base)
+        if self.Leaves[leafId] == base then
+            self.Leaves[leafId] = nil
         end
     end,
 
@@ -49,37 +49,31 @@ JoeBrainChunkComponent = ClassSimple {
     --#region Lookups
 
     ---@param self JoeBrainChunkComponent
-    ---@param sectionId NavSectionIdentifier
+    ---@param leafId NavLeafIdentifier
     ---@return boolean
-    IsClaimed = function(self, sectionId)
-        return self.Sections[sectionId] ~= nil
+    IsClaimed = function(self, leafId)
+        return self.Leaves[leafId] ~= nil
     end,
 
-    --- Returns the base that owns the section, or nil if unclaimed.
+    --- Returns the base that owns the leaf, or nil if unclaimed.
     ---@param self JoeBrainChunkComponent
-    ---@param sectionId NavSectionIdentifier
+    ---@param leafId NavLeafIdentifier
     ---@return JoeBase?
-    GetOwner = function(self, sectionId)
-        return self.Sections[sectionId]
+    GetOwner = function(self, leafId)
+        return self.Leaves[leafId]
     end,
 
-    --- Looks up the NavSection that contains a position on the given layer.
+    --- Looks up the NavLeaf that contains a position on the given layer. Thin wrapper over `NavGrid:FindLeaf`.
     ---@param self JoeBrainChunkComponent
     ---@param layer NavLayers
     ---@param position Vector
-    ---@return NavSection?
-    FindSection = function(self, layer, position)
+    ---@return NavLeaf?
+    FindLeaf = function(self, layer, position)
         local grid = NavGenerator.NavGrids[layer]
         if not grid then
             return nil
         end
-
-        local leaf = grid:FindLeaf(position)
-        if not leaf then
-            return nil
-        end
-
-        return NavGenerator.NavSections[leaf.Section]
+        return grid:FindLeaf(position)
     end,
 
     --#endregion
@@ -87,43 +81,49 @@ JoeBrainChunkComponent = ClassSimple {
     -----------------------------------------------------------------------------
     --#region Queries
 
-    --- Grows outward from the seed position by walking section neighbors, skipping sections already claimed (by any base under this brain), until the accumulated section area meets `areaTarget`. Sections claimed by `excludeBase` are *not* treated as occupied, which lets a base re-extend across its own existing territory. Returns the accepted sections and the total area covered. The caller decides whether to actually claim them.
+    --- Grows outward from the seed position by walking leaf neighbors (`leaf[k]`), skipping leaves that are unpathable, smaller than `minLeafSize`, or already claimed by a base other than `excludeBase`. Stops when accumulated leaf area meets `areaTarget`. The caller decides whether to actually claim the result.
+    ---
+    --- `areaTarget` is in raw squared world units — e.g. one 16×16 leaf contributes 256.
     ---@param self JoeBrainChunkComponent
     ---@param layer NavLayers
     ---@param seedPosition Vector
-    ---@param areaTarget number     # in normalized NavSection.Area units
+    ---@param areaTarget number
+    ---@param minLeafSize number
     ---@param excludeBase? JoeBase
-    ---@return NavSection[]
-    ---@return number               # total accumulated area
-    FindClaimableArea = function(self, layer, seedPosition, areaTarget, excludeBase)
-        local seedSection = self:FindSection(layer, seedPosition)
-        if not seedSection then
+    ---@return NavLeaf[]
+    ---@return number    # total accumulated area (raw squared units)
+    FindClaimableArea = function(self, layer, seedPosition, areaTarget, minLeafSize, excludeBase)
+        local seedLeaf = self:FindLeaf(layer, seedPosition)
+        if not seedLeaf then
             return {}, 0
         end
 
-        local NavSections = NavGenerator.NavSections
+        local NavLeaves = NavGenerator.NavLeaves
         local accepted = {}
-        local seen = { [seedSection.Identifier] = true }
-        local queue = { seedSection }
+        local seen = { [seedLeaf.Identifier] = true }
+        local queue = { seedLeaf }
         local head = 1
         local tail = 1
         local accumulated = 0
 
         while head <= tail and accumulated < areaTarget do
-            local section = queue[head]
+            local leaf = queue[head]
             head = head + 1
 
-            if not self:IsBlockingForQuery(section.Identifier, excludeBase) then
-                TableInsert(accepted, section)
-                accumulated = accumulated + section.Area
+            if leaf.Label > 0
+                and leaf.Size >= minLeafSize
+                and not self:IsBlockingForQuery(leaf.Identifier, excludeBase)
+            then
+                TableInsert(accepted, leaf)
+                accumulated = accumulated + leaf.Size * leaf.Size
 
-                local neighbors = section.Neighbors
-                for k = 1, TableGetn(neighbors) do
-                    local neighborId = neighbors[k]
+                -- leaf neighbours are integer-indexed entries on the leaf table (NavGenerator populates these during mesh build)
+                for k = 1, TableGetn(leaf) do
+                    local neighborId = leaf[k]
                     if not seen[neighborId] then
                         seen[neighborId] = true
                         tail = tail + 1
-                        queue[tail] = NavSections[neighborId]
+                        queue[tail] = NavLeaves[neighborId]
                     end
                 end
             end
@@ -132,36 +132,37 @@ JoeBrainChunkComponent = ClassSimple {
         return accepted, accumulated
     end,
 
-    --- Like `FindClaimableArea` but biased toward `targetPosition` — sections nearer the target are visited first (best-first by squared distance from section center). Useful when extending an existing base toward a known objective.
+    --- Like `FindClaimableArea` but biased toward `targetPosition` — leaves nearer the target are visited first (best-first by squared distance from leaf center). Useful when extending a base toward a known objective.
     ---@param self JoeBrainChunkComponent
     ---@param layer NavLayers
     ---@param seedPosition Vector
     ---@param targetPosition Vector
     ---@param areaTarget number
+    ---@param minLeafSize number
     ---@param excludeBase? JoeBase
-    ---@return NavSection[]
+    ---@return NavLeaf[]
     ---@return number
-    FindClaimableAreaToward = function(self, layer, seedPosition, targetPosition, areaTarget, excludeBase)
-        local seedSection = self:FindSection(layer, seedPosition)
-        if not seedSection then
+    FindClaimableAreaToward = function(self, layer, seedPosition, targetPosition, areaTarget, minLeafSize, excludeBase)
+        local seedLeaf = self:FindLeaf(layer, seedPosition)
+        if not seedLeaf then
             return {}, 0
         end
 
-        local NavSections = NavGenerator.NavSections
+        local NavLeaves = NavGenerator.NavLeaves
         local tx = targetPosition[1]
         local tz = targetPosition[3]
 
-        local function priority(section)
-            local dx = section.Center[1] - tx
-            local dz = section.Center[3] - tz
+        local function priority(leaf)
+            local dx = leaf.px - tx
+            local dz = leaf.pz - tz
             return dx * dx + dz * dz
         end
 
         -- Linear-scan priority queue. Frontier sizes are small in practice; promote to NavDatastructures.NavHeap if profiling says otherwise.
-        local frontier = { seedSection }
+        local frontier = { seedLeaf }
         local frontierCount = 1
         local accepted = {}
-        local seen = { [seedSection.Identifier] = true }
+        local seen = { [seedLeaf.Identifier] = true }
         local accumulated = 0
 
         while frontierCount > 0 and accumulated < areaTarget do
@@ -175,22 +176,24 @@ JoeBrainChunkComponent = ClassSimple {
                 end
             end
 
-            local section = frontier[bestIdx]
+            local leaf = frontier[bestIdx]
             frontier[bestIdx] = frontier[frontierCount]
             frontier[frontierCount] = nil
             frontierCount = frontierCount - 1
 
-            if not self:IsBlockingForQuery(section.Identifier, excludeBase) then
-                TableInsert(accepted, section)
-                accumulated = accumulated + section.Area
+            if leaf.Label > 0
+                and leaf.Size >= minLeafSize
+                and not self:IsBlockingForQuery(leaf.Identifier, excludeBase)
+            then
+                TableInsert(accepted, leaf)
+                accumulated = accumulated + leaf.Size * leaf.Size
 
-                local neighbors = section.Neighbors
-                for k = 1, TableGetn(neighbors) do
-                    local neighborId = neighbors[k]
+                for k = 1, TableGetn(leaf) do
+                    local neighborId = leaf[k]
                     if not seen[neighborId] then
                         seen[neighborId] = true
                         frontierCount = frontierCount + 1
-                        frontier[frontierCount] = NavSections[neighborId]
+                        frontier[frontierCount] = NavLeaves[neighborId]
                     end
                 end
             end
@@ -199,13 +202,13 @@ JoeBrainChunkComponent = ClassSimple {
         return accepted, accumulated
     end,
 
-    --- True if the section is claimed by *some other* base — i.e. it should block expansion. A section claimed by `excludeBase` is treated as free so the base can re-extend over its own territory.
+    --- True if the leaf is claimed by *some other* base — i.e. it should block expansion. A leaf claimed by `excludeBase` is treated as free so the base can re-extend over its own territory.
     ---@param self JoeBrainChunkComponent
-    ---@param sectionId NavSectionIdentifier
+    ---@param leafId NavLeafIdentifier
     ---@param excludeBase? JoeBase
     ---@return boolean
-    IsBlockingForQuery = function(self, sectionId, excludeBase)
-        local owner = self.Sections[sectionId]
+    IsBlockingForQuery = function(self, leafId, excludeBase)
+        local owner = self.Leaves[leafId]
         if not owner then
             return false
         end
@@ -217,7 +220,7 @@ JoeBrainChunkComponent = ClassSimple {
     -----------------------------------------------------------------------------
     --#region Debug visualization
 
-    --- Draws each claimed section's leaves, color-coded by the owning base's index in `brain.Bases`. Owners are derived per-tick (cheap) so newly-added bases pick up a stable color without extra bookkeeping. Pure render — caller (`JoeBrain:Draw`) decides cadence.
+    --- Draws each claimed leaf, color-coded by the owning base's index in `brain.Bases`. Owners are derived per-tick (cheap) so newly-added bases pick up a stable color without extra bookkeeping. Pure render — caller (`JoeBrain:Draw`) decides cadence.
     ---@param self JoeBrainChunkComponent
     Draw = function(self)
         local bases = self.Brain.Bases
@@ -231,16 +234,13 @@ JoeBrainChunkComponent = ClassSimple {
             baseColors[bases[k]] = Shared.LabelToColor(k)
         end
 
-        for sectionId, owningBase in self.Sections do
-            local section = NavGenerator.NavSections[sectionId]
-            if section then
+        local NavLeaves = NavGenerator.NavLeaves
+        for leafId, owningBase in self.Leaves do
+            local leaf = NavLeaves[leafId]
+            if leaf then
                 local color = baseColors[owningBase] or 'ffffff'
-                local leaves = section.Leaves
-                for k = 1, TableGetn(leaves) do
-                    local leaf = leaves[k]
-                    local h = 0.5 * leaf.Size
-                    NavGenerator.DrawSquare(leaf.px - h, leaf.pz - h, leaf.Size, color, 0.1)
-                end
+                local h = 0.5 * leaf.Size
+                NavGenerator.DrawSquare(leaf.px - h, leaf.pz - h, leaf.Size, color, 0.1)
             end
         end
     end,

@@ -4,11 +4,11 @@ Per-brain components are **pure data holders** with narrow scope. They store one
 
 ## Files in this tree
 
-- [`JoeBrainChunkComponent.lua`](JoeBrainChunkComponent.lua) — the brain's union view of claimed sections (`Sections[sectionId] → JoeBase`). Populated by bases via `ClaimSection` / `ReleaseSection` (same names as the corresponding `JoeBase` coordinator methods that call them). Hosts the BFS queries `FindClaimableArea` and `FindClaimableAreaToward` because they're brain-scope (need to consider all bases under the brain).
+- [`JoeBrainChunkComponent.lua`](JoeBrainChunkComponent.lua) — the brain's union view of claimed leaves (`Leaves[leafId] → JoeBase`). Populated by bases via `ClaimLeaf` / `ReleaseLeaf` (same names as the corresponding `JoeBase` coordinator methods that call them). Hosts the BFS queries `FindClaimableArea` / `FindClaimableAreaToward` (walk `leaf[k]` neighbour lists; skip leaves below `minLeafSize`) and `FindLeaf` (position → leaf via `NavGrid:FindLeaf`). All brain-scope because they need the full union.
 
 ## Difference from base components
 
-The brain's chunk component is *slightly* less pure than its base counterpart — it carries the queries (`FindClaimableArea`, `FindSection`, `IsBlockingForQuery`). That's defensible: those queries need access to the full union, which only this component has. They also don't reach back across to bases except via the read-only `excludeBase` parameter.
+The brain's chunk component is *slightly* less pure than its base counterpart — it carries the queries (`FindClaimableArea`, `FindLeaf`, `IsBlockingForQuery`). That's defensible: those queries need access to the full union, which only this component has. They also don't reach back across to bases except via the read-only `excludeBase` parameter.
 
 If a query needs to combine data from multiple brain components, that's a `JoeBrain` method, not a component method.
 
@@ -47,5 +47,5 @@ The `Setup(brain)` module export pattern matches the existing FAF grid component
 ## Pitfalls
 
 1. **Iterating bases from inside a brain component** is a gentle smell. It's sometimes necessary (e.g. drawing all bases' colors), but think first whether the operation belongs on `JoeBrain` instead.
-2. **Mutation from outside.** Bases mutate brain components only through methods explicitly intended as mirror points (`ClaimSection`, `ReleaseSection` on the brain component, called from the matching `JoeBase` coordinator methods). Don't let other callers mutate `Sections` directly.
+2. **Mutation from outside.** Bases mutate brain components only through methods explicitly intended as mirror points (`ClaimLeaf`, `ReleaseLeaf` on the brain component, called from the matching `JoeBase` coordinator methods). Don't let other callers mutate `Leaves` directly.
 3. **No forked threads in components.** Visualization and polling threads belong on `JoeBrain` (debug draw) or are forked by the action that needs them. A component owning a thread couples it to the component's lifetime in confusing ways — `JoeBrain:DisableDebug` killing the thread is more legible.

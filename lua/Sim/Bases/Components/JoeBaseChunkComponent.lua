@@ -2,8 +2,6 @@ local NavUtils = import("/lua/sim/navutils.lua")
 local NavGenerator = import("/lua/sim/navgenerator.lua")
 local Shared = import("/lua/shared/navgenerator.lua")
 
-local TableGetn = table.getn
-
 --- Determines the most natural layer for a base centered at the given position. Tests pathability on Land first, then Water.
 ---@param position Vector
 ---@return NavLayers?
@@ -17,76 +15,80 @@ local function InferLayer(position)
     return nil
 end
 
---- A claim made by a single base on a single nav section. Carries per-section state that the base wants to track (e.g. has it been broken down into chunks/templates yet).
----@class JoeBaseSectionClaim
----@field Section NavSection
+--- A claim made by a single base on a single nav-mesh leaf. Carries per-leaf state the base wants to track (e.g. has a chunk template been applied here yet). Each pathable leaf hosts at most one template, so `Chunkified` is naturally per-leaf.
+---@class JoeBaseLeafClaim
+---@field Leaf NavLeaf
 ---@field Chunkified boolean
 
+--- Per-base view of which nav-mesh leaves this base owns. Pure storage — `JoeBase` coordinates conflict checks against the brain's union view and mirrors successful claims back. Multiple bases can share a single underlying `NavSection` by claiming different leaves inside it; the section concept never appears here.
 ---@class JoeBaseChunkComponent
 ---@field Base JoeBase
 ---@field Layer NavLayers
----@field Sections table<NavSectionIdentifier, JoeBaseSectionClaim>
+---@field Leaves table<NavLeafIdentifier, JoeBaseLeafClaim>
 JoeBaseChunkComponent = ClassSimple {
+
+    --- Default minimum side length (in world units) of a leaf this base will accept as a claim. Smaller leaves (tiny pathable strips between unpathable terrain) are skipped by `JoeBase:ClaimAdjacentLeaf` so the base picks up usefully-sized building plots. Per-instance overridable.
+    MinClaimSize = 16,
 
     ---@param self JoeBaseChunkComponent
     ---@param base JoeBase
     __init = function(self, base)
         self.Base = base
         self.Layer = InferLayer(base.Location) or "Land"
-        self.Sections = {}
+        self.Leaves = {}
     end,
 
     -----------------------------------------------------------------------------
     --#region Claims (pure storage — JoeBase coordinates conflict checks and brain mirroring)
 
-    --- Records a claim on the given section. Pure storage; the caller (`JoeBase:ClaimSection`) is responsible for checking conflicts against the brain's union view and mirroring successful claims back to the brain.
+    --- Records a claim on the given leaf. Pure storage; the caller (`JoeBase:ClaimLeaf`) is responsible for checking conflicts against the brain's union view and mirroring successful claims back.
     ---@param self JoeBaseChunkComponent
-    ---@param sectionId NavSectionIdentifier
-    ClaimSection = function(self, sectionId)
-        local section = NavGenerator.NavSections[sectionId]
-        if not section then
+    ---@param leafId NavLeafIdentifier
+    ClaimLeaf = function(self, leafId)
+        local leaf = NavGenerator.NavLeaves[leafId]
+        if not leaf then
             return
         end
 
-        ---@type JoeBaseSectionClaim
-        self.Sections[sectionId] = {
-            Section = section,
+        ---@type JoeBaseLeafClaim
+        self.Leaves[leafId] = {
+            Leaf = leaf,
             Chunkified = false,
         }
     end,
 
-    --- Releases the claim on a single section. Pure storage; the caller mirrors the release to the brain.
+    --- Releases the claim on a single leaf. Pure storage; the caller mirrors the release to the brain.
     ---@param self JoeBaseChunkComponent
-    ---@param sectionId NavSectionIdentifier
-    ReleaseSection = function(self, sectionId)
-        self.Sections[sectionId] = nil
+    ---@param leafId NavLeafIdentifier
+    ReleaseLeaf = function(self, leafId)
+        self.Leaves[leafId] = nil
     end,
 
     --- Clears every claim. Pure storage; the caller is expected to mirror each release to the brain *before* calling this so the union stays in sync.
     ---@param self JoeBaseChunkComponent
-    ReleaseAllSections = function(self)
-        self.Sections = {}
+    ReleaseAllLeaves = function(self)
+        self.Leaves = {}
     end,
 
     ---@param self JoeBaseChunkComponent
-    ---@param sectionId NavSectionIdentifier
+    ---@param leafId NavLeafIdentifier
     ---@return boolean
-    IsClaimed = function(self, sectionId)
-        return self.Sections[sectionId] ~= nil
+    IsClaimed = function(self, leafId)
+        return self.Leaves[leafId] ~= nil
     end,
 
     ---@param self JoeBaseChunkComponent
-    ---@param sectionId NavSectionIdentifier
-    ---@return JoeBaseSectionClaim?
-    GetClaim = function(self, sectionId)
-        return self.Sections[sectionId]
+    ---@param leafId NavLeafIdentifier
+    ---@return JoeBaseLeafClaim?
+    GetClaim = function(self, leafId)
+        return self.Leaves[leafId]
     end,
 
-    --- Marks a claim as having been broken down into chunks/templates.
+    --- Marks a leaf claim as having had a chunk template applied to it. One template per leaf, so this is a simple flag flip.
     ---@param self JoeBaseChunkComponent
-    ---@param sectionId NavSectionIdentifier
-    MarkChunkified = function(self, sectionId)
-        local claim = self.Sections[sectionId]
+    ---@param leafId NavLeafIdentifier
+    MarkChunkified = function(self, leafId)
+        local claim = self.Leaves[leafId]
         if claim then
             claim.Chunkified = true
         end
@@ -97,21 +99,16 @@ JoeBaseChunkComponent = ClassSimple {
     -----------------------------------------------------------------------------
     --#region Debug visualization
 
-    --- Draws every claimed section's leaves, brighter when the claim is chunkified. Pure render — caller decides when to invoke (e.g. from `JoeBase:Draw`).
+    --- Draws every claimed leaf, brighter when chunkified. Pure render — caller decides cadence (typically `JoeBase:Draw`).
     ---@param self JoeBaseChunkComponent
     Draw = function(self)
         local layerColor = Shared.LayerColors[self.Layer] or 'ffffff'
 
-        for _, claim in self.Sections do
-            local section = claim.Section
+        for _, claim in self.Leaves do
+            local leaf = claim.Leaf
             local color = claim.Chunkified and 'ffffff' or layerColor
-
-            local leaves = section.Leaves
-            for k = 1, TableGetn(leaves) do
-                local leaf = leaves[k]
-                local h = 0.5 * leaf.Size
-                NavGenerator.DrawSquare(leaf.px - h, leaf.pz - h, leaf.Size, color, 0.2)
-            end
+            local h = 0.5 * leaf.Size
+            NavGenerator.DrawSquare(leaf.px - h, leaf.pz - h, leaf.Size, color, 0.2)
         end
     end,
 

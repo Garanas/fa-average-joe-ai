@@ -1,6 +1,5 @@
 local DebugUtils = import("/mods/fa-joe-ai/lua/Sim/Utils/DebugUtils.lua")
 local JoeBuildingIdentifierModule = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/JoeBuildingIdentifiers.lua")
-local NavGenerator = import("/lua/sim/navgenerator.lua")
 
 local TableInsert = table.insert
 local TableGetn = table.getn
@@ -16,24 +15,24 @@ local StateColors = {
     Lost     = '888888',
 }
 
---- A single build site for one structure. The site is the materialised result of mapping a base-chunk template onto a section: the template's `Locations` contribute one site per entry. The unit-derived states (`Lost`/`Building`/`Built`) are not stored — they are computed from `Unit` on demand. The two reservation flags (`Claimed`/`Blocked`) are stored.
+--- A single build site for one structure. The site is the materialised result of mapping a base-chunk template onto a leaf: the template's `Locations` contribute one site per entry. The unit-derived states (`Lost`/`Building`/`Built`) are not stored — they are computed from `Unit` on demand. The two reservation flags (`Claimed`/`Blocked`) are stored.
 ---@class JoeBuildSite
 ---@field Point JoeBaseChunkLocation         # World-space {X, Z, orientation}, same shape as the chunk-template's location triples.
 ---@field Identifier JoeBuildingIdentifier   # The faction-agnostic role from the chunk template (e.g. "T1LandFactory").
 ---@field Unit? JoeUnit                      # The concrete unit, once one is assigned/built. nil until then.
----@field Section NavSection                 # The section this site belongs to (used for cascade-on-release).
+---@field Leaf NavLeaf                       # The leaf this site belongs to (used for cascade-on-release).
 ---@field Claimed boolean                    # Transient reservation set by `BuildQueueComponent:RegisterBuildSite` and cleared on `RegisterUnit` or `FailJob`. Prevents two engineers from picking the same site between job claim and unit spawn.
----@field Blocked boolean                    # Sticky flag set by engineer behaviors that gave up on the site (terrain formations, persistent obstruction). Stays until `Unblock` or section release.
+---@field Blocked boolean                    # Sticky flag set by engineer behaviors that gave up on the site (terrain formations, persistent obstruction). Stays until `Unblock` or leaf release.
 JoeBuildSite = ClassSimple {
 
     ---@param self JoeBuildSite
     ---@param point JoeBaseChunkLocation
     ---@param identifier JoeBuildingIdentifier
-    ---@param section NavSection
-    __init = function(self, point, identifier, section)
+    ---@param leaf NavLeaf
+    __init = function(self, point, identifier, leaf)
         self.Point = point
         self.Identifier = identifier
-        self.Section = section
+        self.Leaf = leaf
         self.Unit = nil
         self.Claimed = false
         self.Blocked = false
@@ -167,7 +166,7 @@ JoeBaseBuildSiteComponent = ClassSimple {
     -----------------------------------------------------------------------------
     --#region Mapping templates onto sections
 
-    --- Materialises every `Locations` entry of the given template as a build site, anchored on a specific nav-mesh leaf (centered on `leaf.px`/`leaf.pz`). The leaf's owning section is recorded on each new site for cascade-on-release. Returns the array of newly-added sites so the caller can act on them immediately.
+    --- Materialises every `Locations` entry of the given template as a build site, anchored on a specific nav-mesh leaf (centered on `leaf.px`/`leaf.pz`). The leaf is recorded on each new site for cascade-on-release. Returns the array of newly-added sites so the caller can act on them immediately.
     ---@param self JoeBaseBuildSiteComponent
     ---@param template JoeBaseChunk
     ---@param leaf NavLeaf
@@ -176,8 +175,6 @@ JoeBaseBuildSiteComponent = ClassSimple {
         local size = template.Size
         local anchorX = leaf.px - 0.5 * size
         local anchorZ = leaf.pz - 0.5 * size
-
-        local section = NavGenerator.NavSections[leaf.Section]
 
         local newSites = {}
         for identifier, locations in template.Locations do
@@ -190,7 +187,7 @@ JoeBaseBuildSiteComponent = ClassSimple {
                     loc[3],
                 }
 
-                local site = JoeBuildSite(worldPoint, identifier, section)
+                local site = JoeBuildSite(worldPoint, identifier, leaf)
                 TableInsert(self.Sites, site)
                 TableInsert(newSites, site)
             end
@@ -224,19 +221,19 @@ JoeBaseBuildSiteComponent = ClassSimple {
         return cache
     end,
 
-    --- Collects every site whose `Section.Identifier` matches into `cache`. Cleared first, returned for chaining. Same caller-supplied-cache convention as `CollectFreeFor` — see `Sim/CLAUDE.md` §3.2.
+    --- Collects every site whose owning leaf matches `leafId` into `cache`. Cleared first, returned for chaining. Same caller-supplied-cache convention as `CollectFreeFor` — see `Sim/CLAUDE.md` §3.2.
     ---@param self JoeBaseBuildSiteComponent
-    ---@param sectionId NavSectionIdentifier
+    ---@param leafId NavLeafIdentifier
     ---@param cache? JoeBuildSite[]
     ---@return JoeBuildSite[]
-    GetSitesBySection = function(self, sectionId, cache)
+    GetSitesByLeaf = function(self, leafId, cache)
         cache = cache or {}
         TableSetn(cache, 0)
 
         local sites = self.Sites
         for k = 1, TableGetn(sites) do
             local site = sites[k]
-            if site.Section.Identifier == sectionId then
+            if site.Leaf.Identifier == leafId then
                 TableInsert(cache, site)
             end
         end
@@ -244,10 +241,10 @@ JoeBaseBuildSiteComponent = ClassSimple {
         return cache
     end,
 
-    --- Drops every site whose section matches. Called by `JoeBase:ReleaseSection` so released territory takes its sites with it.
+    --- Drops every site whose owning leaf matches `leafId`. Called by `JoeBase:ReleaseLeaf` so released territory takes its sites with it.
     ---@param self JoeBaseBuildSiteComponent
-    ---@param sectionId NavSectionIdentifier
-    ReleaseSitesFromSection = function(self, sectionId)
+    ---@param leafId NavLeafIdentifier
+    ReleaseSitesFromLeaf = function(self, leafId)
         local sites = self.Sites
         local total = TableGetn(sites)
         local head = 1
@@ -255,7 +252,7 @@ JoeBaseBuildSiteComponent = ClassSimple {
         for k = 1, total do
             local site = sites[k]
             sites[k] = nil
-            if site.Section.Identifier ~= sectionId then
+            if site.Leaf.Identifier ~= leafId then
                 sites[head] = site
                 head = head + 1
             end

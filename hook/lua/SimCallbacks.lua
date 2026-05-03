@@ -89,13 +89,13 @@ do
         end
     end
 
-    ---@class JoeDebugAddSectionToBaseData
+    ---@class JoeDebugAddLeafToBaseData
     ---@field Location Vector
 
-    --- Adds the section under `Location` to the base that the selected units belong to. The base's layer determines which grid is queried; layer-mismatched clicks (e.g. clicking on water with a land base selected) are reported and ignored.
-    ---@param data JoeDebugAddSectionToBaseData
+    --- Adds the leaf under `Location` to the base that the selected units belong to. The base's layer determines which grid is queried; layer-mismatched clicks (e.g. clicking on water with a land base selected) are reported and ignored.
+    ---@param data JoeDebugAddLeafToBaseData
     ---@param units JoeUnit[]
-    Callbacks.JoeDebugAddSectionToBase = function(data, units)
+    Callbacks.JoeDebugAddLeafToBase = function(data, units)
         -- assertion
         if table.empty(units) then
             print("No units to identify the base")
@@ -111,23 +111,23 @@ do
 
         local brain = base.Brain --[[@as JoeBrain]]
         local layer = base.ChunkComponent.Layer
-        local section = brain.ChunkComponent:FindSection(layer, data.Location)
-        if not section then
-            print("No section under cursor on layer:", layer)
+        local leaf = brain.ChunkComponent:FindLeaf(layer, data.Location)
+        if not leaf then
+            print("No leaf under cursor on layer:", layer)
             return
         end
 
-        if brain.ChunkComponent:IsClaimed(section.Identifier) then
-            local owner = brain.ChunkComponent:GetOwner(section.Identifier)
+        if brain.ChunkComponent:IsClaimed(leaf.Identifier) then
+            local owner = brain.ChunkComponent:GetOwner(leaf.Identifier)
             if owner == base then
-                print("Section is already claimed by this base")
+                print("Leaf is already claimed by this base")
             else
-                print("Section is already claimed by another base")
+                print("Leaf is already claimed by another base")
             end
             return
         end
 
-        base:ClaimSection(section.Identifier)
+        base:ClaimLeaf(leaf.Identifier)
     end
 
     ---@class JoeDebugAcquireBuildSitesForBaseData
@@ -196,20 +196,20 @@ do
             end
         end
 
-        -- 2. fallback: section under mouse -> its owning base
+        -- 2. fallback: leaf under mouse -> its owning base
         if not base then
             local brain = GetArmyBrain(data.ArmyIndex) --[[@as JoeBrain]]
             if brain and brain.ChunkComponent then
-                local section = brain.ChunkComponent:FindSection("Land", data.Location)
-                             or brain.ChunkComponent:FindSection("Water", data.Location)
-                if section then
-                    base = brain.ChunkComponent:GetOwner(section.Identifier)
+                local leaf = brain.ChunkComponent:FindLeaf("Land", data.Location)
+                          or brain.ChunkComponent:FindLeaf("Water", data.Location)
+                if leaf then
+                    base = brain.ChunkComponent:GetOwner(leaf.Identifier)
                 end
             end
         end
 
         if not base then
-            print("No base under cursor (no unit with a base, no claimed section)")
+            print("No base under cursor (no unit with a base, no claimed leaf)")
             return
         end
 

@@ -22,11 +22,11 @@ Components in this folder are **pure storage**. They expose accessors and predic
 
 The base is the active party in claims:
 
-- A base calls `self.Brain.ChunkComponent:ClaimSection(...)` — but only from inside a `JoeBase` method (e.g. `JoeBase:ClaimSection`), never from inside a base component. Both methods share the name on purpose: the base coordinator and the brain mirror are the same operation, just at two layers.
+- A base calls `self.Brain.ChunkComponent:ClaimLeaf(...)` — but only from inside a `JoeBase` method (e.g. `JoeBase:ClaimLeaf`), never from inside a base component. Both methods share the name on purpose: the base coordinator and the brain mirror are the same operation, just at two layers.
 - The brain doesn't push state down into bases; bases pull from the brain.
 - The brain uses `self.Bases` to iterate and collect (e.g. for the chunk visualization).
 
-The mirror invariant — `brain.ChunkComponent.Sections` is the union of all `base.ChunkComponent.Sections` — is enforced by `JoeBase` doing the mirror in lockstep with its own claim writes.
+The mirror invariant — `brain.ChunkComponent.Leaves` is the union of all `base.ChunkComponent.Leaves` — is enforced by `JoeBase` doing the mirror in lockstep with its own claim writes.
 
 ## Lifecycle
 
@@ -51,4 +51,4 @@ When those land, the rule is the same: pure storage in components, orchestration
 
 1. **Read-mostly from outside the brain.** Other code asks the brain things; the brain doesn't push.
 2. **No cross-component calls inside a brain component.** Use a `JoeBrain` method.
-3. **Bases own the mirror.** When a base claims a section, the base notifies the brain; the brain doesn't crawl base components to reconstruct its view.
+3. **Bases own the mirror.** When a base claims a leaf, the base notifies the brain; the brain doesn't crawl base components to reconstruct its view.

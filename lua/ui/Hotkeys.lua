@@ -135,9 +135,9 @@ local BaseHotkeys = {
     },
     {
         category = KeyCategories.Base.Key,
-        key = 'average_joe_ai_add_section_to_base',
-        name = 'Joe AI - Add section under cursor to the base of the selected units',
-        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/Base/AddSection.lua").Handle()',
+        key = 'average_joe_ai_add_leaf_to_base',
+        name = 'Joe AI - Add leaf under cursor to the base of the selected units',
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/Base/AddLeaf.lua").Handle()',
     },
     {
         category = KeyCategories.Base.Key,
