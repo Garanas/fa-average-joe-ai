@@ -3,38 +3,44 @@
 
 ---@type JoeBaseChunk
 Template = {
-  Name = "Air - 01",
   Faction = "UEF",
-  Locations = {
-    Wall = {
-      { 1, 13, 0 },
-      { 1, 14, 0 },
-      { 1, 15, 0 },
-      { 2, 13, 0 },
-      { 3, 13, 0 },
+  Groups = {
+    {
+      Locations = { T1AirFactory = { { 14, 4, 0, }, }, },
+      Name = "default",
     },
-    T1AirFactory = {
-      { 14, 4, 0 },
-      { 4, 4, 0 },
+    {
+      Locations = {
+        T1AirFactory = { { 4, 4, 0, }, },
+        T1EnergyProduction = {
+          { 1, 9, 0, },
+          { 3, 9, 0, },
+          { 7, 9, 0, },
+          { 5, 9, 0, },
+        },
+      },
+      Name = "Group 2",
     },
-    T1Radar = {
-      { 5, 15, 0 },
-    },
-    T1EnergyProduction = {
-      { 1, 9, 0 },
-      { 3, 9, 0 },
-      { 5, 9, 0 },
-      { 7, 9, 0 },
-      { 5, 13, 0 },
-      { 7, 15, 0 },
-      { 3, 15, 0 },
+    {
+      Locations = {
+        T1EnergyProduction = {
+          { 5, 12, 0, },
+          { 7, 14, 0, },
+          { 3, 14, 0, },
+        },
+        T1Radar = { { 5, 14, 0, }, },
+        Wall = {
+          { 2, 12, 0, },
+          { 3, 12, 0, },
+          { 1, 14, 0, },
+          { 1, 12, 0, },
+          { 1, 13, 0, },
+        },
+      },
+      Name = "Group 3",
     },
   },
-  Units = {
-    "ueb0101",
-    "ueb1101",
-    "ueb5101",
-    "ueb3101",
-  },
+  Name = "Air - 01",
   Size = 16,
+  Units = { "ueb0101", "ueb1101", "ueb5101", "ueb3101", },
 }
