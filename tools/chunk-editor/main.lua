@@ -57,9 +57,24 @@ local state = {
     history = nil,
     selection = {},
     selectionHistory = SelectionHistory.new(),
+    chunkFilter = { faction = nil, size = nil },
     dialogOpen = nil,
     saveStatus = nil,
 }
+
+---@return LoveChunkEntry[]
+local function filteredChunks()
+    local f = state.chunkFilter
+    if (not f.faction) and (not f.size) then return state.chunks end
+    local out = {}
+    for _, e in ipairs(state.chunks) do
+        if (not f.faction or e.faction == f.faction)
+            and (not f.size or e.size == f.size) then
+            table.insert(out, e)
+        end
+    end
+    return out
+end
 
 ---@type LoveChunkCanvas?  -- forward declaration; assigned after components are built
 local canvas
@@ -70,15 +85,6 @@ local newChunkDialog
 local function parentDir(p)
     p = p:gsub("[/\\]+$", "")
     return p:match("^(.*)[/\\][^/\\]+$") or p
-end
-
----@return integer?
-local function findIndexForCurrentPath()
-    if not state.currentPath then return nil end
-    for i, e in ipairs(state.chunks) do
-        if e.fsPath == state.currentPath then return i end
-    end
-    return nil
 end
 
 local function isDirty()
@@ -463,6 +469,7 @@ end
 ---@type LoveActions
 local actions = {
     selectChunk = selectChunk,
+    loadPath = loadChunkByPath,
     new = newChunk,
     createNewChunk = createNewChunk,
     load = loadAction,
@@ -524,6 +531,7 @@ local ctx = {
     bindings = bindings,
     layout = function(_) return computeLayout() end,
     isDirty = function(_) return isDirty() end,
+    filteredChunks = function(_) return filteredChunks() end,
 }
 
 canvas = ChunkCanvas.new(ctx)
@@ -627,17 +635,22 @@ function love.keypressed(key)
     local combo = Hotkeys.normalize(key, ctrl, shift, alt)
     if Hotkeys.dispatch(bindings, combo) then return end
 
-    if key == "down" then
-        local cur = findIndexForCurrentPath()
-        if cur and cur < #state.chunks then
-            selectChunk(cur + 1)
-        elseif not cur and #state.chunks > 0 then
-            selectChunk(1)
+    if key == "down" or key == "up" then
+        local visible = filteredChunks()
+        local curIdx
+        for i, e in ipairs(visible) do
+            if e.fsPath == state.currentPath then curIdx = i; break end
         end
-    elseif key == "up" then
-        local cur = findIndexForCurrentPath()
-        if cur and cur > 1 then
-            selectChunk(cur - 1)
+        if key == "down" then
+            if curIdx and curIdx < #visible then
+                loadChunkByPath(visible[curIdx + 1].fsPath)
+            elseif not curIdx and #visible > 0 then
+                loadChunkByPath(visible[1].fsPath)
+            end
+        else
+            if curIdx and curIdx > 1 then
+                loadChunkByPath(visible[curIdx - 1].fsPath)
+            end
         end
     elseif key == "escape" then
         love.event.quit()

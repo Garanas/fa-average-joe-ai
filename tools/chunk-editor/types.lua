@@ -72,6 +72,7 @@
 
 ---@class LoveActions
 ---@field selectChunk fun(i: integer)
+---@field loadPath fun(path: string)
 ---@field new fun()
 ---@field createNewChunk fun(payload: LoveNewChunkPayload)
 ---@field load fun()
@@ -95,12 +96,17 @@
 ---@field duplicateSelected fun()
 ---@field addBuilding fun(identifier: LoveBuildingIdentifier)
 
+---@class LoveChunkFilter
+---@field faction string?  # nil = any faction
+---@field size integer?    # nil = any size
+
 ---@class LoveAppContext
 ---@field state LoveState
 ---@field actions LoveActions
 ---@field bindings LoveHotkeyBinding[]
 ---@field layout fun(self: LoveAppContext): LoveLayout
 ---@field isDirty fun(self: LoveAppContext): boolean
+---@field filteredChunks fun(self: LoveAppContext): LoveChunkEntry[]
 
 ---@class LoveComponent
 ---@field draw fun(self: LoveComponent)
@@ -124,5 +130,6 @@
 ---@field selection table<string, boolean>
 ---@field selectionHistory LoveSelectionHistory
 ---@field chunkCache LoveChunkCache?
+---@field chunkFilter LoveChunkFilter
 ---@field dialogOpen string?
 ---@field saveStatus string?
