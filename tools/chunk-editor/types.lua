@@ -67,6 +67,7 @@
 ---@field new fun()
 ---@field createNewChunk fun(payload: LoveNewChunkPayload)
 ---@field load fun()
+---@field importChunk fun()
 ---@field save fun()
 ---@field saveAs fun()
 ---@field undo fun()

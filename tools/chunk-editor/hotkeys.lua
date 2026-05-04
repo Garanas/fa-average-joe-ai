@@ -36,6 +36,7 @@ function M.bindings(actions)
     local bindings = {
         { keys = "ctrl+n",       name = "New",                fn = actions.new },
         { keys = "ctrl+o",       name = "Load",               fn = actions.load },
+        { keys = "ctrl+i",       name = "Import",             fn = actions.importChunk },
         { keys = "ctrl+s",       name = "Save",               fn = actions.save },
         { keys = "ctrl+shift+s", name = "Save As",            fn = actions.saveAs },
         { keys = "ctrl+z",       name = "Undo",               fn = actions.undo },

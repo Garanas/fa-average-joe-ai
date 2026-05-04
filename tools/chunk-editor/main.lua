@@ -5,6 +5,7 @@ local History = require("history")
 local SelectionHistory = require("selection_history")
 local Hotkeys = require("hotkeys")
 local FileDialog = require("file_dialog")
+local ImportGroup = require("commands.ImportGroup")
 
 local TopBar = require("components.TopBar")
 local Sidebar = require("components.Sidebar")
@@ -156,6 +157,78 @@ local function loadAction()
     loadChunkByPath(path)
 end
 
+--- Pick a chunk file, flatten all of its groups into a single Locations
+--- dict, and drop it as a new group into the lowest empty slot of the
+--- currently-loaded chunk.
+local function importChunkAction()
+    local current = state.loadedTemplate
+    if not current then
+        state.saveStatus = "Import failed: no chunk loaded"
+        print(state.saveStatus)
+        return
+    end
+
+    local path = FileDialog.openFile(defaultDialogDir())
+    if not path then return end
+
+    local imported, err = Loader.loadChunk(state.shim, path)
+    if err or not imported then
+        state.saveStatus = "Import failed: " .. tostring(err or "unknown")
+        print(state.saveStatus)
+        return
+    end
+
+    if imported.Size ~= current.Size then
+        print(string.format(
+            "Import warning: %dx%d chunk into %dx%d; out-of-bounds locations may be hidden",
+            imported.Size, imported.Size, current.Size, current.Size))
+    end
+
+    -- Flatten all of the imported template's groups into one Locations dict.
+    local flat = {}
+    local count = 0
+    for _, group in pairs(imported.Groups or {}) do
+        for id, locs in pairs(group.Locations or {}) do
+            flat[id] = flat[id] or {}
+            for _, loc in ipairs(locs) do
+                table.insert(flat[id], { loc[1], loc[2], loc[3] })
+                count = count + 1
+            end
+        end
+    end
+    if count == 0 then
+        state.saveStatus = "Import failed: source has no buildings"
+        print(state.saveStatus)
+        return
+    end
+
+    -- Find the lowest empty slot.
+    current.Groups = current.Groups or {}
+    local destSlot
+    for slot = 1, 10 do
+        if not current.Groups[slot] then
+            destSlot = slot
+            break
+        end
+    end
+    if not destSlot then
+        state.saveStatus = "Import failed: all 10 group slots are in use"
+        print(state.saveStatus)
+        return
+    end
+
+    local sourceLabel = imported.Name or path:match("([^/\\]+)%.lua$") or "imported"
+
+    local beforeSlots = { [destSlot] = false }
+    local afterSlots = {
+        [destSlot] = { Name = sourceLabel, Locations = flat },
+    }
+    local cmd = ImportGroup.new(destSlot, sourceLabel, beforeSlots, afterSlots)
+    state.history:apply(current, cmd)
+    state.saveStatus = string.format("Imported '%s' to slot %d", sourceLabel, destSlot)
+    print(state.saveStatus)
+end
+
 local function writeTemplateTo(path)
     local tmpl = state.loadedTemplate
     if not tmpl then return false end
@@ -210,6 +283,7 @@ local actions = {
     new = newChunk,
     createNewChunk = createNewChunk,
     load = loadAction,
+    importChunk = importChunkAction,
     save = saveAction,
     saveAs = saveAsAction,
     undo = function()

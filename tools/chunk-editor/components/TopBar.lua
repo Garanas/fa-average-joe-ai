@@ -21,6 +21,7 @@ local BS_SWATCH = 10
 local FILE_MENU = {
     { label = "New",        hint = "Ctrl+N",       action = "new" },
     { label = "Load...",    hint = "Ctrl+O",       action = "load" },
+    { label = "Import...",  hint = "Ctrl+I",       action = "importChunk" },
     { separator = true },
     { label = "Save",       hint = "Ctrl+S",       action = "save" },
     { label = "Save As...", hint = "Ctrl+Shift+S", action = "saveAs" },
