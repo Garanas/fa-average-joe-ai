@@ -12,6 +12,7 @@ local ChunkCanvas = require("components.ChunkCanvas")
 local StatusBar = require("components.StatusBar")
 local Timeline = require("components.Timeline")
 local HotkeyDialog = require("components.HotkeyDialog")
+local NewChunkDialog = require("components.NewChunkDialog")
 
 local TOPBAR_H = 24
 local SIDEBAR_W = 240
@@ -87,28 +88,8 @@ local function selectChunk(i)
     loadChunkByPath(entry.fsPath)
 end
 
----@return LoveBaseChunk
-local function makeNewTemplate()
-    local sourceTmpl = state.loadedTemplate
-    return {
-        Name = "Untitled",
-        Faction = (sourceTmpl and sourceTmpl.Faction) or "UEF",
-        Size = (sourceTmpl and sourceTmpl.Size) or 16,
-        Units = {},
-        Groups = { [1] = { Name = "default", Locations = {} } },
-    }
-end
-
 local function newChunk()
-    discardCheck()
-    state.currentPath = nil
-    state.history = History.new()
-    state.selection = {}
-    state.selectionHistory = SelectionHistory.new()
-    state.loadedTemplate = makeNewTemplate()
-    state.loadError = nil
-    state.saveStatus = nil
-    if canvas then canvas:onChunkChange() end
+    state.dialogOpen = "newchunk"
 end
 
 ---@return string  # filesystem path that's safe to use as a default dir for dialogs
@@ -120,6 +101,51 @@ local function defaultDialogDir()
         return state.modRoot .. "/lua/Shared/BaseChunks"
     end
     return "."
+end
+
+---@param payload LoveNewChunkPayload
+local function createNewChunk(payload)
+    if not payload or not payload.name or payload.name == "" then return end
+
+    ---@type LoveBaseChunk
+    local tmpl = {
+        Name = payload.name,
+        Faction = payload.faction or "UEF",
+        Size = payload.size or 16,
+        Units = {},
+        Groups = { [1] = { Name = "default", Locations = {} } },
+    }
+
+    local defaultName = (payload.name or "untitled"):gsub("%s+", "_") .. ".lua"
+    local path = FileDialog.saveFile(defaultDialogDir(), defaultName)
+    if not path then return end
+
+    -- Write the empty template to disk first, then load it as the current
+    -- chunk so the editor treats it like any other on-disk chunk.
+    local source = Serializer.serializeTemplate(tmpl)
+    local f, err = io.open(path, "wb")
+    if not f then
+        state.saveStatus = "Save failed: " .. tostring(err)
+        print(state.saveStatus)
+        return
+    end
+    f:write(source)
+    f:close()
+
+    discardCheck()
+    state.currentPath = path
+    state.history = History.new()
+    state.selection = {}
+    state.selectionHistory = SelectionHistory.new()
+    state.loadedTemplate = tmpl
+    state.loadError = nil
+    state.saveStatus = "Created"
+    print("Created " .. path)
+
+    if state.modRoot then
+        state.chunks = Loader.discoverChunks(state.modRoot)
+    end
+    if canvas then canvas:onChunkChange() end
 end
 
 local function loadAction()
@@ -180,6 +206,7 @@ end
 local actions = {
     selectChunk = selectChunk,
     new = newChunk,
+    createNewChunk = createNewChunk,
     load = loadAction,
     save = saveAction,
     saveAs = saveAsAction,
@@ -244,6 +271,7 @@ local components = {
     Timeline.new(ctx),
     TopBar.new(ctx),
     HotkeyDialog.new(ctx),
+    NewChunkDialog.new(ctx),
 }
 
 function love.load()
@@ -302,6 +330,13 @@ function love.wheelmoved(x, y)
     for i = #components, 1, -1 do
         local c = components[i]
         if c.wheelmoved and c:wheelmoved(x, y, mx, my) then return end
+    end
+end
+
+function love.textinput(text)
+    for i = #components, 1, -1 do
+        local c = components[i]
+        if c.textinput and c:textinput(text) then return end
     end
 end
 

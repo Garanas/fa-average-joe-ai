@@ -95,6 +95,7 @@
 ---@field mousemoved? fun(self: LoveComponent, mx: number, my: number): boolean
 ---@field wheelmoved? fun(self: LoveComponent, x: number, y: number, mx: number, my: number): boolean
 ---@field keypressed? fun(self: LoveComponent, key: string): boolean
+---@field textinput? fun(self: LoveComponent, text: string): boolean
 
 ---@class LoveState
 ---@field shim LoveShim?
