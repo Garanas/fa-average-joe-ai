@@ -71,6 +71,8 @@
 ---@field prevSelection fun()
 ---@field assignGroup fun(slot: integer)
 ---@field selectGroup fun(slot: integer)
+---@field deleteSelected fun()
+---@field duplicateSelected fun()
 
 ---@class LoveAppContext
 ---@field state LoveState

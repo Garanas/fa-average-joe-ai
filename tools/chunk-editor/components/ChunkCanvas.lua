@@ -4,6 +4,8 @@ local Util = require("util")
 local MoveBuilding = require("commands.MoveBuilding")
 local Composite = require("commands.Composite")
 local AssignGroup = require("commands.AssignGroup")
+local DeleteBuildings = require("commands.DeleteBuildings")
+local InsertBuildings = require("commands.InsertBuildings")
 
 local ZOOM_WHEEL = 1.15
 local ZOOM_HOTKEY = 1.25
@@ -703,6 +705,156 @@ function LoveChunkCanvas:selectGroup(slot)
     for id, locs in pairs(group.Locations) do
         for idx = 1, #locs do
             newSel[selectionKey(slot, id, idx)] = true
+        end
+    end
+    state.selection = newSel
+    state.selectionHistory:push(newSel)
+end
+
+--- Remove selected buildings. Selection is cleared after.
+function LoveChunkCanvas:deleteSelection()
+    local state = self.ctx.state
+    local tmpl = state.loadedTemplate
+    if not tmpl or not next(state.selection) then return end
+
+    -- Resolve selection into concrete (slot, identifier, index) items.
+    local items = {}
+    for key in pairs(state.selection) do
+        local s, id, idx = parseSelectionKey(key)
+        if s and id and idx and getLocation(tmpl, s, id, idx) then
+            table.insert(items, { slot = s, identifier = id, index = idx })
+        end
+    end
+    if #items == 0 then return end
+
+    local affectedSlots = {}
+    for _, it in ipairs(items) do affectedSlots[it.slot] = true end
+
+    local beforeSlots = {}
+    for s in pairs(affectedSlots) do
+        beforeSlots[s] = deepCopyGroup(tmpl.Groups and tmpl.Groups[s])
+    end
+
+    local afterSlots = {}
+    for s in pairs(affectedSlots) do
+        afterSlots[s] = deepCopyGroup(tmpl.Groups and tmpl.Groups[s])
+    end
+
+    -- Group removals by (slot, identifier); remove highest indices first.
+    local removals = {}
+    for _, it in ipairs(items) do
+        removals[it.slot] = removals[it.slot] or {}
+        removals[it.slot][it.identifier] = removals[it.slot][it.identifier] or {}
+        table.insert(removals[it.slot][it.identifier], it.index)
+    end
+    for s, byId in pairs(removals) do
+        local grp = afterSlots[s]
+        if grp then
+            for id, indices in pairs(byId) do
+                table.sort(indices, function(a, b) return a > b end)
+                local locs = grp.Locations[id]
+                if locs then
+                    for _, idx in ipairs(indices) do
+                        table.remove(locs, idx)
+                    end
+                    if #locs == 0 then grp.Locations[id] = nil end
+                end
+            end
+        end
+    end
+
+    -- Drop now-empty groups.
+    for s, grp in pairs(afterSlots) do
+        if grp and isGroupEmpty(grp) then
+            afterSlots[s] = false
+        end
+    end
+
+    local cmd = DeleteBuildings.new(#items, beforeSlots, afterSlots)
+    state.history:apply(tmpl, cmd)
+    state.saveStatus = nil
+
+    state.selection = {}
+    state.selectionHistory:push(state.selection)
+end
+
+--- Duplicate selected buildings, offset by 1 unit toward chunk center on
+--- both axes. The new copies stay in the same group as their originals;
+--- selection becomes the copies.
+function LoveChunkCanvas:duplicateSelection()
+    local state = self.ctx.state
+    local tmpl = state.loadedTemplate
+    if not tmpl or not next(state.selection) then return end
+
+    local size = tmpl.Size or 16
+    local center = size / 2
+
+    -- Resolve selection into copy specs with the shifted target position.
+    local inserts = {}
+    for key in pairs(state.selection) do
+        local s, id, idx = parseSelectionKey(key)
+        if s and id and idx then
+            local loc = getLocation(tmpl, s, id, idx)
+            if loc then
+                local dx = (loc[1] < center) and 1 or -1
+                local dz = (loc[2] < center) and 1 or -1
+                local newX = loc[1] + dx
+                local newZ = loc[2] + dz
+                if newX < 0 then newX = 0 end
+                if newZ < 0 then newZ = 0 end
+                if newX > size - 1 then newX = size - 1 end
+                if newZ > size - 1 then newZ = size - 1 end
+                table.insert(inserts, {
+                    slot = s, identifier = id,
+                    location = { newX, newZ, loc[3] or 0 },
+                })
+            end
+        end
+    end
+    if #inserts == 0 then return end
+
+    local affectedSlots = {}
+    for _, it in ipairs(inserts) do affectedSlots[it.slot] = true end
+
+    local beforeSlots = {}
+    for s in pairs(affectedSlots) do
+        beforeSlots[s] = deepCopyGroup(tmpl.Groups and tmpl.Groups[s])
+    end
+
+    local afterSlots = {}
+    for s in pairs(affectedSlots) do
+        local copy = deepCopyGroup(tmpl.Groups and tmpl.Groups[s])
+        if copy == false then
+            copy = { Name = "Group " .. s, Locations = {} }
+        end
+        afterSlots[s] = copy
+    end
+    -- Append the copies to their respective slot/identifier buckets.
+    for _, it in ipairs(inserts) do
+        local grp = afterSlots[it.slot]
+        grp.Locations[it.identifier] = grp.Locations[it.identifier] or {}
+        table.insert(grp.Locations[it.identifier], it.location)
+    end
+
+    local cmd = InsertBuildings.new(#inserts, beforeSlots, afterSlots)
+    state.history:apply(tmpl, cmd)
+    state.saveStatus = nil
+
+    -- Selection becomes the new copies. They're at the END of each (slot, id)
+    -- bucket in the destination, so count appended-per-slot-id and pull the
+    -- last N indices from the now-mutated template.
+    local appendedPerSlotId = {}
+    for _, it in ipairs(inserts) do
+        appendedPerSlotId[it.slot] = appendedPerSlotId[it.slot] or {}
+        appendedPerSlotId[it.slot][it.identifier] = (appendedPerSlotId[it.slot][it.identifier] or 0) + 1
+    end
+    local newSel = {}
+    for slot, byId in pairs(appendedPerSlotId) do
+        for id, count in pairs(byId) do
+            local total = #(tmpl.Groups[slot].Locations[id] or {})
+            for k = total - count + 1, total do
+                newSel[selectionKey(slot, id, k)] = true
+            end
         end
     end
     state.selection = newSel

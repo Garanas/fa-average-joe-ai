@@ -46,6 +46,8 @@ function M.bindings(actions)
         { keys = "home",         name = "Recenter",           fn = actions.recenter },
         { keys = "tab",          name = "Next selection",     fn = actions.nextSelection },
         { keys = "shift+tab",    name = "Previous selection", fn = actions.prevSelection },
+        { keys = "delete",       name = "Delete selection",   fn = actions.deleteSelected },
+        { keys = "insert",       name = "Duplicate selection", fn = actions.duplicateSelected },
     }
 
     -- Control-group bindings: Ctrl+1..9, Ctrl+0 assign; 1..9, 0 select. Slot 10 = "0" key.

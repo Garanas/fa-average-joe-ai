@@ -15,8 +15,8 @@ Template = {
         T1EnergyProduction = {
           { 1, 9, 0, },
           { 3, 9, 0, },
-          { 7, 9, 0, },
           { 5, 9, 0, },
+          { 7, 9, 0, },
         },
       },
       Name = "Group 2",
