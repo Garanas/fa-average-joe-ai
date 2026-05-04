@@ -503,6 +503,7 @@ local actions = {
     selectGroup = function(slot) if canvas then canvas:selectGroup(slot) end end,
     deleteSelected = function() if canvas then canvas:deleteSelection() end end,
     duplicateSelected = function() if canvas then canvas:duplicateSelection() end end,
+    translateSelection = function(dx, dz) if canvas then canvas:translateSelection(dx, dz) end end,
     addBuilding = function(id) if canvas then canvas:addBuilding(id) end end,
 }
 

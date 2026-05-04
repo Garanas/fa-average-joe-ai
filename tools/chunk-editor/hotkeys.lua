@@ -50,6 +50,14 @@ function M.bindings(actions)
         { group = "Selection", keys = "shift+tab",    name = "Previous selection",  fn = actions.prevSelection },
         { group = "Editing",   keys = "delete",       name = "Delete selection",    fn = actions.deleteSelected },
         { group = "Editing",   keys = "insert",       name = "Duplicate selection", fn = actions.duplicateSelected },
+        { group = "Translate", keys = "left",         name = "Translate left",      fn = function() actions.translateSelection(-1, 0) end },
+        { group = "Translate", keys = "right",        name = "Translate right",     fn = function() actions.translateSelection(1, 0) end },
+        { group = "Translate", keys = "up",           name = "Translate up",        fn = function() actions.translateSelection(0, -1) end },
+        { group = "Translate", keys = "down",         name = "Translate down",      fn = function() actions.translateSelection(0, 1) end },
+        { group = "Translate", keys = "shift+left",   name = "Translate left x4",   fn = function() actions.translateSelection(-4, 0) end },
+        { group = "Translate", keys = "shift+right",  name = "Translate right x4",  fn = function() actions.translateSelection(4, 0) end },
+        { group = "Translate", keys = "shift+up",     name = "Translate up x4",     fn = function() actions.translateSelection(0, -4) end },
+        { group = "Translate", keys = "shift+down",   name = "Translate down x4",   fn = function() actions.translateSelection(0, 4) end },
     }
 
     -- Control-group bindings: Ctrl+1..9, Ctrl+0 assign; 1..9, 0 select. Slot 10 = "0" key.

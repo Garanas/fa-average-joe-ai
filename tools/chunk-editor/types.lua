@@ -94,6 +94,7 @@
 ---@field selectGroup fun(slot: integer)
 ---@field deleteSelected fun()
 ---@field duplicateSelected fun()
+---@field translateSelection fun(dx: integer, dz: integer)
 ---@field addBuilding fun(identifier: LoveBuildingIdentifier)
 
 ---@class LoveChunkFilter

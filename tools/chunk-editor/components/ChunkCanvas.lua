@@ -11,7 +11,6 @@ local ZOOM_WHEEL = 1.15
 local ZOOM_HOTKEY = 1.25
 local ZOOM_MIN = 0.1
 local ZOOM_MAX = 16
-local KEY_PAN_STEP = 30
 
 ---@class LoveCameraState
 ---@field offsetX number?
@@ -185,12 +184,6 @@ function LoveChunkCanvas:validateSelection()
         end
     end
     self.ctx.state.selection = newSel
-end
-
-function LoveChunkCanvas:_panBy(dx, dy)
-    local g = self:_geometry()
-    self.camera.offsetX = g.ox + dx
-    self.camera.offsetY = g.oy + dy
 end
 
 ---@return LoveDragItem[]
@@ -569,14 +562,6 @@ function LoveChunkCanvas:keypressed(key)
         return false
     end
 
-    local ctrl = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
-    if ctrl then return false end
-    if self.ctx.state.currentPath then return false end
-
-    if key == "up"    then self:_panBy(0, KEY_PAN_STEP)  return true end
-    if key == "down"  then self:_panBy(0, -KEY_PAN_STEP) return true end
-    if key == "left"  then self:_panBy(KEY_PAN_STEP, 0)  return true end
-    if key == "right" then self:_panBy(-KEY_PAN_STEP, 0) return true end
     return false
 end
 
@@ -829,6 +814,51 @@ function LoveChunkCanvas:deleteSelection()
 
     state.selection = {}
     state.selectionHistory:push(state.selection)
+end
+
+--- Translate every selected building by `(dx, dz)` cells. The delta is
+--- clamped so no selected building leaves the chunk — same logic as the
+--- multi-drag path in `mousemoved`. No-op when there's no selection or the
+--- clamped delta collapses to zero.
+---@param dx integer
+---@param dz integer
+function LoveChunkCanvas:translateSelection(dx, dz)
+    local state = self.ctx.state
+    local tmpl = state.loadedTemplate
+    if not tmpl or not next(state.selection) then return end
+
+    local items = self:_buildDragItemsFromSelection(tmpl)
+    if #items == 0 then return end
+
+    local size = tmpl.Size or 16
+    local minDX, maxDX = -math.huge, math.huge
+    local minDZ, maxDZ = -math.huge, math.huge
+    for _, it in ipairs(items) do
+        local thisMaxX = (size - 1) - it.fromX
+        local thisMinX = -it.fromX
+        if thisMaxX < maxDX then maxDX = thisMaxX end
+        if thisMinX > minDX then minDX = thisMinX end
+        local thisMaxZ = (size - 1) - it.fromZ
+        local thisMinZ = -it.fromZ
+        if thisMaxZ < maxDZ then maxDZ = thisMaxZ end
+        if thisMinZ > minDZ then minDZ = thisMinZ end
+    end
+    local actualDX = math.max(minDX, math.min(maxDX, dx))
+    local actualDZ = math.max(minDZ, math.min(maxDZ, dz))
+    if actualDX == 0 and actualDZ == 0 then return end
+
+    local subs = {}
+    for _, it in ipairs(items) do
+        table.insert(subs, MoveBuilding.new(
+            it.slot, it.identifier, it.index,
+            it.fromX, it.fromZ,
+            it.fromX + actualDX, it.fromZ + actualDZ
+        ))
+    end
+
+    local cmd = (#subs == 1) and subs[1] or Composite.new(subs)
+    state.history:apply(tmpl, cmd)
+    state.saveStatus = nil
 end
 
 --- Duplicate selected buildings, offset by 1 unit toward chunk center on
