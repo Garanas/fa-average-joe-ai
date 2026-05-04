@@ -95,7 +95,7 @@ local function makeNewTemplate()
         Faction = (sourceTmpl and sourceTmpl.Faction) or "UEF",
         Size = (sourceTmpl and sourceTmpl.Size) or 16,
         Units = {},
-        Locations = {},
+        Groups = { [1] = { Name = "default", Locations = {} } },
     }
 end
 
@@ -186,12 +186,14 @@ local actions = {
     undo = function()
         if state.history and state.loadedTemplate then
             state.history:undo(state.loadedTemplate)
+            if canvas then canvas:validateSelection() end
             state.saveStatus = nil
         end
     end,
     redo = function()
         if state.history and state.loadedTemplate then
             state.history:redo(state.loadedTemplate)
+            if canvas then canvas:validateSelection() end
             state.saveStatus = nil
         end
     end,
@@ -200,6 +202,8 @@ local actions = {
     zoomOut = function() if canvas then canvas:zoomOutCenter() end end,
     nextSelection = function() if canvas then canvas:nextSelection() end end,
     prevSelection = function() if canvas then canvas:prevSelection() end end,
+    assignGroup = function(slot) if canvas then canvas:assignSelectionToGroup(slot) end end,
+    selectGroup = function(slot) if canvas then canvas:selectGroup(slot) end end,
 }
 
 local bindings = Hotkeys.bindings(actions)

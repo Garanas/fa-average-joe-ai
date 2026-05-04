@@ -10,12 +10,16 @@
 ---@field [2] integer  # Z (in-chunk, saved-coord convention)
 ---@field [3] integer  # orientation (currently unused, always 0)
 
+---@class LoveBaseChunkGroup
+---@field Name string
+---@field Locations table<LoveBuildingIdentifier, LoveBaseChunkLocation[]>
+
 ---@class LoveBaseChunk
 ---@field Name string
 ---@field Size integer
 ---@field Faction string
 ---@field Units string[]
----@field Locations table<LoveBuildingIdentifier, LoveBaseChunkLocation[]>
+---@field Groups table<integer, LoveBaseChunkGroup>  # sparse, slots 1..10. Slot 10 = "0" hotkey.
 
 ---@class LoveBuildingMetadata
 ---@field Color string  # 6-char hex, no leading '#'
@@ -65,6 +69,8 @@
 ---@field zoomOut fun()
 ---@field nextSelection fun()
 ---@field prevSelection fun()
+---@field assignGroup fun(slot: integer)
+---@field selectGroup fun(slot: integer)
 
 ---@class LoveAppContext
 ---@field state LoveState

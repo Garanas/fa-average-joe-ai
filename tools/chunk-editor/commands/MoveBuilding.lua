@@ -1,4 +1,5 @@
 ---@class LoveMoveBuildingCommand : LoveCommand
+---@field slot integer
 ---@field identifier LoveBuildingIdentifier
 ---@field index integer
 ---@field fromX integer
@@ -8,6 +9,7 @@
 local LoveMoveBuildingCommand = {}
 LoveMoveBuildingCommand.__index = LoveMoveBuildingCommand
 
+---@param slot integer
 ---@param identifier LoveBuildingIdentifier
 ---@param index integer
 ---@param fromX integer
@@ -15,8 +17,9 @@ LoveMoveBuildingCommand.__index = LoveMoveBuildingCommand
 ---@param toX integer
 ---@param toZ integer
 ---@return LoveMoveBuildingCommand
-function LoveMoveBuildingCommand.new(identifier, index, fromX, fromZ, toX, toZ)
+function LoveMoveBuildingCommand.new(slot, identifier, index, fromX, fromZ, toX, toZ)
     return setmetatable({
+        slot = slot,
         identifier = identifier,
         index = index,
         fromX = fromX,
@@ -28,14 +31,14 @@ end
 
 ---@param template LoveBaseChunk
 function LoveMoveBuildingCommand:apply(template)
-    local loc = template.Locations[self.identifier][self.index]
+    local loc = template.Groups[self.slot].Locations[self.identifier][self.index]
     loc[1] = self.toX
     loc[2] = self.toZ
 end
 
 ---@param template LoveBaseChunk
 function LoveMoveBuildingCommand:undo(template)
-    local loc = template.Locations[self.identifier][self.index]
+    local loc = template.Groups[self.slot].Locations[self.identifier][self.index]
     loc[1] = self.fromX
     loc[2] = self.fromZ
 end

@@ -3,6 +3,7 @@
 local Util = require("util")
 local MoveBuilding = require("commands.MoveBuilding")
 local Composite = require("commands.Composite")
+local AssignGroup = require("commands.AssignGroup")
 
 local ZOOM_WHEEL = 1.15
 local ZOOM_HOTKEY = 1.25
@@ -22,6 +23,7 @@ local KEY_PAN_STEP = 30
 ---@field startOy number
 
 ---@class LoveDragItem
+---@field slot integer
 ---@field identifier LoveBuildingIdentifier
 ---@field index integer
 ---@field fromX integer
@@ -52,8 +54,19 @@ local KEY_PAN_STEP = 30
 local LoveChunkCanvas = {}
 LoveChunkCanvas.__index = LoveChunkCanvas
 
-local function selectionKey(identifier, index)
-    return identifier .. "|" .. tostring(index)
+local function selectionKey(slot, identifier, index)
+    return tostring(slot) .. "|" .. identifier .. "|" .. tostring(index)
+end
+
+local function parseSelectionKey(key)
+    local s, id, idxStr = key:match("^(%d+)|(.-)|(%d+)$")
+    return tonumber(s), id, tonumber(idxStr)
+end
+
+local function getLocation(tmpl, slot, identifier, index)
+    local g = tmpl.Groups and tmpl.Groups[slot]
+    local locs = g and g.Locations and g.Locations[identifier]
+    return locs and locs[index]
 end
 
 ---@param ctx LoveAppContext
@@ -130,13 +143,8 @@ function LoveChunkCanvas:zoomAtCenter(factor)
     self:_zoomAt(layout.x + layout.w / 2, layout.y + layout.h / 2, factor)
 end
 
-function LoveChunkCanvas:zoomInCenter()
-    self:zoomAtCenter(ZOOM_HOTKEY)
-end
-
-function LoveChunkCanvas:zoomOutCenter()
-    self:zoomAtCenter(1 / ZOOM_HOTKEY)
-end
+function LoveChunkCanvas:zoomInCenter() self:zoomAtCenter(ZOOM_HOTKEY) end
+function LoveChunkCanvas:zoomOutCenter() self:zoomAtCenter(1 / ZOOM_HOTKEY) end
 
 function LoveChunkCanvas:reset()
     self.camera = { offsetX = nil, offsetY = nil, zoom = nil }
@@ -159,6 +167,24 @@ function LoveChunkCanvas:prevSelection()
     if s then self.ctx.state.selection = s end
 end
 
+--- Drop selection keys whose (slot, identifier, index) no longer exist in the template.
+--- Useful after undo/redo of a structural command (AssignGroup) that may have shifted indices.
+function LoveChunkCanvas:validateSelection()
+    local tmpl = self.ctx.state.loadedTemplate
+    if not tmpl then
+        self.ctx.state.selection = {}
+        return
+    end
+    local newSel = {}
+    for key in pairs(self.ctx.state.selection) do
+        local slot, id, idx = parseSelectionKey(key)
+        if slot and id and idx and getLocation(tmpl, slot, id, idx) then
+            newSel[key] = true
+        end
+    end
+    self.ctx.state.selection = newSel
+end
+
 function LoveChunkCanvas:_panBy(dx, dy)
     local g = self:_geometry()
     self.camera.offsetX = g.ox + dx
@@ -169,13 +195,15 @@ end
 function LoveChunkCanvas:_buildDragItemsFromSelection(tmpl)
     local items = {}
     for key in pairs(self.ctx.state.selection) do
-        local id, idxStr = key:match("^(.-)|(%d+)$")
-        local idx = tonumber(idxStr)
-        if id and idx and tmpl.Locations[id] and tmpl.Locations[id][idx] then
-            local loc = tmpl.Locations[id][idx]
-            table.insert(items, {
-                identifier = id, index = idx, fromX = loc[1], fromZ = loc[2],
-            })
+        local slot, id, idx = parseSelectionKey(key)
+        if slot and id and idx then
+            local loc = getLocation(tmpl, slot, id, idx)
+            if loc then
+                table.insert(items, {
+                    slot = slot, identifier = id, index = idx,
+                    fromX = loc[1], fromZ = loc[2],
+                })
+            end
         end
     end
     return items
@@ -203,11 +231,10 @@ function LoveChunkCanvas:draw()
 
     local g = self:_geometry()
 
-    -- Fast lookup of which rects are currently being dragged.
     local draggingSet = {}
     if self.dragging and self.dragging.template == tmpl then
         for _, it in ipairs(self.dragging.items) do
-            draggingSet[selectionKey(it.identifier, it.index)] = true
+            draggingSet[selectionKey(it.slot, it.identifier, it.index)] = true
         end
     end
 
@@ -223,48 +250,50 @@ function LoveChunkCanvas:draw()
     end
 
     love.graphics.setFont(state.fonts.small)
-    for identifier, locations in pairs(tmpl.Locations or {}) do
-        local meta = (state.identifiers or {})[identifier] or {}
-        local r, gC, b = Util.hexColor(meta.Color)
-        local sx = meta.SizeX or 1
-        local sz = meta.SizeZ or 1
-        local anchorOffsetX = (sx % 2 == 0) and (1 - sx / 2) or 0
-        local anchorOffsetZ = (sz % 2 == 0) and (1 - sz / 2) or 0
-        for index, loc in ipairs(locations) do
-            local x = g.ox + (loc[1] + anchorOffsetX) * g.ppu
-            local y = g.oy + (loc[2] + anchorOffsetZ) * g.ppu
-            local rw = sx * g.ppu
-            local rh = sz * g.ppu
-            local key = selectionKey(identifier, index)
-            local isDragged = draggingSet[key]
-            local isSelected = self.ctx.state.selection[key]
+    for slot, group in pairs(tmpl.Groups or {}) do
+        for identifier, locations in pairs(group.Locations or {}) do
+            local meta = (state.identifiers or {})[identifier] or {}
+            local r, gC, b = Util.hexColor(meta.Color)
+            local sx = meta.SizeX or 1
+            local sz = meta.SizeZ or 1
+            local anchorOffsetX = (sx % 2 == 0) and (1 - sx / 2) or 0
+            local anchorOffsetZ = (sz % 2 == 0) and (1 - sz / 2) or 0
+            for index, loc in ipairs(locations) do
+                local x = g.ox + (loc[1] + anchorOffsetX) * g.ppu
+                local y = g.oy + (loc[2] + anchorOffsetZ) * g.ppu
+                local rw = sx * g.ppu
+                local rh = sz * g.ppu
+                local key = selectionKey(slot, identifier, index)
+                local isDragged = draggingSet[key]
+                local isSelected = state.selection[key]
 
-            love.graphics.setColor(r, gC, b, isDragged and 0.7 or 0.85)
-            love.graphics.rectangle("fill", x, y, rw, rh)
+                love.graphics.setColor(r, gC, b, isDragged and 0.7 or 0.85)
+                love.graphics.rectangle("fill", x, y, rw, rh)
 
-            if isDragged then
-                love.graphics.setColor(1, 1, 0)
-                love.graphics.setLineWidth(2)
-                love.graphics.rectangle("line", x, y, rw, rh)
-                love.graphics.setLineWidth(1)
-            elseif isSelected then
-                love.graphics.setColor(0.4, 0.95, 1.0)
-                love.graphics.setLineWidth(2)
-                love.graphics.rectangle("line", x, y, rw, rh)
-                love.graphics.setLineWidth(1)
-            else
-                love.graphics.setColor(0, 0, 0, 0.6)
-                love.graphics.rectangle("line", x, y, rw, rh)
+                if isDragged then
+                    love.graphics.setColor(1, 1, 0)
+                    love.graphics.setLineWidth(2)
+                    love.graphics.rectangle("line", x, y, rw, rh)
+                    love.graphics.setLineWidth(1)
+                elseif isSelected then
+                    love.graphics.setColor(0.4, 0.95, 1.0)
+                    love.graphics.setLineWidth(2)
+                    love.graphics.rectangle("line", x, y, rw, rh)
+                    love.graphics.setLineWidth(1)
+                else
+                    love.graphics.setColor(0, 0, 0, 0.6)
+                    love.graphics.rectangle("line", x, y, rw, rh)
+                end
+                if rw >= 36 and rh >= 14 then
+                    love.graphics.setColor(0, 0, 0)
+                    love.graphics.printf(identifier, x, y + math.floor(rh / 2) - 6, rw, "center")
+                end
+
+                table.insert(self.rects, {
+                    x1 = x, y1 = y, x2 = x + rw, y2 = y + rh,
+                    slot = slot, identifier = identifier, index = index,
+                })
             end
-            if rw >= 36 and rh >= 14 then
-                love.graphics.setColor(0, 0, 0)
-                love.graphics.printf(identifier, x, y + math.floor(rh / 2) - 6, rw, "center")
-            end
-
-            table.insert(self.rects, {
-                x1 = x, y1 = y, x2 = x + rw, y2 = y + rh,
-                identifier = identifier, index = index,
-            })
         end
     end
 
@@ -292,10 +321,8 @@ function LoveChunkCanvas:mousepressed(mx, my, button)
     if button == 2 then
         local g = self:_geometry()
         self.panning = {
-            startMouseX = mx,
-            startMouseY = my,
-            startOx = g.ox,
-            startOy = g.oy,
+            startMouseX = mx, startMouseY = my,
+            startOx = g.ox, startOy = g.oy,
         }
         return true
     end
@@ -308,7 +335,7 @@ function LoveChunkCanvas:mousepressed(mx, my, button)
     local rect = self:_buildingAt(mx, my)
 
     if rect then
-        local key = selectionKey(rect.identifier, rect.index)
+        local key = selectionKey(rect.slot, rect.identifier, rect.index)
         if shift then
             self.ctx.state.selection[key] = true
             self.ctx.state.selectionHistory:push(self.ctx.state.selection)
@@ -323,9 +350,8 @@ function LoveChunkCanvas:mousepressed(mx, my, button)
         local tmpl = self.ctx.state.loadedTemplate
         if not tmpl then return false end
 
-        -- Plain click: ensure clicked building is the selected set, then drag all selected.
         if not self.ctx.state.selection[key] then
-            self.ctx.state.selection ={}
+            self.ctx.state.selection = {}
             self.ctx.state.selection[key] = true
             self.ctx.state.selectionHistory:push(self.ctx.state.selection)
         end
@@ -335,7 +361,7 @@ function LoveChunkCanvas:mousepressed(mx, my, button)
 
         local primary
         for _, it in ipairs(items) do
-            if it.identifier == rect.identifier and it.index == rect.index then
+            if it.slot == rect.slot and it.identifier == rect.identifier and it.index == rect.index then
                 primary = it
                 break
             end
@@ -354,12 +380,9 @@ function LoveChunkCanvas:mousepressed(mx, my, button)
         return true
     end
 
-    -- Empty-canvas left-click: start a selection box. Shift held → additive.
     self.selectionBox = {
-        startMouseX = mx,
-        startMouseY = my,
-        currentX = mx,
-        currentY = my,
+        startMouseX = mx, startMouseY = my,
+        currentX = mx, currentY = my,
         additive = shift,
     }
     return true
@@ -395,9 +418,11 @@ function LoveChunkCanvas:mousemoved(mx, my)
         local actualDZ = math.max(minDZ, math.min(maxDZ, desiredDZ))
 
         for _, it in ipairs(self.dragging.items) do
-            local loc = tmpl.Locations[it.identifier][it.index]
-            loc[1] = math.floor(it.fromX + actualDX)
-            loc[2] = math.floor(it.fromZ + actualDZ)
+            local loc = getLocation(tmpl, it.slot, it.identifier, it.index)
+            if loc then
+                loc[1] = math.floor(it.fromX + actualDX)
+                loc[2] = math.floor(it.fromZ + actualDZ)
+            end
         end
         return true
     end
@@ -430,26 +455,28 @@ function LoveChunkCanvas:mousereleased(mx, my, button)
 
         local moved = {}
         for _, it in ipairs(d.items) do
-            local loc = tmpl.Locations[it.identifier][it.index]
-            local toX, toZ = loc[1], loc[2]
-            if toX ~= it.fromX or toZ ~= it.fromZ then
-                loc[1], loc[2] = it.fromX, it.fromZ
-                table.insert(moved, {
-                    identifier = it.identifier, index = it.index,
-                    fromX = it.fromX, fromZ = it.fromZ,
-                    toX = toX, toZ = toZ,
-                })
+            local loc = getLocation(tmpl, it.slot, it.identifier, it.index)
+            if loc then
+                local toX, toZ = loc[1], loc[2]
+                if toX ~= it.fromX or toZ ~= it.fromZ then
+                    loc[1], loc[2] = it.fromX, it.fromZ
+                    table.insert(moved, {
+                        slot = it.slot, identifier = it.identifier, index = it.index,
+                        fromX = it.fromX, fromZ = it.fromZ,
+                        toX = toX, toZ = toZ,
+                    })
+                end
             end
         end
 
         local cmd
         if #moved == 1 then
             local m = moved[1]
-            cmd = MoveBuilding.new(m.identifier, m.index, m.fromX, m.fromZ, m.toX, m.toZ)
+            cmd = MoveBuilding.new(m.slot, m.identifier, m.index, m.fromX, m.fromZ, m.toX, m.toZ)
         elseif #moved > 1 then
             local subs = {}
             for _, m in ipairs(moved) do
-                table.insert(subs, MoveBuilding.new(m.identifier, m.index, m.fromX, m.fromZ, m.toX, m.toZ))
+                table.insert(subs, MoveBuilding.new(m.slot, m.identifier, m.index, m.fromX, m.fromZ, m.toX, m.toZ))
             end
             cmd = Composite.new(subs)
         end
@@ -468,11 +495,11 @@ function LoveChunkCanvas:mousereleased(mx, my, button)
         local x2 = math.max(sb.startMouseX, mx)
         local y2 = math.max(sb.startMouseY, my)
         if not sb.additive then
-            self.ctx.state.selection ={}
+            self.ctx.state.selection = {}
         end
         for _, r in ipairs(self.rects) do
             if r.x1 < x2 and r.x2 > x1 and r.y1 < y2 and r.y2 > y1 then
-                self.ctx.state.selection[selectionKey(r.identifier, r.index)] = true
+                self.ctx.state.selection[selectionKey(r.slot, r.identifier, r.index)] = true
             end
         end
         self.ctx.state.selectionHistory:push(self.ctx.state.selection)
@@ -498,9 +525,11 @@ function LoveChunkCanvas:keypressed(key)
             local tmpl = self.ctx.state.loadedTemplate
             if tmpl and self.dragging.template == tmpl then
                 for _, it in ipairs(self.dragging.items) do
-                    local loc = tmpl.Locations[it.identifier][it.index]
-                    loc[1] = it.fromX
-                    loc[2] = it.fromZ
+                    local loc = getLocation(tmpl, it.slot, it.identifier, it.index)
+                    if loc then
+                        loc[1] = it.fromX
+                        loc[2] = it.fromZ
+                    end
                 end
             end
             self.dragging = nil
@@ -511,14 +540,13 @@ function LoveChunkCanvas:keypressed(key)
             return true
         end
         if next(self.ctx.state.selection) then
-            self.ctx.state.selection ={}
+            self.ctx.state.selection = {}
             self.ctx.state.selectionHistory:push(self.ctx.state.selection)
             return true
         end
         return false
     end
 
-    -- Don't shadow ctrl-modified arrows; let hotkey dispatch handle them.
     local ctrl = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
     if ctrl then return false end
     if self.ctx.state.currentPath then return false end
@@ -528,6 +556,157 @@ function LoveChunkCanvas:keypressed(key)
     if key == "left"  then self:_panBy(KEY_PAN_STEP, 0)  return true end
     if key == "right" then self:_panBy(-KEY_PAN_STEP, 0) return true end
     return false
+end
+
+local function deepCopyLocations(locs)
+    local copy = {}
+    for id, list in pairs(locs) do
+        local listCopy = {}
+        for k = 1, #list do
+            local loc = list[k]
+            listCopy[k] = { loc[1], loc[2], loc[3] }
+        end
+        copy[id] = listCopy
+    end
+    return copy
+end
+
+local function deepCopyGroup(group)
+    if not group then return false end
+    return {
+        Name = group.Name,
+        Locations = deepCopyLocations(group.Locations or {}),
+    }
+end
+
+local function isGroupEmpty(group)
+    if not group or not group.Locations then return true end
+    for _, locs in pairs(group.Locations) do
+        if #locs > 0 then return false end
+    end
+    return true
+end
+
+--- Take the current selection and move it into `slot`. Buildings already in
+--- `slot` stay; buildings in other groups leave their old group. After the
+--- move, the selection is the full contents of `slot`.
+---@param slot integer
+function LoveChunkCanvas:assignSelectionToGroup(slot)
+    local state = self.ctx.state
+    local tmpl = state.loadedTemplate
+    if not tmpl or not next(state.selection) then return end
+
+    -- Resolve the selected keys into concrete location records.
+    -- Skip items already in the destination slot — they're staying put.
+    local moveItems = {}
+    for key in pairs(state.selection) do
+        local s, id, idx = parseSelectionKey(key)
+        if s and id and idx and s ~= slot then
+            local loc = getLocation(tmpl, s, id, idx)
+            if loc then
+                table.insert(moveItems, {
+                    sourceSlot = s, identifier = id, index = idx,
+                    location = { loc[1], loc[2], loc[3] },
+                })
+            end
+        end
+    end
+
+    -- Determine which slots are touched (sources + destination).
+    local affectedSlots = { [slot] = true }
+    for _, it in ipairs(moveItems) do
+        affectedSlots[it.sourceSlot] = true
+    end
+
+    -- Snapshot before-state.
+    local beforeSlots = {}
+    for s in pairs(affectedSlots) do
+        beforeSlots[s] = deepCopyGroup(tmpl.Groups and tmpl.Groups[s])
+    end
+
+    -- Build after-state by deep-copying then mutating.
+    local afterSlots = {}
+    for s in pairs(affectedSlots) do
+        afterSlots[s] = deepCopyGroup(tmpl.Groups and tmpl.Groups[s])
+    end
+
+    -- Remove items from sources. Group by (slot, identifier) and remove
+    -- highest indices first so lower ones don't shift mid-removal.
+    local removals = {}
+    for _, it in ipairs(moveItems) do
+        removals[it.sourceSlot] = removals[it.sourceSlot] or {}
+        local byId = removals[it.sourceSlot]
+        byId[it.identifier] = byId[it.identifier] or {}
+        table.insert(byId[it.identifier], it.index)
+    end
+    for s, byId in pairs(removals) do
+        local grp = afterSlots[s]
+        if grp then
+            for id, indices in pairs(byId) do
+                table.sort(indices, function(a, b) return a > b end)
+                local locs = grp.Locations[id]
+                if locs then
+                    for _, idx in ipairs(indices) do
+                        table.remove(locs, idx)
+                    end
+                    if #locs == 0 then grp.Locations[id] = nil end
+                end
+            end
+        end
+    end
+
+    -- Append moved items to destination.
+    if not afterSlots[slot] then
+        afterSlots[slot] = { Name = "Group " .. slot, Locations = {} }
+    end
+    for _, it in ipairs(moveItems) do
+        afterSlots[slot].Locations[it.identifier] = afterSlots[slot].Locations[it.identifier] or {}
+        table.insert(afterSlots[slot].Locations[it.identifier], it.location)
+    end
+
+    -- Drop now-empty source groups.
+    for s, grp in pairs(afterSlots) do
+        if s ~= slot and grp and isGroupEmpty(grp) then
+            afterSlots[s] = false
+        end
+    end
+
+    -- No-op if nothing changed (e.g. all selected items already in dest slot).
+    if #moveItems == 0 then return end
+
+    local cmd = AssignGroup.new(slot, beforeSlots, afterSlots)
+    state.history:apply(tmpl, cmd)
+    state.saveStatus = nil
+
+    -- Selection becomes the full contents of the destination slot.
+    local newSel = {}
+    local destLocs = (tmpl.Groups[slot] and tmpl.Groups[slot].Locations) or {}
+    for id, locs in pairs(destLocs) do
+        for idx = 1, #locs do
+            newSel[selectionKey(slot, id, idx)] = true
+        end
+    end
+    state.selection = newSel
+    state.selectionHistory:push(newSel)
+end
+
+--- Replace selection with the contents of `slot`. No-op for empty slots.
+---@param slot integer
+function LoveChunkCanvas:selectGroup(slot)
+    local state = self.ctx.state
+    local tmpl = state.loadedTemplate
+    if not tmpl then return end
+    local group = tmpl.Groups and tmpl.Groups[slot]
+    if not group or isGroupEmpty(group) then return end
+
+    local newSel = {}
+    for id, locs in pairs(group.Locations) do
+        for idx = 1, #locs do
+            newSel[selectionKey(slot, id, idx)] = true
+        end
+    end
+    state.selection = newSel
+    state.selectionHistory:push(newSel)
 end
 
 return LoveChunkCanvas

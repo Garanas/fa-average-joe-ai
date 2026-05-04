@@ -10,18 +10,24 @@ local MathFloor = math.floor
 ---@field [2] number    # Z offset
 ---@field [3] number    # orientation
 
---- A chunk of a base, as it lives on disk. Describes build locations for specific identifiers (faction-agnostic structure roles).
----@class JoeBaseChunk
----@field Name string       # Optional name of the chunk.
----@field Size number       # Size of the chunk (length of one side, in world units).
----@field Faction string    # For what faction this chunk is intended.
----@field Units UnitId[]    # Accessible list of all unique unit identifiers that we can use to process this chunk.
----@field Locations table<JoeBuildingIdentifier, JoeBaseChunkLocation[]>     # Maps identifiers with build locations.
+--- A named bucket of locations within a chunk. The slot index in `JoeBaseChunk.Groups` (1..10) is the editor's control-group hotkey; slot 10 maps to the "0" key. Every location belongs to exactly one group.
+---@class JoeBaseChunkGroup
+---@field Name string                                                       # Display name of the group (e.g. "default", "walls", "power").
+---@field Locations table<JoeBuildingIdentifier, JoeBaseChunkLocation[]>     # Identifiers → locations within this group.
 
---- A `JoeBaseChunk` once loaded into the runtime, with traceability fields stamped on by the loader.
+--- A chunk of a base, as it lives on disk. Locations are organized into groups; each location belongs to exactly one group.
+---@class JoeBaseChunk
+---@field Name string                                                       # Optional name of the chunk.
+---@field Size number                                                       # Size of the chunk (length of one side, in world units).
+---@field Faction string                                                    # For what faction this chunk is intended.
+---@field Units UnitId[]                                                    # Accessible list of all unique unit identifiers that we can use to process this chunk.
+---@field Groups table<integer, JoeBaseChunkGroup>                          # Sparse, slots 1..10. Slot 10 = the "0" hotkey. Empty slots are absent.
+
+--- A `JoeBaseChunk` once loaded into the runtime, with traceability fields plus a flat-locations view stamped on by the loader. Consumers that don't care about grouping read `Locations` — the loader collapses every group into this single dict at load time.
 ---@class JoeLoadedBaseChunk : JoeBaseChunk
----@field Source string         # File path the chunk was loaded from.
----@field SourceField string    # Field name in the source file that held the chunk (default "Template").
+---@field Source string                                                     # File path the chunk was loaded from.
+---@field SourceField string                                                # Field name in the source file that held the chunk (default "Template").
+---@field Locations table<JoeBuildingIdentifier, JoeBaseChunkLocation[]>    # Flattened union of every group's locations. Read-only at runtime.
 
 --- Converts world coordinates to chunk coordinates.
 ---@param n number
@@ -103,7 +109,12 @@ function CreateTemplate(units, size)
         Name = "Unnamed template",
         Size = size,
         Units = GetUniqueUnitIds(units),
-        Locations = GetLocations(units, size),
+        Groups = {
+            [1] = {
+                Name = "default",
+                Locations = GetLocations(units, size),
+            },
+        },
     }
 
     return template
@@ -153,29 +164,32 @@ function ToBuildTemplate(template)
 
     local buildOrder = 1
 
-    ---@param buildingIdentifier JoeBuildingIdentifier
-    ---@param locations JoeBaseChunkLocation[]
-    for buildingIdentifier, locations in template.Locations do
-        local buildingCategories = JoeBuildingIdentifierModule.MapToCategory(buildingIdentifier)
-        if buildingCategories then
-            local unitId = EntityCategoryGetUnitList(buildingCategories * categories[template.Faction])[1]
-            if unitId then
-                ---@param location JoeBaseChunkLocation
-                for _, location in locations do
-                    buildOrder = buildOrder + 1
+    ---@param group JoeBaseChunkGroup
+    for _, group in template.Groups do
+        ---@param buildingIdentifier JoeBuildingIdentifier
+        ---@param locations JoeBaseChunkLocation[]
+        for buildingIdentifier, locations in group.Locations do
+            local buildingCategories = JoeBuildingIdentifierModule.MapToCategory(buildingIdentifier)
+            if buildingCategories then
+                local unitId = EntityCategoryGetUnitList(buildingCategories * categories[template.Faction])[1]
+                if unitId then
+                    ---@param location JoeBaseChunkLocation
+                    for _, location in locations do
+                        buildOrder = buildOrder + 1
 
-                    -- fix 1x1 and 3x3 buildings to be centered correctly
-                    local blueprint = __blueprints[unitId] --[[@as UnitBlueprint]]
-                    local offsetX = TemplateAxisOffset(blueprint, 'SizeX')
-                    local offsetZ = TemplateAxisOffset(blueprint, 'SizeZ')
+                        -- fix 1x1 and 3x3 buildings to be centered correctly
+                        local blueprint = __blueprints[unitId] --[[@as UnitBlueprint]]
+                        local offsetX = TemplateAxisOffset(blueprint, 'SizeX')
+                        local offsetZ = TemplateAxisOffset(blueprint, 'SizeZ')
 
-                    TableInsert(buildTemplate, { unitId, buildOrder, location[1] + offsetX, location[2] + offsetZ })
+                        TableInsert(buildTemplate, { unitId, buildOrder, location[1] + offsetX, location[2] + offsetZ })
+                    end
+                else
+                    WARN(string.format("No unit found for building identifier '%s'", tostring(buildingIdentifier), tostring(buildingCategories)))
                 end
             else
-                WARN(string.format("No unit found for building identifier '%s'", tostring(buildingIdentifier), tostring(buildingCategories)))
+                WARN(string.format("No building categories found for identifier '%s'", tostring(buildingIdentifier)))
             end
-        else
-            WARN(string.format("No building categories found for identifier '%s'", tostring(buildingIdentifier)))
         end
     end
 

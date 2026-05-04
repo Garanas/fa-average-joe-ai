@@ -116,7 +116,20 @@ function M.loadChunk(shim, fsPath)
     if type(env.Template) ~= "table" then
         return nil, "no Template global in " .. fsPath
     end
-    return env.Template
+    local tmpl = env.Template
+
+    -- Migrate the pre-Groups format on the fly. Old chunks have a flat
+    -- top-level Locations; new chunks have Groups (1..10) each owning their
+    -- own Locations. The editor always works on the new shape.
+    if tmpl.Locations and not tmpl.Groups then
+        tmpl.Groups = {
+            [1] = { Name = "default", Locations = tmpl.Locations },
+        }
+        tmpl.Locations = nil
+    end
+    tmpl.Groups = tmpl.Groups or {}
+
+    return tmpl
 end
 
 return M
