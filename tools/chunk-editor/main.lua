@@ -2,6 +2,7 @@ local Shim = require("shim")
 local Loader = require("loader")
 local Serializer = require("serializer")
 local History = require("history")
+local SelectionHistory = require("selection_history")
 local Hotkeys = require("hotkeys")
 local FileDialog = require("file_dialog")
 
@@ -15,7 +16,7 @@ local HotkeyDialog = require("components.HotkeyDialog")
 local TOPBAR_H = 24
 local SIDEBAR_W = 240
 local STATUSBAR_H = 28
-local TIMELINE_H = 44
+local TIMELINE_H = 76
 
 ---@type LoveState
 local state = {
@@ -28,6 +29,8 @@ local state = {
     identifiers = nil,
     fonts = {},
     history = nil,
+    selection = {},
+    selectionHistory = SelectionHistory.new(),
     dialogOpen = nil,
     saveStatus = nil,
 }
@@ -68,6 +71,8 @@ local function loadChunkByPath(path)
     discardCheck()
     state.currentPath = path
     state.history = History.new()
+    state.selection = {}
+    state.selectionHistory = SelectionHistory.new()
     state.saveStatus = nil
     local tmpl, err = Loader.loadChunk(state.shim, path)
     state.loadedTemplate = tmpl
@@ -98,6 +103,8 @@ local function newChunk()
     discardCheck()
     state.currentPath = nil
     state.history = History.new()
+    state.selection = {}
+    state.selectionHistory = SelectionHistory.new()
     state.loadedTemplate = makeNewTemplate()
     state.loadError = nil
     state.saveStatus = nil
@@ -191,6 +198,8 @@ local actions = {
     recenter = function() if canvas then canvas:reset() end end,
     zoomIn = function() if canvas then canvas:zoomInCenter() end end,
     zoomOut = function() if canvas then canvas:zoomOutCenter() end end,
+    nextSelection = function() if canvas then canvas:nextSelection() end end,
+    prevSelection = function() if canvas then canvas:prevSelection() end end,
 }
 
 local bindings = Hotkeys.bindings(actions)

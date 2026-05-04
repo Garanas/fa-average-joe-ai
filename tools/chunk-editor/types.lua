@@ -63,6 +63,8 @@
 ---@field recenter fun()
 ---@field zoomIn fun()
 ---@field zoomOut fun()
+---@field nextSelection fun()
+---@field prevSelection fun()
 
 ---@class LoveAppContext
 ---@field state LoveState
@@ -89,5 +91,7 @@
 ---@field identifiers table<LoveBuildingIdentifier, LoveBuildingMetadata>?
 ---@field fonts table<string, any>
 ---@field history LoveHistory?
+---@field selection table<string, boolean>
+---@field selectionHistory LoveSelectionHistory
 ---@field dialogOpen string?
 ---@field saveStatus string?

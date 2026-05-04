@@ -48,7 +48,6 @@ local KEY_PAN_STEP = 30
 ---@field dragging LoveDragState?
 ---@field panning LovePanState?
 ---@field selectionBox LoveSelectionBoxState?
----@field selection table<string, boolean>
 ---@field camera LoveCameraState
 local LoveChunkCanvas = {}
 LoveChunkCanvas.__index = LoveChunkCanvas
@@ -66,7 +65,6 @@ function LoveChunkCanvas.new(ctx)
         dragging = nil,
         panning = nil,
         selectionBox = nil,
-        selection = {},
         camera = { offsetX = nil, offsetY = nil, zoom = nil },
     }, LoveChunkCanvas)
 end
@@ -146,10 +144,19 @@ end
 
 function LoveChunkCanvas:onChunkChange()
     self:reset()
-    self.selection = {}
     self.dragging = nil
     self.panning = nil
     self.selectionBox = nil
+end
+
+function LoveChunkCanvas:nextSelection()
+    local s = self.ctx.state.selectionHistory:forward()
+    if s then self.ctx.state.selection = s end
+end
+
+function LoveChunkCanvas:prevSelection()
+    local s = self.ctx.state.selectionHistory:back()
+    if s then self.ctx.state.selection = s end
 end
 
 function LoveChunkCanvas:_panBy(dx, dy)
@@ -161,7 +168,7 @@ end
 ---@return LoveDragItem[]
 function LoveChunkCanvas:_buildDragItemsFromSelection(tmpl)
     local items = {}
-    for key in pairs(self.selection) do
+    for key in pairs(self.ctx.state.selection) do
         local id, idxStr = key:match("^(.-)|(%d+)$")
         local idx = tonumber(idxStr)
         if id and idx and tmpl.Locations[id] and tmpl.Locations[id][idx] then
@@ -230,7 +237,7 @@ function LoveChunkCanvas:draw()
             local rh = sz * g.ppu
             local key = selectionKey(identifier, index)
             local isDragged = draggingSet[key]
-            local isSelected = self.selection[key]
+            local isSelected = self.ctx.state.selection[key]
 
             love.graphics.setColor(r, gC, b, isDragged and 0.7 or 0.85)
             love.graphics.rectangle("fill", x, y, rw, rh)
@@ -303,11 +310,13 @@ function LoveChunkCanvas:mousepressed(mx, my, button)
     if rect then
         local key = selectionKey(rect.identifier, rect.index)
         if shift then
-            self.selection[key] = true
+            self.ctx.state.selection[key] = true
+            self.ctx.state.selectionHistory:push(self.ctx.state.selection)
             return true
         end
         if alt then
-            self.selection[key] = nil
+            self.ctx.state.selection[key] = nil
+            self.ctx.state.selectionHistory:push(self.ctx.state.selection)
             return true
         end
 
@@ -315,9 +324,10 @@ function LoveChunkCanvas:mousepressed(mx, my, button)
         if not tmpl then return false end
 
         -- Plain click: ensure clicked building is the selected set, then drag all selected.
-        if not self.selection[key] then
-            self.selection = {}
-            self.selection[key] = true
+        if not self.ctx.state.selection[key] then
+            self.ctx.state.selection ={}
+            self.ctx.state.selection[key] = true
+            self.ctx.state.selectionHistory:push(self.ctx.state.selection)
         end
 
         local items = self:_buildDragItemsFromSelection(tmpl)
@@ -458,13 +468,14 @@ function LoveChunkCanvas:mousereleased(mx, my, button)
         local x2 = math.max(sb.startMouseX, mx)
         local y2 = math.max(sb.startMouseY, my)
         if not sb.additive then
-            self.selection = {}
+            self.ctx.state.selection ={}
         end
         for _, r in ipairs(self.rects) do
             if r.x1 < x2 and r.x2 > x1 and r.y1 < y2 and r.y2 > y1 then
-                self.selection[selectionKey(r.identifier, r.index)] = true
+                self.ctx.state.selection[selectionKey(r.identifier, r.index)] = true
             end
         end
+        self.ctx.state.selectionHistory:push(self.ctx.state.selection)
         return true
     end
 
@@ -499,8 +510,9 @@ function LoveChunkCanvas:keypressed(key)
             self.selectionBox = nil
             return true
         end
-        if next(self.selection) then
-            self.selection = {}
+        if next(self.ctx.state.selection) then
+            self.ctx.state.selection ={}
+            self.ctx.state.selectionHistory:push(self.ctx.state.selection)
             return true
         end
         return false

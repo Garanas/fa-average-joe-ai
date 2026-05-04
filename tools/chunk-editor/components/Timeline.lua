@@ -1,8 +1,13 @@
 local Util = require("util")
 
+local CHIP_W = 200
+local CHIP_GAP = 6
+local ROW_GAP = 4
+
 ---@class LoveTimeline : LoveComponent
 ---@field ctx LoveAppContext
 ---@field chipRects table[]
+---@field selectionChipRects table[]
 ---@field buttonRect table?
 local LoveTimeline = {}
 LoveTimeline.__index = LoveTimeline
@@ -13,8 +18,73 @@ function LoveTimeline.new(ctx)
     return setmetatable({
         ctx = ctx,
         chipRects = {},
+        selectionChipRects = {},
         buttonRect = nil,
     }, LoveTimeline)
+end
+
+local function selectionLabel(sel)
+    local n = 0
+    for _ in pairs(sel) do n = n + 1 end
+    if n == 0 then return "(empty)" end
+    if n == 1 then return "1 item" end
+    return tostring(n) .. " items"
+end
+
+---@param rect LoveLayoutRect
+---@param chipAreaW number
+---@param rowY number
+---@param rowH number
+---@param items any[]            # entries to render
+---@param cursor integer
+---@param labelFn fun(item: any, index: integer): string
+---@param pastColor number[]
+---@param emptyMessage string
+---@return table[]               # chip rects { x1, y1, x2, y2, index }
+local function drawHistoryRow(rect, chipAreaW, rowY, rowH, items, cursor, labelFn, pastColor, emptyMessage, fonts)
+    local rects = {}
+    if #items == 0 then
+        love.graphics.setColor(0.45, 0.45, 0.55)
+        love.graphics.setFont(fonts.small)
+        love.graphics.printf(emptyMessage, rect.x, rowY + math.floor(rowH / 2) - 6, chipAreaW, "center")
+        return rects
+    end
+
+    local centerX = rect.x + math.floor(chipAreaW / 2)
+    love.graphics.setFont(fonts.small)
+    for i, item in ipairs(items) do
+        local offset = i - cursor
+        local cx = centerX + offset * (CHIP_W + CHIP_GAP)
+        local x = math.floor(cx - CHIP_W / 2)
+        if not (x + CHIP_W < rect.x or x > rect.x + chipAreaW) then
+            if i <= cursor then
+                love.graphics.setColor(pastColor[1], pastColor[2], pastColor[3])
+            else
+                love.graphics.setColor(0.30, 0.30, 0.34)
+            end
+            love.graphics.rectangle("fill", x, rowY, CHIP_W, rowH)
+
+            if i == cursor then
+                love.graphics.setColor(1.0, 0.85, 0.40)
+                love.graphics.setLineWidth(2)
+                love.graphics.rectangle("line", x, rowY, CHIP_W, rowH)
+                love.graphics.setLineWidth(1)
+            else
+                love.graphics.setColor(0, 0, 0, 0.5)
+                love.graphics.rectangle("line", x, rowY, CHIP_W, rowH)
+            end
+
+            love.graphics.setColor(0.95, 0.95, 0.95)
+            love.graphics.printf(labelFn(item, i),
+                x + 6, rowY + math.floor(rowH / 2) - 7, CHIP_W - 12, "center")
+
+            table.insert(rects, {
+                x1 = x, y1 = rowY, x2 = x + CHIP_W, y2 = rowY + rowH,
+                index = i,
+            })
+        end
+    end
+    return rects
 end
 
 function LoveTimeline:draw()
@@ -38,55 +108,32 @@ function LoveTimeline:draw()
     self.buttonRect = { x1 = btnX, y1 = btnY, x2 = btnX + btnW, y2 = btnY + btnH }
 
     local chipAreaW = rect.w - btnW - btnPad * 2
-
-    self.chipRects = {}
-    local hist = state.history
-    if not hist or #hist.commands == 0 then
-        love.graphics.setColor(0.45, 0.45, 0.55)
-        love.graphics.setFont(state.fonts.small)
-        love.graphics.printf("No commands", rect.x, rect.y + 16, chipAreaW, "center")
-        return
-    end
-
-    local chipW, gap = 200, 6
-    local centerX = rect.x + math.floor(chipAreaW / 2)
-    local chipY = rect.y + 4
-    local chipH = rect.h - 8
+    local rowH = math.floor((rect.h - 8 - ROW_GAP) / 2)
+    local row1Y = rect.y + 4               -- top: selections
+    local row2Y = row1Y + rowH + ROW_GAP   -- bottom: commands
 
     love.graphics.setScissor(rect.x, rect.y, chipAreaW, rect.h)
-    love.graphics.setFont(state.fonts.small)
-    for i, cmd in ipairs(hist.commands) do
-        local offset = i - hist.cursor
-        local cx = centerX + offset * (chipW + gap)
-        local x = math.floor(cx - chipW / 2)
-        if not (x + chipW < rect.x or x > rect.x + chipAreaW) then
-            if i <= hist.cursor then
-                love.graphics.setColor(0.18, 0.30, 0.50)
-            else
-                love.graphics.setColor(0.30, 0.30, 0.34)
-            end
-            love.graphics.rectangle("fill", x, chipY, chipW, chipH)
 
-            if i == hist.cursor then
-                love.graphics.setColor(1.0, 0.85, 0.40)
-                love.graphics.setLineWidth(2)
-                love.graphics.rectangle("line", x, chipY, chipW, chipH)
-                love.graphics.setLineWidth(1)
-            else
-                love.graphics.setColor(0, 0, 0, 0.5)
-                love.graphics.rectangle("line", x, chipY, chipW, chipH)
-            end
+    local selH = state.selectionHistory
+    self.selectionChipRects = drawHistoryRow(
+        rect, chipAreaW, row1Y, rowH,
+        selH and selH.states or {},
+        selH and selH.cursor or 0,
+        function(s) return selectionLabel(s) end,
+        { 0.34, 0.20, 0.46 },  -- purple-ish so selection is visually distinct from commands
+        "No selections",
+        state.fonts)
 
-            love.graphics.setColor(0.95, 0.95, 0.95)
-            local label = (cmd.describe and cmd:describe()) or "(unnamed)"
-            love.graphics.printf(label, x + 6, chipY + math.floor(chipH / 2) - 7, chipW - 12, "center")
+    local cmdH = state.history
+    self.chipRects = drawHistoryRow(
+        rect, chipAreaW, row2Y, rowH,
+        cmdH and cmdH.commands or {},
+        cmdH and cmdH.cursor or 0,
+        function(c) return (c.describe and c:describe()) or "(unnamed)" end,
+        { 0.18, 0.30, 0.50 },
+        "No commands",
+        state.fonts)
 
-            table.insert(self.chipRects, {
-                x1 = x, y1 = chipY, x2 = x + chipW, y2 = chipY + chipH,
-                index = i,
-            })
-        end
-    end
     love.graphics.setScissor()
 end
 
@@ -97,6 +144,17 @@ function LoveTimeline:mousepressed(mx, my, button)
         local state = self.ctx.state
         state.dialogOpen = (state.dialogOpen == "hotkeys") and nil or "hotkeys"
         return true
+    end
+
+    for _, r in ipairs(self.selectionChipRects) do
+        if Util.pointInRect(r, mx, my) then
+            local state = self.ctx.state
+            if state.selectionHistory then
+                local s = state.selectionHistory:jumpTo(r.index)
+                if s then state.selection = s end
+            end
+            return true
+        end
     end
 
     for _, r in ipairs(self.chipRects) do

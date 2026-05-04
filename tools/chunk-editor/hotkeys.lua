@@ -41,9 +41,11 @@ function M.bindings(actions)
         { keys = "ctrl+z",       name = "Undo",     fn = actions.undo },
         { keys = "ctrl+y",       name = "Redo",     fn = actions.redo },
         { keys = "ctrl+shift+z", name = "Redo",     fn = actions.redo },
-        { keys = "ctrl+up",      name = "Zoom in",  fn = actions.zoomIn },
-        { keys = "ctrl+down",    name = "Zoom out", fn = actions.zoomOut },
-        { keys = "home",         name = "Recenter", fn = actions.recenter },
+        { keys = "ctrl+up",      name = "Zoom in",            fn = actions.zoomIn },
+        { keys = "ctrl+down",    name = "Zoom out",           fn = actions.zoomOut },
+        { keys = "home",         name = "Recenter",           fn = actions.recenter },
+        { keys = "tab",          name = "Next selection",     fn = actions.nextSelection },
+        { keys = "shift+tab",    name = "Previous selection", fn = actions.prevSelection },
     }
 end
 
