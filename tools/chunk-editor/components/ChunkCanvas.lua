@@ -251,6 +251,26 @@ function LoveChunkCanvas:draw()
         love.graphics.line(g.ox, g.oy + i * g.ppu, g.ox + g.chunkPx, g.oy + i * g.ppu)
     end
 
+    -- 16-cell major grid (blue-ish). Interior only — boundary lines stay
+    -- neutral so the chunk edge isn't recoloured.
+    love.graphics.setColor(0.35, 0.55, 0.85)
+    for i = 16, g.size - 1, 16 do
+        local lx = g.ox + i * g.ppu
+        local ly = g.oy + i * g.ppu
+        love.graphics.line(lx, g.oy, lx, g.oy + g.chunkPx)
+        love.graphics.line(g.ox, ly, g.ox + g.chunkPx, ly)
+    end
+
+    -- 32-cell major grid (dark red). Drawn after blue so it wins where they
+    -- coincide (every 32-line is also a 16-line).
+    love.graphics.setColor(0.55, 0.20, 0.20)
+    for i = 32, g.size - 1, 32 do
+        local lx = g.ox + i * g.ppu
+        local ly = g.oy + i * g.ppu
+        love.graphics.line(lx, g.oy, lx, g.oy + g.chunkPx)
+        love.graphics.line(g.ox, ly, g.ox + g.chunkPx, ly)
+    end
+
     love.graphics.setFont(state.fonts.small)
     for slot, group in pairs(tmpl.Groups or {}) do
         for identifier, locations in pairs(group.Locations or {}) do
