@@ -2,6 +2,7 @@
 
 local Util = require("util")
 local MoveBuilding = require("commands.MoveBuilding")
+local Composite = require("commands.Composite")
 
 local ZOOM_WHEEL = 1.15
 local ZOOM_HOTKEY = 1.25
@@ -10,7 +11,7 @@ local ZOOM_MAX = 16
 local KEY_PAN_STEP = 30
 
 ---@class LoveCameraState
----@field offsetX number?  # nil = use baseFit (auto-centered)
+---@field offsetX number?
 ---@field offsetY number?
 ---@field zoom number?
 
@@ -20,23 +21,41 @@ local KEY_PAN_STEP = 30
 ---@field startOx number
 ---@field startOy number
 
----@class LoveDragState
+---@class LoveDragItem
 ---@field identifier LoveBuildingIdentifier
 ---@field index integer
----@field dragOffsetX number
----@field dragOffsetZ number
 ---@field fromX integer
 ---@field fromZ integer
+
+---@class LoveDragState
+---@field items LoveDragItem[]
+---@field primaryFromX integer
+---@field primaryFromZ integer
+---@field dragOffsetX number
+---@field dragOffsetZ number
 ---@field template LoveBaseChunk
+
+---@class LoveSelectionBoxState
+---@field startMouseX number
+---@field startMouseY number
+---@field currentX number
+---@field currentY number
+---@field additive boolean
 
 ---@class LoveChunkCanvas : LoveComponent
 ---@field ctx LoveAppContext
 ---@field rects table[]
 ---@field dragging LoveDragState?
 ---@field panning LovePanState?
+---@field selectionBox LoveSelectionBoxState?
+---@field selection table<string, boolean>
 ---@field camera LoveCameraState
 local LoveChunkCanvas = {}
 LoveChunkCanvas.__index = LoveChunkCanvas
+
+local function selectionKey(identifier, index)
+    return identifier .. "|" .. tostring(index)
+end
 
 ---@param ctx LoveAppContext
 ---@return LoveChunkCanvas
@@ -46,6 +65,8 @@ function LoveChunkCanvas.new(ctx)
         rects = {},
         dragging = nil,
         panning = nil,
+        selectionBox = nil,
+        selection = {},
         camera = { offsetX = nil, offsetY = nil, zoom = nil },
     }, LoveChunkCanvas)
 end
@@ -123,10 +144,34 @@ function LoveChunkCanvas:reset()
     self.camera = { offsetX = nil, offsetY = nil, zoom = nil }
 end
 
+function LoveChunkCanvas:onChunkChange()
+    self:reset()
+    self.selection = {}
+    self.dragging = nil
+    self.panning = nil
+    self.selectionBox = nil
+end
+
 function LoveChunkCanvas:_panBy(dx, dy)
     local g = self:_geometry()
     self.camera.offsetX = g.ox + dx
     self.camera.offsetY = g.oy + dy
+end
+
+---@return LoveDragItem[]
+function LoveChunkCanvas:_buildDragItemsFromSelection(tmpl)
+    local items = {}
+    for key in pairs(self.selection) do
+        local id, idxStr = key:match("^(.-)|(%d+)$")
+        local idx = tonumber(idxStr)
+        if id and idx and tmpl.Locations[id] and tmpl.Locations[id][idx] then
+            local loc = tmpl.Locations[id][idx]
+            table.insert(items, {
+                identifier = id, index = idx, fromX = loc[1], fromZ = loc[2],
+            })
+        end
+    end
+    return items
 end
 
 function LoveChunkCanvas:draw()
@@ -151,9 +196,14 @@ function LoveChunkCanvas:draw()
 
     local g = self:_geometry()
 
-    -- Clip rendering to the canvas area: zoom/pan can push the chunk off
-    -- its allotted region, and we don't want it bleeding into the sidebar
-    -- or top/bottom bars.
+    -- Fast lookup of which rects are currently being dragged.
+    local draggingSet = {}
+    if self.dragging and self.dragging.template == tmpl then
+        for _, it in ipairs(self.dragging.items) do
+            draggingSet[selectionKey(it.identifier, it.index)] = true
+        end
+    end
+
     love.graphics.setScissor(layout.x, layout.y, layout.w, layout.h)
 
     love.graphics.setColor(0.18, 0.18, 0.22)
@@ -178,14 +228,20 @@ function LoveChunkCanvas:draw()
             local y = g.oy + (loc[2] + anchorOffsetZ) * g.ppu
             local rw = sx * g.ppu
             local rh = sz * g.ppu
-            local isDragged = self.dragging
-                and self.dragging.identifier == identifier
-                and self.dragging.index == index
+            local key = selectionKey(identifier, index)
+            local isDragged = draggingSet[key]
+            local isSelected = self.selection[key]
 
             love.graphics.setColor(r, gC, b, isDragged and 0.7 or 0.85)
             love.graphics.rectangle("fill", x, y, rw, rh)
+
             if isDragged then
                 love.graphics.setColor(1, 1, 0)
+                love.graphics.setLineWidth(2)
+                love.graphics.rectangle("line", x, y, rw, rh)
+                love.graphics.setLineWidth(1)
+            elseif isSelected then
+                love.graphics.setColor(0.4, 0.95, 1.0)
                 love.graphics.setLineWidth(2)
                 love.graphics.rectangle("line", x, y, rw, rh)
                 love.graphics.setLineWidth(1)
@@ -205,6 +261,19 @@ function LoveChunkCanvas:draw()
         end
     end
 
+    if self.selectionBox then
+        local sb = self.selectionBox
+        local x1 = math.min(sb.startMouseX, sb.currentX)
+        local y1 = math.min(sb.startMouseY, sb.currentY)
+        local x2 = math.max(sb.startMouseX, sb.currentX)
+        local y2 = math.max(sb.startMouseY, sb.currentY)
+        love.graphics.setColor(0.4, 0.7, 1.0, 0.18)
+        love.graphics.rectangle("fill", x1, y1, x2 - x1, y2 - y1)
+        love.graphics.setColor(0.4, 0.7, 1.0, 0.9)
+        love.graphics.setLineWidth(1)
+        love.graphics.rectangle("line", x1, y1, x2 - x1, y2 - y1)
+    end
+
     love.graphics.setScissor()
 end
 
@@ -214,7 +283,6 @@ function LoveChunkCanvas:mousepressed(mx, my, button)
     if my < layout.y or my >= layout.y + layout.h then return false end
 
     if button == 2 then
-        -- Right-click anywhere in canvas → pan camera.
         local g = self:_geometry()
         self.panning = {
             startMouseX = mx,
@@ -227,26 +295,64 @@ function LoveChunkCanvas:mousepressed(mx, my, button)
 
     if button ~= 1 then return false end
 
+    local shift = love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")
+    local alt = love.keyboard.isDown("lalt") or love.keyboard.isDown("ralt")
+
     local rect = self:_buildingAt(mx, my)
+
     if rect then
+        local key = selectionKey(rect.identifier, rect.index)
+        if shift then
+            self.selection[key] = true
+            return true
+        end
+        if alt then
+            self.selection[key] = nil
+            return true
+        end
+
         local tmpl = self.ctx.state.loadedTemplate
         if not tmpl then return false end
+
+        -- Plain click: ensure clicked building is the selected set, then drag all selected.
+        if not self.selection[key] then
+            self.selection = {}
+            self.selection[key] = true
+        end
+
+        local items = self:_buildDragItemsFromSelection(tmpl)
+        if #items == 0 then return false end
+
+        local primary
+        for _, it in ipairs(items) do
+            if it.identifier == rect.identifier and it.index == rect.index then
+                primary = it
+                break
+            end
+        end
+        if not primary then return false end
+
         local cx, cz = self:_chunkXZFromMouse(mx, my)
-        local loc = tmpl.Locations[rect.identifier][rect.index]
         self.dragging = {
-            identifier = rect.identifier,
-            index = rect.index,
-            dragOffsetX = cx - loc[1],
-            dragOffsetZ = cz - loc[2],
-            fromX = loc[1],
-            fromZ = loc[2],
+            items = items,
+            primaryFromX = primary.fromX,
+            primaryFromZ = primary.fromZ,
+            dragOffsetX = cx - primary.fromX,
+            dragOffsetZ = cz - primary.fromZ,
             template = tmpl,
         }
         return true
     end
 
-    -- Left-click on empty canvas: reserved for the upcoming selection box.
-    return false
+    -- Empty-canvas left-click: start a selection box. Shift held → additive.
+    self.selectionBox = {
+        startMouseX = mx,
+        startMouseY = my,
+        currentX = mx,
+        currentY = my,
+        additive = shift,
+    }
+    return true
 end
 
 function LoveChunkCanvas:mousemoved(mx, my)
@@ -257,16 +363,32 @@ function LoveChunkCanvas:mousemoved(mx, my)
             return false
         end
         local cx, cz = self:_chunkXZFromMouse(mx, my)
-        local newX = math.floor(cx - self.dragging.dragOffsetX + 0.5)
-        local newZ = math.floor(cz - self.dragging.dragOffsetZ + 0.5)
+        local desiredPrimaryX = math.floor(cx - self.dragging.dragOffsetX + 0.5)
+        local desiredPrimaryZ = math.floor(cz - self.dragging.dragOffsetZ + 0.5)
+        local desiredDX = desiredPrimaryX - self.dragging.primaryFromX
+        local desiredDZ = desiredPrimaryZ - self.dragging.primaryFromZ
+
         local size = tmpl.Size or 16
-        if newX < 0 then newX = 0 end
-        if newZ < 0 then newZ = 0 end
-        if newX > size - 1 then newX = size - 1 end
-        if newZ > size - 1 then newZ = size - 1 end
-        local loc = tmpl.Locations[self.dragging.identifier][self.dragging.index]
-        loc[1] = newX
-        loc[2] = newZ
+        local minDX, maxDX = -math.huge, math.huge
+        local minDZ, maxDZ = -math.huge, math.huge
+        for _, it in ipairs(self.dragging.items) do
+            local thisMaxX = (size - 1) - it.fromX
+            local thisMinX = -it.fromX
+            if thisMaxX < maxDX then maxDX = thisMaxX end
+            if thisMinX > minDX then minDX = thisMinX end
+            local thisMaxZ = (size - 1) - it.fromZ
+            local thisMinZ = -it.fromZ
+            if thisMaxZ < maxDZ then maxDZ = thisMaxZ end
+            if thisMinZ > minDZ then minDZ = thisMinZ end
+        end
+        local actualDX = math.max(minDX, math.min(maxDX, desiredDX))
+        local actualDZ = math.max(minDZ, math.min(maxDZ, desiredDZ))
+
+        for _, it in ipairs(self.dragging.items) do
+            local loc = tmpl.Locations[it.identifier][it.index]
+            loc[1] = math.floor(it.fromX + actualDX)
+            loc[2] = math.floor(it.fromZ + actualDZ)
+        end
         return true
     end
     if self.panning then
@@ -274,15 +396,21 @@ function LoveChunkCanvas:mousemoved(mx, my)
         self.camera.offsetY = self.panning.startOy + (my - self.panning.startMouseY)
         return true
     end
+    if self.selectionBox then
+        self.selectionBox.currentX = mx
+        self.selectionBox.currentY = my
+        return true
+    end
     return false
 end
 
-function LoveChunkCanvas:mousereleased(_, _, button)
+function LoveChunkCanvas:mousereleased(mx, my, button)
     if button == 2 and self.panning then
         self.panning = nil
         return true
     end
     if button ~= 1 then return false end
+
     if self.dragging then
         local d = self.dragging
         self.dragging = nil
@@ -290,16 +418,56 @@ function LoveChunkCanvas:mousereleased(_, _, button)
         local tmpl = state.loadedTemplate
         if not tmpl or d.template ~= tmpl then return true end
 
-        local loc = tmpl.Locations[d.identifier][d.index]
-        local toX, toZ = loc[1], loc[2]
-        if toX ~= d.fromX or toZ ~= d.fromZ then
-            loc[1], loc[2] = d.fromX, d.fromZ
-            local cmd = MoveBuilding.new(d.identifier, d.index, d.fromX, d.fromZ, toX, toZ)
+        local moved = {}
+        for _, it in ipairs(d.items) do
+            local loc = tmpl.Locations[it.identifier][it.index]
+            local toX, toZ = loc[1], loc[2]
+            if toX ~= it.fromX or toZ ~= it.fromZ then
+                loc[1], loc[2] = it.fromX, it.fromZ
+                table.insert(moved, {
+                    identifier = it.identifier, index = it.index,
+                    fromX = it.fromX, fromZ = it.fromZ,
+                    toX = toX, toZ = toZ,
+                })
+            end
+        end
+
+        local cmd
+        if #moved == 1 then
+            local m = moved[1]
+            cmd = MoveBuilding.new(m.identifier, m.index, m.fromX, m.fromZ, m.toX, m.toZ)
+        elseif #moved > 1 then
+            local subs = {}
+            for _, m in ipairs(moved) do
+                table.insert(subs, MoveBuilding.new(m.identifier, m.index, m.fromX, m.fromZ, m.toX, m.toZ))
+            end
+            cmd = Composite.new(subs)
+        end
+        if cmd then
             state.history:apply(tmpl, cmd)
             state.saveStatus = nil
         end
         return true
     end
+
+    if self.selectionBox then
+        local sb = self.selectionBox
+        self.selectionBox = nil
+        local x1 = math.min(sb.startMouseX, mx)
+        local y1 = math.min(sb.startMouseY, my)
+        local x2 = math.max(sb.startMouseX, mx)
+        local y2 = math.max(sb.startMouseY, my)
+        if not sb.additive then
+            self.selection = {}
+        end
+        for _, r in ipairs(self.rects) do
+            if r.x1 < x2 and r.x2 > x1 and r.y1 < y2 and r.y2 > y1 then
+                self.selection[selectionKey(r.identifier, r.index)] = true
+            end
+        end
+        return true
+    end
+
     return false
 end
 
@@ -314,6 +482,30 @@ function LoveChunkCanvas:wheelmoved(_, y, mx, my)
 end
 
 function LoveChunkCanvas:keypressed(key)
+    if key == "escape" then
+        if self.dragging then
+            local tmpl = self.ctx.state.loadedTemplate
+            if tmpl and self.dragging.template == tmpl then
+                for _, it in ipairs(self.dragging.items) do
+                    local loc = tmpl.Locations[it.identifier][it.index]
+                    loc[1] = it.fromX
+                    loc[2] = it.fromZ
+                end
+            end
+            self.dragging = nil
+            return true
+        end
+        if self.selectionBox then
+            self.selectionBox = nil
+            return true
+        end
+        if next(self.selection) then
+            self.selection = {}
+            return true
+        end
+        return false
+    end
+
     -- Don't shadow ctrl-modified arrows; let hotkey dispatch handle them.
     local ctrl = love.keyboard.isDown("lctrl") or love.keyboard.isDown("rctrl")
     if ctrl then return false end

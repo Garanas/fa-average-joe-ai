@@ -73,7 +73,7 @@ local function loadChunkByPath(path)
     state.loadedTemplate = tmpl
     state.loadError = err
     if err then print("Load error for " .. path .. ": " .. tostring(err)) end
-    if canvas then canvas:reset() end
+    if canvas then canvas:onChunkChange() end
 end
 
 local function selectChunk(i)
@@ -101,6 +101,7 @@ local function newChunk()
     state.loadedTemplate = makeNewTemplate()
     state.loadError = nil
     state.saveStatus = nil
+    if canvas then canvas:onChunkChange() end
 end
 
 ---@return string  # filesystem path that's safe to use as a default dir for dialogs
