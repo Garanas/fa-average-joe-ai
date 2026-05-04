@@ -9,6 +9,7 @@ local ImportGroup = require("commands.ImportGroup")
 local ResizeChunk = require("commands.ResizeChunk")
 local ReconfigureChunk = require("commands.ReconfigureChunk")
 local Snapshot = require("commands.group_snapshot")
+local ChunkCache = require("chunk_cache")
 
 local TopBar = require("components.TopBar")
 local Sidebar = require("components.Sidebar")
@@ -169,9 +170,7 @@ local function createNewChunk(payload)
     state.saveStatus = "Created"
     print("Created " .. path)
 
-    if state.modRoot then
-        state.chunks = Loader.discoverChunks(state.modRoot)
-    end
+    if state.chunkCache then state.chunkCache:rebuild() end
     if canvas then canvas:onChunkChange() end
 end
 
@@ -445,10 +444,8 @@ local function saveAsAction()
     if state.history then state.history:markSaved() end
     state.saveStatus = "Saved"
     print("Saved " .. path)
-    -- Re-discover so a chunk saved into the BaseChunks tree appears in the sidebar.
-    if state.modRoot then
-        state.chunks = Loader.discoverChunks(state.modRoot)
-    end
+    -- Refresh the cache so a chunk saved into the BaseChunks tree appears in the sidebar.
+    if state.chunkCache then state.chunkCache:rebuild() end
 end
 
 local function saveAction()
@@ -553,7 +550,9 @@ function love.load()
     state.modRoot = modRoot
     state.shim = Shim.create(modRoot)
     state.identifiers = Loader.loadIdentifiers(state.shim)
-    state.chunks = Loader.discoverChunks(modRoot)
+    state.chunkCache = ChunkCache.new(state.shim, modRoot)
+    state.chunkCache:rebuild()
+    state.chunks = state.chunkCache.entries
 
     state.fonts.small = love.graphics.newFont(10)
     state.fonts.body = love.graphics.newFont(12)
@@ -565,6 +564,12 @@ function love.load()
 
     if #state.chunks > 0 then
         selectChunk(1)
+    end
+end
+
+function love.update(dt)
+    if state.chunkCache then
+        state.chunkCache:poll(dt)
     end
 end
 

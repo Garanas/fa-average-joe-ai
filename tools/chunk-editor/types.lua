@@ -33,13 +33,21 @@
 ---@field describe? fun(self: LoveCommand): string
 
 ---@class LoveChunkEntry
----@field faction string
----@field file string
----@field fsPath string
+---@field faction string                              # parent folder name (e.g. "UEF")
+---@field file string                                 # filename (e.g. "land_16x16_01.lua")
+---@field fsPath string                               # absolute path
+---@field name string?                                # template.Name (cached after load)
+---@field size integer?                               # template.Size
+---@field templateFaction string?                     # template.Faction (may differ from folder)
+---@field buildingCount integer?
+---@field groupCount integer?
+---@field identifiers table<string, boolean>?        # set of identifiers used by the chunk
+---@field error string?                               # populated if the chunk failed to load
 
 ---@class LoveHotkeyBinding
 ---@field keys string  # normalized combo: "ctrl+z", "ctrl+shift+z", "ctrl+s"
 ---@field name string  # human-readable name
+---@field group string # bucket label used by the hotkey dialog's masonry layout
 ---@field fn fun()
 
 ---@class LoveLayoutRect
@@ -115,5 +123,6 @@
 ---@field history LoveHistory?
 ---@field selection table<string, boolean>
 ---@field selectionHistory LoveSelectionHistory
+---@field chunkCache LoveChunkCache?
 ---@field dialogOpen string?
 ---@field saveStatus string?
