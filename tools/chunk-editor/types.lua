@@ -60,6 +60,9 @@
 ---@field saveAs fun()
 ---@field undo fun()
 ---@field redo fun()
+---@field recenter fun()
+---@field zoomIn fun()
+---@field zoomOut fun()
 
 ---@class LoveAppContext
 ---@field state LoveState
@@ -73,6 +76,7 @@
 ---@field mousepressed? fun(self: LoveComponent, mx: number, my: number, button: integer): boolean
 ---@field mousereleased? fun(self: LoveComponent, mx: number, my: number, button: integer): boolean
 ---@field mousemoved? fun(self: LoveComponent, mx: number, my: number): boolean
+---@field wheelmoved? fun(self: LoveComponent, x: number, y: number, mx: number, my: number): boolean
 ---@field keypressed? fun(self: LoveComponent, key: string): boolean
 
 ---@class LoveState

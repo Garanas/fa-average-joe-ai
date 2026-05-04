@@ -32,6 +32,9 @@ local state = {
     saveStatus = nil,
 }
 
+---@type LoveChunkCanvas?  -- forward declaration; assigned after components are built
+local canvas
+
 local function parentDir(p)
     p = p:gsub("[/\\]+$", "")
     return p:match("^(.*)[/\\][^/\\]+$") or p
@@ -70,6 +73,7 @@ local function loadChunkByPath(path)
     state.loadedTemplate = tmpl
     state.loadError = err
     if err then print("Load error for " .. path .. ": " .. tostring(err)) end
+    if canvas then canvas:reset() end
 end
 
 local function selectChunk(i)
@@ -183,6 +187,9 @@ local actions = {
             state.saveStatus = nil
         end
     end,
+    recenter = function() if canvas then canvas:reset() end end,
+    zoomIn = function() if canvas then canvas:zoomInCenter() end end,
+    zoomOut = function() if canvas then canvas:zoomOutCenter() end end,
 }
 
 local bindings = Hotkeys.bindings(actions)
@@ -210,10 +217,12 @@ local ctx = {
     isDirty = function(_) return isDirty() end,
 }
 
+canvas = ChunkCanvas.new(ctx)
+
 ---@type LoveComponent[]
 local components = {
     Sidebar.new(ctx),
-    ChunkCanvas.new(ctx),
+    canvas,
     StatusBar.new(ctx),
     Timeline.new(ctx),
     TopBar.new(ctx),
@@ -268,6 +277,14 @@ function love.mousemoved(mx, my)
     for i = #components, 1, -1 do
         local c = components[i]
         if c.mousemoved and c:mousemoved(mx, my) then return end
+    end
+end
+
+function love.wheelmoved(x, y)
+    local mx, my = love.mouse.getPosition()
+    for i = #components, 1, -1 do
+        local c = components[i]
+        if c.wheelmoved and c:wheelmoved(x, y, mx, my) then return end
     end
 end
 

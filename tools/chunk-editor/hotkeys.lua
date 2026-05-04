@@ -34,13 +34,16 @@ end
 ---@return LoveHotkeyBinding[]
 function M.bindings(actions)
     return {
-        { keys = "ctrl+n",       name = "New",     fn = actions.new },
-        { keys = "ctrl+o",       name = "Load",    fn = actions.load },
-        { keys = "ctrl+s",       name = "Save",    fn = actions.save },
-        { keys = "ctrl+shift+s", name = "Save As", fn = actions.saveAs },
-        { keys = "ctrl+z",       name = "Undo",    fn = actions.undo },
-        { keys = "ctrl+y",       name = "Redo",    fn = actions.redo },
-        { keys = "ctrl+shift+z", name = "Redo",    fn = actions.redo },
+        { keys = "ctrl+n",       name = "New",      fn = actions.new },
+        { keys = "ctrl+o",       name = "Load",     fn = actions.load },
+        { keys = "ctrl+s",       name = "Save",     fn = actions.save },
+        { keys = "ctrl+shift+s", name = "Save As",  fn = actions.saveAs },
+        { keys = "ctrl+z",       name = "Undo",     fn = actions.undo },
+        { keys = "ctrl+y",       name = "Redo",     fn = actions.redo },
+        { keys = "ctrl+shift+z", name = "Redo",     fn = actions.redo },
+        { keys = "ctrl+up",      name = "Zoom in",  fn = actions.zoomIn },
+        { keys = "ctrl+down",    name = "Zoom out", fn = actions.zoomOut },
+        { keys = "home",         name = "Recenter", fn = actions.recenter },
     }
 end
 
