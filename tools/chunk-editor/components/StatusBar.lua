@@ -1,4 +1,5 @@
 ---@class LoveStatusBar : LoveComponent
+---@field ctx LoveAppContext
 local LoveStatusBar = {}
 LoveStatusBar.__index = LoveStatusBar
 
@@ -22,11 +23,12 @@ function LoveStatusBar:draw()
     if tmpl then
         local nIdent = 0
         for _ in pairs(tmpl.Locations or {}) do nIdent = nIdent + 1 end
-        local dirty = state.history and state.history:isDirty() or false
-        txt = string.format("%s%s  |  %s  |  %dx%d  |  %d identifiers",
+        local dirty = self.ctx:isDirty()
+        local pathHint = state.currentPath and (state.currentPath:match("[^/\\]+$") or "?") or "(unsaved)"
+        txt = string.format("%s%s  |  %s  |  %s  |  %dx%d  |  %d identifiers",
             dirty and "* " or "",
             tostring(tmpl.Name or "?"), tostring(tmpl.Faction or "?"),
-            tmpl.Size or 0, tmpl.Size or 0, nIdent)
+            pathHint, tmpl.Size or 0, tmpl.Size or 0, nIdent)
     elseif state.loadError then
         txt = "Load error (see console)"
     else

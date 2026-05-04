@@ -1,13 +1,25 @@
 local Util = require("util")
 
 local MENU_ITEM_H = 22
+local MENU_SEPARATOR_H = 8
 local MENU_W = 200
+
+---@alias LoveMenuItem { label: string?, hint: string?, action: string?, separator: boolean? }
+
+---@type LoveMenuItem[]
+local FILE_MENU = {
+    { label = "New",        hint = "Ctrl+N",       action = "new" },
+    { label = "Load...",    hint = "Ctrl+O",       action = "load" },
+    { separator = true },
+    { label = "Save",       hint = "Ctrl+S",       action = "save" },
+    { label = "Save As...", hint = "Ctrl+Shift+S", action = "saveAs" },
+}
 
 ---@class LoveTopBar : LoveComponent
 ---@field ctx LoveAppContext
 ---@field menuOpen boolean
 ---@field fileButtonRect table?
----@field menuItemRect table?
+---@field menuItemRects table[]
 local LoveTopBar = {}
 LoveTopBar.__index = LoveTopBar
 
@@ -18,8 +30,42 @@ function LoveTopBar.new(ctx)
         ctx = ctx,
         menuOpen = false,
         fileButtonRect = nil,
-        menuItemRect = nil,
+        menuItemRects = {},
     }, LoveTopBar)
+end
+
+function LoveTopBar:_drawMenu(originX, originY)
+    local total = 0
+    for _, item in ipairs(FILE_MENU) do
+        total = total + (item.separator and MENU_SEPARATOR_H or MENU_ITEM_H)
+    end
+    love.graphics.setColor(0.20, 0.20, 0.26)
+    love.graphics.rectangle("fill", originX, originY, MENU_W, total)
+    love.graphics.setColor(0.4, 0.4, 0.5)
+    love.graphics.rectangle("line", originX, originY, MENU_W, total)
+
+    self.menuItemRects = {}
+    local y = originY
+    for _, item in ipairs(FILE_MENU) do
+        if item.separator then
+            love.graphics.setColor(0.30, 0.30, 0.36)
+            love.graphics.line(originX + 8, y + math.floor(MENU_SEPARATOR_H / 2),
+                originX + MENU_W - 8, y + math.floor(MENU_SEPARATOR_H / 2))
+            y = y + MENU_SEPARATOR_H
+        else
+            love.graphics.setColor(1, 1, 1)
+            love.graphics.print(item.label, originX + 8, y + 4)
+            if item.hint then
+                love.graphics.setColor(0.6, 0.6, 0.7)
+                love.graphics.printf(item.hint, originX, y + 4, MENU_W - 8, "right")
+            end
+            table.insert(self.menuItemRects, {
+                x1 = originX, y1 = y, x2 = originX + MENU_W, y2 = y + MENU_ITEM_H,
+                action = item.action,
+            })
+            y = y + MENU_ITEM_H
+        end
+    end
 end
 
 function LoveTopBar:draw()
@@ -41,29 +87,24 @@ function LoveTopBar:draw()
     self.fileButtonRect = { x1 = fbX, y1 = rect.y, x2 = fbX + fbW, y2 = rect.y + rect.h }
 
     if self.menuOpen then
-        local mx = rect.x + 4
-        local my = rect.y + rect.h
-        love.graphics.setColor(0.20, 0.20, 0.26)
-        love.graphics.rectangle("fill", mx, my, MENU_W, MENU_ITEM_H)
-        love.graphics.setColor(0.4, 0.4, 0.5)
-        love.graphics.rectangle("line", mx, my, MENU_W, MENU_ITEM_H)
-        love.graphics.setColor(1, 1, 1)
-        love.graphics.print("Save", mx + 8, my + 4)
-        love.graphics.setColor(0.6, 0.6, 0.7)
-        love.graphics.printf("Ctrl+S", mx, my + 4, MENU_W - 8, "right")
-        self.menuItemRect = { x1 = mx, y1 = my, x2 = mx + MENU_W, y2 = my + MENU_ITEM_H }
+        self:_drawMenu(rect.x + 4, rect.y + rect.h)
     else
-        self.menuItemRect = nil
+        self.menuItemRects = {}
     end
 end
 
 function LoveTopBar:mousepressed(mx, my, button)
     if button ~= 1 then return false end
 
-    if self.menuOpen and Util.pointInRect(self.menuItemRect, mx, my) then
-        self.ctx.actions.save()
-        self.menuOpen = false
-        return true
+    if self.menuOpen then
+        for _, r in ipairs(self.menuItemRects) do
+            if Util.pointInRect(r, mx, my) then
+                local fn = self.ctx.actions[r.action]
+                if fn then fn() end
+                self.menuOpen = false
+                return true
+            end
+        end
     end
     if Util.pointInRect(self.fileButtonRect, mx, my) then
         self.menuOpen = not self.menuOpen

@@ -3,6 +3,7 @@ local Loader = require("loader")
 local Serializer = require("serializer")
 local History = require("history")
 local Hotkeys = require("hotkeys")
+local FileDialog = require("file_dialog")
 
 local TopBar = require("components.TopBar")
 local Sidebar = require("components.Sidebar")
@@ -21,7 +22,7 @@ local state = {
     shim = nil,
     modRoot = nil,
     chunks = {},
-    selectedIndex = nil,
+    currentPath = nil,
     loadedTemplate = nil,
     loadError = nil,
     identifiers = nil,
@@ -36,44 +37,140 @@ local function parentDir(p)
     return p:match("^(.*)[/\\][^/\\]+$") or p
 end
 
-local function selectChunk(i)
-    if state.history and state.history:isDirty() and state.selectedIndex then
-        local prev = state.chunks[state.selectedIndex]
-        if prev then print("Discarding unsaved changes in " .. prev.file) end
+---@return integer?
+local function findIndexForCurrentPath()
+    if not state.currentPath then return nil end
+    for i, e in ipairs(state.chunks) do
+        if e.fsPath == state.currentPath then return i end
     end
-    state.selectedIndex = i
-    state.saveStatus = nil
-    state.history = History.new()
-    local entry = state.chunks[i]
-    if not entry then return end
-    local tmpl, err = Loader.loadChunk(state.shim, entry.fsPath)
-    state.loadedTemplate = tmpl
-    state.loadError = err
-    if err then print("Load error for " .. entry.fsPath .. ": " .. tostring(err)) end
+    return nil
 end
 
-local function saveCurrentChunk()
-    local entry = state.chunks[state.selectedIndex]
+local function isDirty()
+    if not state.loadedTemplate then return false end
+    if not state.currentPath then return true end
+    return state.history and state.history:isDirty() or false
+end
+
+local function discardCheck()
+    if not isDirty() then return end
+    if state.currentPath then
+        print("Discarding unsaved changes in " .. state.currentPath)
+    else
+        print("Discarding new (unsaved) chunk")
+    end
+end
+
+local function loadChunkByPath(path)
+    discardCheck()
+    state.currentPath = path
+    state.history = History.new()
+    state.saveStatus = nil
+    local tmpl, err = Loader.loadChunk(state.shim, path)
+    state.loadedTemplate = tmpl
+    state.loadError = err
+    if err then print("Load error for " .. path .. ": " .. tostring(err)) end
+end
+
+local function selectChunk(i)
+    local entry = state.chunks[i]
+    if not entry then return end
+    loadChunkByPath(entry.fsPath)
+end
+
+---@return LoveBaseChunk
+local function makeNewTemplate()
+    local sourceTmpl = state.loadedTemplate
+    return {
+        Name = "Untitled",
+        Faction = (sourceTmpl and sourceTmpl.Faction) or "UEF",
+        Size = (sourceTmpl and sourceTmpl.Size) or 16,
+        Units = {},
+        Locations = {},
+    }
+end
+
+local function newChunk()
+    discardCheck()
+    state.currentPath = nil
+    state.history = History.new()
+    state.loadedTemplate = makeNewTemplate()
+    state.loadError = nil
+    state.saveStatus = nil
+end
+
+---@return string  # filesystem path that's safe to use as a default dir for dialogs
+local function defaultDialogDir()
+    if state.currentPath then
+        return parentDir(state.currentPath)
+    end
+    if state.modRoot then
+        return state.modRoot .. "/lua/Shared/BaseChunks"
+    end
+    return "."
+end
+
+local function loadAction()
+    local path = FileDialog.openFile(defaultDialogDir())
+    if not path then return end
+    loadChunkByPath(path)
+end
+
+local function writeTemplateTo(path)
     local tmpl = state.loadedTemplate
-    if not entry or not tmpl then return end
+    if not tmpl then return false end
     local source = Serializer.serializeTemplate(tmpl)
-    local f, err = io.open(entry.fsPath, "wb")
+    local f, err = io.open(path, "wb")
     if not f then
         state.saveStatus = "Save failed: " .. tostring(err)
         print(state.saveStatus)
-        return
+        return false
     end
     f:write(source)
     f:close()
+    return true
+end
+
+local function saveAsAction()
+    if not state.loadedTemplate then return end
+    local defaultName
+    if state.currentPath then
+        defaultName = state.currentPath:match("[^/\\]+$")
+    else
+        defaultName = (state.loadedTemplate.Name or "untitled"):gsub("%s+", "_") .. ".lua"
+    end
+    local path = FileDialog.saveFile(defaultDialogDir(), defaultName)
+    if not path then return end
+    if not writeTemplateTo(path) then return end
+    state.currentPath = path
     if state.history then state.history:markSaved() end
     state.saveStatus = "Saved"
-    print("Saved " .. entry.fsPath)
+    print("Saved " .. path)
+    -- Re-discover so a chunk saved into the BaseChunks tree appears in the sidebar.
+    if state.modRoot then
+        state.chunks = Loader.discoverChunks(state.modRoot)
+    end
+end
+
+local function saveAction()
+    if not state.loadedTemplate then return end
+    if not state.currentPath then
+        saveAsAction()
+        return
+    end
+    if not writeTemplateTo(state.currentPath) then return end
+    if state.history then state.history:markSaved() end
+    state.saveStatus = "Saved"
+    print("Saved " .. state.currentPath)
 end
 
 ---@type LoveActions
 local actions = {
     selectChunk = selectChunk,
-    save = saveCurrentChunk,
+    new = newChunk,
+    load = loadAction,
+    save = saveAction,
+    saveAs = saveAsAction,
     undo = function()
         if state.history and state.loadedTemplate then
             state.history:undo(state.loadedTemplate)
@@ -110,9 +207,9 @@ local ctx = {
     actions = actions,
     bindings = bindings,
     layout = function(_) return computeLayout() end,
+    isDirty = function(_) return isDirty() end,
 }
 
--- Order is draw-bottom to draw-top. Input dispatches in reverse.
 ---@type LoveComponent[]
 local components = {
     Sidebar.new(ctx),
@@ -186,10 +283,18 @@ function love.keypressed(key)
     local combo = Hotkeys.normalize(key, ctrl, shift, alt)
     if Hotkeys.dispatch(bindings, combo) then return end
 
-    if key == "down" and state.selectedIndex and state.selectedIndex < #state.chunks then
-        selectChunk(state.selectedIndex + 1)
-    elseif key == "up" and state.selectedIndex and state.selectedIndex > 1 then
-        selectChunk(state.selectedIndex - 1)
+    if key == "down" then
+        local cur = findIndexForCurrentPath()
+        if cur and cur < #state.chunks then
+            selectChunk(cur + 1)
+        elseif not cur and #state.chunks > 0 then
+            selectChunk(1)
+        end
+    elseif key == "up" then
+        local cur = findIndexForCurrentPath()
+        if cur and cur > 1 then
+            selectChunk(cur - 1)
+        end
     elseif key == "escape" then
         love.event.quit()
     end

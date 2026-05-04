@@ -54,7 +54,10 @@
 
 ---@class LoveActions
 ---@field selectChunk fun(i: integer)
+---@field new fun()
+---@field load fun()
 ---@field save fun()
+---@field saveAs fun()
 ---@field undo fun()
 ---@field redo fun()
 
@@ -63,6 +66,7 @@
 ---@field actions LoveActions
 ---@field bindings LoveHotkeyBinding[]
 ---@field layout fun(self: LoveAppContext): LoveLayout
+---@field isDirty fun(self: LoveAppContext): boolean
 
 ---@class LoveComponent
 ---@field draw fun(self: LoveComponent)
@@ -75,7 +79,7 @@
 ---@field shim LoveShim?
 ---@field modRoot string?
 ---@field chunks LoveChunkEntry[]
----@field selectedIndex integer?
+---@field currentPath string?  # filesystem path of the loaded chunk; nil for an unsaved new chunk
 ---@field loadedTemplate LoveBaseChunk?
 ---@field loadError string?
 ---@field identifiers table<LoveBuildingIdentifier, LoveBuildingMetadata>?

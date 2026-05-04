@@ -26,7 +26,7 @@ function LoveSidebar:draw()
     self.rowYs = {}
     local y = rect.y + 4
     local prevFaction = nil
-    local dirty = state.history and state.history:isDirty() or false
+    local dirty = self.ctx:isDirty()
     local maxY = rect.y + rect.h
     for i, entry in ipairs(state.chunks) do
         if entry.faction ~= prevFaction then
@@ -36,7 +36,8 @@ function LoveSidebar:draw()
             prevFaction = entry.faction
         end
         self.rowYs[i] = y
-        if i == state.selectedIndex then
+        local selected = (entry.fsPath == state.currentPath)
+        if selected then
             love.graphics.setColor(0.25, 0.45, 0.75)
             love.graphics.rectangle("fill", rect.x, y - 2, rect.w, SIDEBAR_ROW_H)
             love.graphics.setColor(1, 1, 1)
@@ -44,7 +45,7 @@ function LoveSidebar:draw()
             love.graphics.setColor(0.85, 0.85, 0.85)
         end
         local label = entry.file
-        if i == state.selectedIndex and dirty then
+        if selected and dirty then
             label = "* " .. label
         end
         love.graphics.print(label, rect.x + 16, y)
