@@ -2,6 +2,11 @@
 -- modules touch at file-load time. The editor only reads identifier metadata
 -- (Color, SizeX, SizeZ); the rest is no-op.
 
+---@class LoveShim
+---@field env table              # the synthetic _G that imported files run under
+---@field import fun(modPath: string): table
+---@field modRoot string
+
 local M = {}
 
 -- Any field access, multiplication, or addition on the result returns itself.
@@ -16,14 +21,18 @@ local function blackHole()
     return t
 end
 
+---@param path string
+---@return string?, string?
 local function readAll(path)
     local f, err = io.open(path, "rb")
     if not f then return nil, err end
     local data = f:read("*a")
     f:close()
-    return data
+    return data, nil
 end
 
+---@param modRoot string
+---@return LoveShim
 function M.create(modRoot)
     local cache = {}
     local env

@@ -12,16 +12,20 @@ local function getUpvalue(fn, name)
     end
 end
 
+---@param path string
+---@return string?, string?
 local function readAll(path)
     local f, err = io.open(path, "rb")
     if not f then return nil, err end
     local data = f:read("*a")
     f:close()
-    return data
+    return data, nil
 end
 
 -- MapToEntityCategories is a `local` in JoeBuildingIdentifiers.lua; pull it
 -- through the closure of MapToMetadata, the global function that closes over it.
+---@param shim LoveShim
+---@return table<LoveBuildingIdentifier, LoveBuildingMetadata>
 function M.loadIdentifiers(shim)
     local idEnv = shim.import("/mods/fa-joe-ai/lua/Shared/BaseChunks/JoeBuildingIdentifiers.lua")
     local metadata = getUpvalue(idEnv.MapToMetadata, "MapToEntityCategories")
@@ -31,6 +35,8 @@ function M.loadIdentifiers(shim)
     return metadata
 end
 
+---@param path string
+---@return string[]
 local function listSubdirectories(path)
     local out = {}
     local cmd
@@ -52,6 +58,8 @@ local function listSubdirectories(path)
     return out
 end
 
+---@param path string
+---@return string[]
 local function listLuaFiles(path)
     local out = {}
     local cmd
@@ -71,6 +79,8 @@ local function listLuaFiles(path)
     return out
 end
 
+---@param modRoot string
+---@return LoveChunkEntry[]
 function M.discoverChunks(modRoot)
     local base = modRoot .. "/lua/Shared/BaseChunks"
     local out = {}
@@ -91,6 +101,9 @@ function M.discoverChunks(modRoot)
     return out
 end
 
+---@param shim LoveShim
+---@param fsPath string
+---@return LoveBaseChunk?, string?
 function M.loadChunk(shim, fsPath)
     local source, err = readAll(fsPath)
     if not source then return nil, err end
