@@ -8,6 +8,7 @@ local FileDialog = require("file_dialog")
 
 local TopBar = require("components.TopBar")
 local Sidebar = require("components.Sidebar")
+local GroupsPanel = require("components.GroupsPanel")
 local ChunkCanvas = require("components.ChunkCanvas")
 local StatusBar = require("components.StatusBar")
 local Timeline = require("components.Timeline")
@@ -16,6 +17,7 @@ local NewChunkDialog = require("components.NewChunkDialog")
 
 local TOPBAR_H = 24
 local SIDEBAR_W = 240
+local GROUPS_W = 140
 local STATUSBAR_H = 28
 local TIMELINE_H = 76
 
@@ -242,11 +244,13 @@ local bindings = Hotkeys.bindings(actions)
 local function computeLayout()
     local w, h = love.graphics.getDimensions()
     local mainBottom = h - STATUSBAR_H - TIMELINE_H
+    local centerH = mainBottom - TOPBAR_H
     return {
         viewport = { x = 0, y = 0, w = w, h = h },
         topbar = { x = 0, y = 0, w = w, h = TOPBAR_H },
-        sidebar = { x = 0, y = TOPBAR_H, w = SIDEBAR_W, h = mainBottom - TOPBAR_H },
-        canvas = { x = SIDEBAR_W, y = TOPBAR_H, w = w - SIDEBAR_W, h = mainBottom - TOPBAR_H },
+        sidebar = { x = 0, y = TOPBAR_H, w = SIDEBAR_W, h = centerH },
+        groups = { x = SIDEBAR_W, y = TOPBAR_H, w = GROUPS_W, h = centerH },
+        canvas = { x = SIDEBAR_W + GROUPS_W, y = TOPBAR_H, w = w - SIDEBAR_W - GROUPS_W, h = centerH },
         statusbar = { x = 0, y = mainBottom, w = w, h = STATUSBAR_H },
         timeline = { x = 0, y = h - TIMELINE_H, w = w, h = TIMELINE_H },
     }
@@ -266,6 +270,7 @@ canvas = ChunkCanvas.new(ctx)
 ---@type LoveComponent[]
 local components = {
     Sidebar.new(ctx),
+    GroupsPanel.new(ctx),
     canvas,
     StatusBar.new(ctx),
     Timeline.new(ctx),

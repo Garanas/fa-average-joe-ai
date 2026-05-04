@@ -52,6 +52,7 @@
 ---@field viewport LoveLayoutRect
 ---@field topbar LoveLayoutRect
 ---@field sidebar LoveLayoutRect
+---@field groups LoveLayoutRect
 ---@field canvas LoveLayoutRect
 ---@field statusbar LoveLayoutRect
 ---@field timeline LoveLayoutRect
