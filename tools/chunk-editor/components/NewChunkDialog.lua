@@ -16,8 +16,11 @@ local FOOTER_H = 40
 local CLOSE_SZ = 22
 local HEADER_H = 56
 
+---@alias LoveNewChunkDialogMode "create" | "edit"
+
 ---@class LoveNewChunkDialog : LoveComponent
 ---@field ctx LoveAppContext
+---@field mode LoveNewChunkDialogMode
 ---@field name string
 ---@field faction string
 ---@field size integer
@@ -36,6 +39,7 @@ LoveNewChunkDialog.__index = LoveNewChunkDialog
 function LoveNewChunkDialog.new(ctx)
     return setmetatable({
         ctx = ctx,
+        mode = "create",
         name = "Untitled",
         faction = "UEF",
         size = 16,
@@ -51,9 +55,22 @@ end
 
 --- Reset to defaults so reopening the dialog after a cancel/create starts clean.
 function LoveNewChunkDialog:reset()
+    self.mode = "create"
     self.name = "Untitled"
     self.faction = "UEF"
     self.size = 16
+end
+
+--- Open the dialog in edit mode, prefilled from the supplied chunk values.
+--- Caller is responsible for setting `state.dialogOpen = "newchunk"`.
+---@param name string
+---@param faction string
+---@param size integer
+function LoveNewChunkDialog:openForEdit(name, faction, size)
+    self.mode = "edit"
+    self.name = name or "Untitled"
+    self.faction = faction or "UEF"
+    self.size = size or 16
 end
 
 local function isOpen(self)
@@ -114,7 +131,7 @@ function LoveNewChunkDialog:draw()
     -- Header: title + close button
     love.graphics.setFont(state.fonts.title)
     love.graphics.setColor(0.95, 0.95, 0.95)
-    love.graphics.print("New Chunk", dx + 16, dy + 14)
+    love.graphics.print(self.mode == "edit" and "Edit Chunk" or "New Chunk", dx + 16, dy + 14)
 
     local closeX = dx + DW - CLOSE_SZ - 6
     local closeY = dy + 8
@@ -204,7 +221,8 @@ function LoveNewChunkDialog:draw()
     love.graphics.setColor(0.4, 0.5, 0.4)
     love.graphics.rectangle("line", createX, btnY, btnW, btnH)
     love.graphics.setColor(0.95, 0.95, 0.95)
-    love.graphics.printf("Create", createX, btnY + math.floor((btnH - state.fonts.body:getHeight()) / 2), btnW, "center")
+    local submitLabel = self.mode == "edit" and "Apply" or "Create"
+    love.graphics.printf(submitLabel, createX, btnY + math.floor((btnH - state.fonts.body:getHeight()) / 2), btnW, "center")
     self.createRect = { x1 = createX, y1 = btnY, x2 = createX + btnW, y2 = btnY + btnH }
 
     self.dialogRect = { x1 = dx, y1 = dy, x2 = dx + DW, y2 = dy + dh }
@@ -214,11 +232,18 @@ end
 function LoveNewChunkDialog:_submit()
     if not self.name or self.name == "" then return end
     local payload = { name = self.name, faction = self.faction, size = self.size }
+    local mode = self.mode
     self.ctx.state.dialogOpen = nil
-    if self.ctx.actions.createNewChunk then
-        self.ctx.actions.createNewChunk(payload)
-    end
     self:reset()
+    if mode == "edit" then
+        if self.ctx.actions.applyReconfigure then
+            self.ctx.actions.applyReconfigure(payload)
+        end
+    else
+        if self.ctx.actions.createNewChunk then
+            self.ctx.actions.createNewChunk(payload)
+        end
+    end
 end
 
 function LoveNewChunkDialog:_cancel()

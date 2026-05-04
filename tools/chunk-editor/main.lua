@@ -6,6 +6,8 @@ local SelectionHistory = require("selection_history")
 local Hotkeys = require("hotkeys")
 local FileDialog = require("file_dialog")
 local ImportGroup = require("commands.ImportGroup")
+local ResizeChunk = require("commands.ResizeChunk")
+local Snapshot = require("commands.group_snapshot")
 
 local TopBar = require("components.TopBar")
 local Sidebar = require("components.Sidebar")
@@ -21,6 +23,24 @@ local SIDEBAR_W = 240
 local GROUPS_W = 140
 local STATUSBAR_H = 28
 local TIMELINE_H = 76
+
+local SUPPORTED_SIZES = { 4, 8, 16, 32, 64, 128 }
+
+---@param size integer
+---@param direction integer  # +1 for next-larger, -1 for next-smaller
+---@return integer?
+local function adjacentSupportedSize(size, direction)
+    if direction > 0 then
+        for _, s in ipairs(SUPPORTED_SIZES) do
+            if s > size then return s end
+        end
+    else
+        for i = #SUPPORTED_SIZES, 1, -1 do
+            if SUPPORTED_SIZES[i] < size then return SUPPORTED_SIZES[i] end
+        end
+    end
+    return nil
+end
 
 ---@type LoveState
 local state = {
@@ -157,10 +177,11 @@ local function loadAction()
     loadChunkByPath(path)
 end
 
---- Pick a chunk file, flatten all of its groups into a single Locations
---- dict, and drop it as a new group into the lowest empty slot of the
---- currently-loaded chunk.
-local function importChunkAction()
+--- Pick a chunk file (or use the supplied path), flatten all of its groups
+--- into a single Locations dict, and drop it as a new group into the lowest
+--- empty slot of the currently-loaded chunk.
+---@param path string?  # if nil, prompts via the file dialog
+local function importChunkAction(path)
     local current = state.loadedTemplate
     if not current then
         state.saveStatus = "Import failed: no chunk loaded"
@@ -168,8 +189,10 @@ local function importChunkAction()
         return
     end
 
-    local path = FileDialog.openFile(defaultDialogDir())
-    if not path then return end
+    if not path then
+        path = FileDialog.openFile(defaultDialogDir())
+        if not path then return end
+    end
 
     local imported, err = Loader.loadChunk(state.shim, path)
     if err or not imported then
@@ -178,10 +201,12 @@ local function importChunkAction()
         return
     end
 
-    if imported.Size ~= current.Size then
-        print(string.format(
-            "Import warning: %dx%d chunk into %dx%d; out-of-bounds locations may be hidden",
-            imported.Size, imported.Size, current.Size, current.Size))
+    if imported.Size > current.Size then
+        state.saveStatus = string.format(
+            "Import failed: source is %dx%d, larger than the current %dx%d chunk",
+            imported.Size, imported.Size, current.Size, current.Size)
+        print(state.saveStatus)
+        return
     end
 
     -- Flatten all of the imported template's groups into one Locations dict.
@@ -225,6 +250,7 @@ local function importChunkAction()
     }
     local cmd = ImportGroup.new(destSlot, sourceLabel, beforeSlots, afterSlots)
     state.history:apply(current, cmd)
+    if canvas then canvas:selectGroup(destSlot) end
     state.saveStatus = string.format("Imported '%s' to slot %d", sourceLabel, destSlot)
     print(state.saveStatus)
 end
@@ -243,6 +269,81 @@ local function writeTemplateTo(path)
     f:close()
     return true
 end
+
+--- Resize the chunk to the next supported size in the given direction.
+--- Shrinking drops any building whose anchor lands outside the new bounds;
+--- the removed buildings are restored on undo.
+---@param direction integer  # +1 = expand, -1 = shrink
+local function resizeChunk(direction)
+    local tmpl = state.loadedTemplate
+    if not tmpl then return end
+
+    local oldSize = tmpl.Size or 16
+    local newSize = adjacentSupportedSize(oldSize, direction)
+    if not newSize then
+        state.saveStatus = string.format("Cannot %s past %dx%d",
+            direction > 0 and "expand" or "shrink", oldSize, oldSize)
+        print(state.saveStatus)
+        return
+    end
+
+    local groups = tmpl.Groups or {}
+
+    -- Snapshot every existing slot so undo restores the full template.
+    local affectedSlots = {}
+    for slot in pairs(groups) do affectedSlots[slot] = true end
+
+    local beforeSlots = {}
+    for slot in pairs(affectedSlots) do
+        beforeSlots[slot] = Snapshot.deepCopyGroup(groups[slot])
+    end
+
+    local afterSlots = {}
+    local removedCount = 0
+    for slot in pairs(affectedSlots) do
+        local copy = Snapshot.deepCopyGroup(groups[slot])
+        if copy then
+            local newLocs = {}
+            for id, locs in pairs(copy.Locations or {}) do
+                local kept = {}
+                for _, loc in ipairs(locs) do
+                    if loc[1] < newSize and loc[2] < newSize then
+                        table.insert(kept, loc)
+                    else
+                        removedCount = removedCount + 1
+                    end
+                end
+                if #kept > 0 then newLocs[id] = kept end
+            end
+            copy.Locations = newLocs
+            if Snapshot.isGroupEmpty(copy) then
+                afterSlots[slot] = false
+            else
+                afterSlots[slot] = copy
+            end
+        else
+            afterSlots[slot] = false
+        end
+    end
+
+    local cmd = ResizeChunk.new(oldSize, newSize, beforeSlots, afterSlots, removedCount)
+    state.history:apply(tmpl, cmd)
+    if canvas then
+        canvas:validateSelection()
+        canvas:reset()
+    end
+    if removedCount > 0 then
+        state.saveStatus = string.format("%s to %dx%d (removed %d out-of-bounds)",
+            direction > 0 and "Expanded" or "Shrunk", newSize, newSize, removedCount)
+    else
+        state.saveStatus = string.format("%s to %dx%d",
+            direction > 0 and "Expanded" or "Shrunk", newSize, newSize)
+    end
+    print(state.saveStatus)
+end
+
+local function expandChunkAction() resizeChunk(1) end
+local function shrinkChunkAction() resizeChunk(-1) end
 
 local function saveAsAction()
     if not state.loadedTemplate then return end
@@ -286,6 +387,8 @@ local actions = {
     importChunk = importChunkAction,
     save = saveAction,
     saveAs = saveAsAction,
+    expandChunk = expandChunkAction,
+    shrinkChunk = shrinkChunkAction,
     undo = function()
         if state.history and state.loadedTemplate then
             state.history:undo(state.loadedTemplate)

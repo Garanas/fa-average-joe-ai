@@ -25,6 +25,9 @@ local FILE_MENU = {
     { separator = true },
     { label = "Save",       hint = "Ctrl+S",       action = "save" },
     { label = "Save As...", hint = "Ctrl+Shift+S", action = "saveAs" },
+    { separator = true },
+    { label = "Expand",     action = "expandChunk" },
+    { label = "Shrink",     action = "shrinkChunk" },
 }
 
 ---@class LoveTopBar : LoveComponent

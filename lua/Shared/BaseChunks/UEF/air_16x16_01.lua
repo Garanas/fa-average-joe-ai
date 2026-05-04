@@ -5,10 +5,7 @@
 Template = {
   Faction = "UEF",
   Groups = {
-    {
-      Locations = { T1AirFactory = { { 14, 4, 0, }, }, },
-      Name = "default",
-    },
+    "<unsupported:nil>",
     {
       Locations = {
         T1AirFactory = { { 4, 4, 0, }, },
@@ -23,18 +20,11 @@ Template = {
     },
     {
       Locations = {
-        T1EnergyProduction = {
-          { 5, 12, 0, },
-          { 7, 14, 0, },
-          { 3, 14, 0, },
-        },
-        T1Radar = { { 5, 14, 0, }, },
+        T1EnergyProduction = { { 5, 12, 0, }, },
         Wall = {
           { 2, 12, 0, },
           { 3, 12, 0, },
-          { 1, 14, 0, },
           { 1, 12, 0, },
-          { 1, 13, 0, },
         },
       },
       Name = "Group 3",
