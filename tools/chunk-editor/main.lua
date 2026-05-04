@@ -206,6 +206,7 @@ local actions = {
     selectGroup = function(slot) if canvas then canvas:selectGroup(slot) end end,
     deleteSelected = function() if canvas then canvas:deleteSelection() end end,
     duplicateSelected = function() if canvas then canvas:duplicateSelection() end end,
+    addBuilding = function(id) if canvas then canvas:addBuilding(id) end end,
 }
 
 local bindings = Hotkeys.bindings(actions)

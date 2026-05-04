@@ -711,6 +711,39 @@ function LoveChunkCanvas:selectGroup(slot)
     state.selectionHistory:push(newSel)
 end
 
+--- Add a fresh instance of `identifier` at the chunk center, in the default
+--- group (slot 1). The new building becomes the only selection so the user
+--- can immediately drag it where they want.
+---@param identifier LoveBuildingIdentifier
+function LoveChunkCanvas:addBuilding(identifier)
+    local state = self.ctx.state
+    local tmpl = state.loadedTemplate
+    if not tmpl then return end
+
+    local size = tmpl.Size or 16
+    local center = math.floor(size / 2)
+    local slot = 1
+
+    local beforeSlots = { [slot] = deepCopyGroup(tmpl.Groups and tmpl.Groups[slot]) }
+
+    local afterCopy = deepCopyGroup(tmpl.Groups and tmpl.Groups[slot])
+    if afterCopy == false then
+        afterCopy = { Name = "default", Locations = {} }
+    end
+    afterCopy.Locations[identifier] = afterCopy.Locations[identifier] or {}
+    table.insert(afterCopy.Locations[identifier], { center, center, 0 })
+
+    local afterSlots = { [slot] = afterCopy }
+
+    local cmd = InsertBuildings.new(1, beforeSlots, afterSlots)
+    state.history:apply(tmpl, cmd)
+    state.saveStatus = nil
+
+    local newIdx = #tmpl.Groups[slot].Locations[identifier]
+    state.selection = { [selectionKey(slot, identifier, newIdx)] = true }
+    state.selectionHistory:push(state.selection)
+end
+
 --- Remove selected buildings. Selection is cleared after.
 function LoveChunkCanvas:deleteSelection()
     local state = self.ctx.state

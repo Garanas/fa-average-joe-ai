@@ -56,9 +56,15 @@
 ---@field statusbar LoveLayoutRect
 ---@field timeline LoveLayoutRect
 
+---@class LoveNewChunkPayload
+---@field name string
+---@field faction string
+---@field size integer
+
 ---@class LoveActions
 ---@field selectChunk fun(i: integer)
 ---@field new fun()
+---@field createNewChunk fun(payload: LoveNewChunkPayload)
 ---@field load fun()
 ---@field save fun()
 ---@field saveAs fun()
@@ -73,6 +79,7 @@
 ---@field selectGroup fun(slot: integer)
 ---@field deleteSelected fun()
 ---@field duplicateSelected fun()
+---@field addBuilding fun(identifier: LoveBuildingIdentifier)
 
 ---@class LoveAppContext
 ---@field state LoveState
