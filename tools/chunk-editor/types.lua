@@ -35,5 +35,51 @@
 
 ---@class LoveHotkeyBinding
 ---@field keys string  # normalized combo: "ctrl+z", "ctrl+shift+z", "ctrl+s"
----@field name string  # human-readable name (future help UI)
+---@field name string  # human-readable name
 ---@field fn fun()
+
+---@class LoveLayoutRect
+---@field x integer
+---@field y integer
+---@field w integer
+---@field h integer
+
+---@class LoveLayout
+---@field viewport LoveLayoutRect
+---@field topbar LoveLayoutRect
+---@field sidebar LoveLayoutRect
+---@field canvas LoveLayoutRect
+---@field statusbar LoveLayoutRect
+---@field timeline LoveLayoutRect
+
+---@class LoveActions
+---@field selectChunk fun(i: integer)
+---@field save fun()
+---@field undo fun()
+---@field redo fun()
+
+---@class LoveAppContext
+---@field state LoveState
+---@field actions LoveActions
+---@field bindings LoveHotkeyBinding[]
+---@field layout fun(self: LoveAppContext): LoveLayout
+
+---@class LoveComponent
+---@field draw fun(self: LoveComponent)
+---@field mousepressed? fun(self: LoveComponent, mx: number, my: number, button: integer): boolean
+---@field mousereleased? fun(self: LoveComponent, mx: number, my: number, button: integer): boolean
+---@field mousemoved? fun(self: LoveComponent, mx: number, my: number): boolean
+---@field keypressed? fun(self: LoveComponent, key: string): boolean
+
+---@class LoveState
+---@field shim LoveShim?
+---@field modRoot string?
+---@field chunks LoveChunkEntry[]
+---@field selectedIndex integer?
+---@field loadedTemplate LoveBaseChunk?
+---@field loadError string?
+---@field identifiers table<LoveBuildingIdentifier, LoveBuildingMetadata>?
+---@field fonts table<string, any>
+---@field history LoveHistory?
+---@field dialogOpen string?
+---@field saveStatus string?

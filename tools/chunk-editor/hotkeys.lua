@@ -30,27 +30,14 @@ function M.dispatch(bindings, combo)
     return false
 end
 
----@param state LoveState
----@param save fun()
+---@param actions LoveActions
 ---@return LoveHotkeyBinding[]
-function M.bindings(state, save)
-    local function undo()
-        if state.history and state.loadedTemplate then
-            state.history:undo(state.loadedTemplate)
-            state.saveStatus = nil
-        end
-    end
-    local function redo()
-        if state.history and state.loadedTemplate then
-            state.history:redo(state.loadedTemplate)
-            state.saveStatus = nil
-        end
-    end
+function M.bindings(actions)
     return {
-        { keys = "ctrl+s",       name = "Save", fn = save },
-        { keys = "ctrl+z",       name = "Undo", fn = undo },
-        { keys = "ctrl+y",       name = "Redo", fn = redo },
-        { keys = "ctrl+shift+z", name = "Redo", fn = redo },
+        { keys = "ctrl+s",       name = "Save", fn = actions.save },
+        { keys = "ctrl+z",       name = "Undo", fn = actions.undo },
+        { keys = "ctrl+y",       name = "Redo", fn = actions.redo },
+        { keys = "ctrl+shift+z", name = "Redo", fn = actions.redo },
     }
 end
 
