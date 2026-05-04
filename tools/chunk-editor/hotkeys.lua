@@ -34,22 +34,22 @@ end
 ---@return LoveHotkeyBinding[]
 function M.bindings(actions)
     local bindings = {
-        { keys = "ctrl+n",       name = "New",                fn = actions.new },
-        { keys = "ctrl+o",       name = "Load",               fn = actions.load },
-        { keys = "ctrl+i",       name = "Import",             fn = actions.importChunk },
-        { keys = "ctrl+r",       name = "Reconfigure chunk",  fn = actions.reconfigureChunk },
-        { keys = "ctrl+s",       name = "Save",               fn = actions.save },
-        { keys = "ctrl+shift+s", name = "Save As",            fn = actions.saveAs },
-        { keys = "ctrl+z",       name = "Undo",               fn = actions.undo },
-        { keys = "ctrl+y",       name = "Redo",               fn = actions.redo },
-        { keys = "ctrl+shift+z", name = "Redo",               fn = actions.redo },
-        { keys = "ctrl+up",      name = "Zoom in",            fn = actions.zoomIn },
-        { keys = "ctrl+down",    name = "Zoom out",           fn = actions.zoomOut },
-        { keys = "home",         name = "Recenter",           fn = actions.recenter },
-        { keys = "tab",          name = "Next selection",     fn = actions.nextSelection },
-        { keys = "shift+tab",    name = "Previous selection", fn = actions.prevSelection },
-        { keys = "delete",       name = "Delete selection",   fn = actions.deleteSelected },
-        { keys = "insert",       name = "Duplicate selection", fn = actions.duplicateSelected },
+        { group = "File",      keys = "ctrl+n",       name = "New",                 fn = actions.new },
+        { group = "File",      keys = "ctrl+o",       name = "Load",                fn = actions.load },
+        { group = "File",      keys = "ctrl+i",       name = "Import",              fn = actions.importChunk },
+        { group = "File",      keys = "ctrl+r",       name = "Reconfigure chunk",   fn = actions.reconfigureChunk },
+        { group = "File",      keys = "ctrl+s",       name = "Save",                fn = actions.save },
+        { group = "File",      keys = "ctrl+shift+s", name = "Save As",             fn = actions.saveAs },
+        { group = "History",   keys = "ctrl+z",       name = "Undo",                fn = actions.undo },
+        { group = "History",   keys = "ctrl+y",       name = "Redo",                fn = actions.redo },
+        { group = "History",   keys = "ctrl+shift+z", name = "Redo",                fn = actions.redo },
+        { group = "View",      keys = "ctrl+up",      name = "Zoom in",             fn = actions.zoomIn },
+        { group = "View",      keys = "ctrl+down",    name = "Zoom out",            fn = actions.zoomOut },
+        { group = "View",      keys = "home",         name = "Recenter",            fn = actions.recenter },
+        { group = "Selection", keys = "tab",          name = "Next selection",      fn = actions.nextSelection },
+        { group = "Selection", keys = "shift+tab",    name = "Previous selection",  fn = actions.prevSelection },
+        { group = "Editing",   keys = "delete",       name = "Delete selection",    fn = actions.deleteSelected },
+        { group = "Editing",   keys = "insert",       name = "Duplicate selection", fn = actions.duplicateSelected },
     }
 
     -- Control-group bindings: Ctrl+1..9, Ctrl+0 assign; 1..9, 0 select. Slot 10 = "0" key.
@@ -57,11 +57,13 @@ function M.bindings(actions)
         local key = (slot == 10) and "0" or tostring(slot)
         local capturedSlot = slot
         table.insert(bindings, {
+            group = "Groups",
             keys = "ctrl+" .. key,
             name = "Assign group " .. slot,
             fn = function() actions.assignGroup(capturedSlot) end,
         })
         table.insert(bindings, {
+            group = "Groups",
             keys = key,
             name = "Select group " .. slot,
             fn = function() actions.selectGroup(capturedSlot) end,
