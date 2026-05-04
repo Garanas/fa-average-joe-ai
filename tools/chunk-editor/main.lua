@@ -7,6 +7,7 @@ local Hotkeys = require("hotkeys")
 local FileDialog = require("file_dialog")
 local ImportGroup = require("commands.ImportGroup")
 local ResizeChunk = require("commands.ResizeChunk")
+local ReconfigureChunk = require("commands.ReconfigureChunk")
 local Snapshot = require("commands.group_snapshot")
 
 local TopBar = require("components.TopBar")
@@ -61,6 +62,9 @@ local state = {
 
 ---@type LoveChunkCanvas?  -- forward declaration; assigned after components are built
 local canvas
+
+---@type LoveNewChunkDialog?  -- forward declaration; assigned with the rest of the components
+local newChunkDialog
 
 local function parentDir(p)
     p = p:gsub("[/\\]+$", "")
@@ -345,6 +349,87 @@ end
 local function expandChunkAction() resizeChunk(1) end
 local function shrinkChunkAction() resizeChunk(-1) end
 
+--- Open the New Chunk dialog in edit mode, prefilled from the current chunk.
+local function reconfigureChunkAction()
+    local tmpl = state.loadedTemplate
+    if not tmpl or not newChunkDialog then return end
+    newChunkDialog:openForEdit(tmpl.Name or "Untitled", tmpl.Faction or "UEF", tmpl.Size or 16)
+    state.dialogOpen = "newchunk"
+end
+
+--- Apply the dialog payload to the loaded chunk: rename, retag faction, and
+--- (if the size changed) drop any out-of-bounds buildings. Bundled into a
+--- single ReconfigureChunk command so undo restores the whole previous shape.
+---@param payload LoveNewChunkPayload
+local function applyReconfigureAction(payload)
+    local tmpl = state.loadedTemplate
+    if not tmpl or not payload then return end
+
+    local oldName = tmpl.Name or ""
+    local oldFaction = tmpl.Faction or "UEF"
+    local oldSize = tmpl.Size or 16
+    local newName = payload.name or oldName
+    local newFaction = payload.faction or oldFaction
+    local newSize = payload.size or oldSize
+
+    if newName == oldName and newFaction == oldFaction and newSize == oldSize then
+        state.saveStatus = "No changes"
+        return
+    end
+
+    local groups = tmpl.Groups or {}
+    local affectedSlots = {}
+    for slot in pairs(groups) do affectedSlots[slot] = true end
+
+    local beforeSlots = {}
+    for slot in pairs(affectedSlots) do
+        beforeSlots[slot] = Snapshot.deepCopyGroup(groups[slot])
+    end
+
+    local afterSlots = {}
+    local removedCount = 0
+    for slot in pairs(affectedSlots) do
+        local copy = Snapshot.deepCopyGroup(groups[slot])
+        if copy then
+            local newLocs = {}
+            for id, locs in pairs(copy.Locations or {}) do
+                local kept = {}
+                for _, loc in ipairs(locs) do
+                    if loc[1] < newSize and loc[2] < newSize then
+                        table.insert(kept, loc)
+                    else
+                        removedCount = removedCount + 1
+                    end
+                end
+                if #kept > 0 then newLocs[id] = kept end
+            end
+            copy.Locations = newLocs
+            if Snapshot.isGroupEmpty(copy) then
+                afterSlots[slot] = false
+            else
+                afterSlots[slot] = copy
+            end
+        else
+            afterSlots[slot] = false
+        end
+    end
+
+    local cmd = ReconfigureChunk.new(
+        oldName, newName, oldFaction, newFaction, oldSize, newSize,
+        beforeSlots, afterSlots, removedCount)
+    state.history:apply(tmpl, cmd)
+    if canvas then
+        canvas:validateSelection()
+        if newSize ~= oldSize then canvas:reset() end
+    end
+    if removedCount > 0 then
+        state.saveStatus = string.format("Reconfigured (removed %d out-of-bounds)", removedCount)
+    else
+        state.saveStatus = "Reconfigured"
+    end
+    print(state.saveStatus)
+end
+
 local function saveAsAction()
     if not state.loadedTemplate then return end
     local defaultName
@@ -389,6 +474,8 @@ local actions = {
     saveAs = saveAsAction,
     expandChunk = expandChunkAction,
     shrinkChunk = shrinkChunkAction,
+    reconfigureChunk = reconfigureChunkAction,
+    applyReconfigure = applyReconfigureAction,
     undo = function()
         if state.history and state.loadedTemplate then
             state.history:undo(state.loadedTemplate)
@@ -443,6 +530,7 @@ local ctx = {
 }
 
 canvas = ChunkCanvas.new(ctx)
+newChunkDialog = NewChunkDialog.new(ctx)
 
 ---@type LoveComponent[]
 local components = {
@@ -453,7 +541,7 @@ local components = {
     Timeline.new(ctx),
     TopBar.new(ctx),
     HotkeyDialog.new(ctx),
-    NewChunkDialog.new(ctx),
+    newChunkDialog,
 }
 
 function love.load()

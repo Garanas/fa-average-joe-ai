@@ -37,6 +37,7 @@ function M.bindings(actions)
         { keys = "ctrl+n",       name = "New",                fn = actions.new },
         { keys = "ctrl+o",       name = "Load",               fn = actions.load },
         { keys = "ctrl+i",       name = "Import",             fn = actions.importChunk },
+        { keys = "ctrl+r",       name = "Reconfigure chunk",  fn = actions.reconfigureChunk },
         { keys = "ctrl+s",       name = "Save",               fn = actions.save },
         { keys = "ctrl+shift+s", name = "Save As",            fn = actions.saveAs },
         { keys = "ctrl+z",       name = "Undo",               fn = actions.undo },
