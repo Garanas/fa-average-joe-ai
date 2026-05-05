@@ -129,6 +129,19 @@ function M.loadChunk(shim, fsPath)
     end
     tmpl.Groups = tmpl.Groups or {}
 
+    -- Walls live at cell-corner intersections in chunk-coords in memory. The
+    -- on-disk format stores them shifted by -1 on both axes; reverse that
+    -- here so the in-memory positions match what the editor renders. Save
+    -- path applies the matching -1.
+    for _, group in pairs(tmpl.Groups) do
+        if group.Locations and group.Locations.Wall then
+            for _, loc in ipairs(group.Locations.Wall) do
+                loc[1] = loc[1] + 1
+                loc[2] = loc[2] + 1
+            end
+        end
+    end
+
     return tmpl
 end
 

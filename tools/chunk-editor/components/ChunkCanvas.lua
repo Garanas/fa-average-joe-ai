@@ -80,6 +80,8 @@ function LoveChunkCanvas.new(ctx)
         panning = nil,
         selectionBox = nil,
         camera = { offsetX = nil, offsetY = nil, zoom = nil },
+        lastClickKey = nil,
+        lastClickTime = 0,
     }, LoveChunkCanvas)
 end
 
@@ -271,12 +273,12 @@ function LoveChunkCanvas:draw()
             local r, gC, b = Util.hexColor(meta.Color)
             local sx = meta.SizeX or 1
             local sz = meta.SizeZ or 1
-            -- Odd-sized buildings (1x1, 3x3, ...) sit centered on the saved
-            -- integer coordinate — that's a cell-corner intersection in chunk-
-            -- coords, which matches where the engine actually places them.
-            -- Even-sized buildings keep the existing top-left-ish anchor.
-            local anchorOffsetX = (sx % 2 == 0) and (1 - sx / 2) or -0.5
-            local anchorOffsetZ = (sz % 2 == 0) and (1 - sz / 2) or -0.5
+            -- Skirt offset (sourced from each unit's Physics.SkirtOffsetX/Z
+            -- blueprint, see units.md) positions the skirt rectangle relative
+            -- to the unit's anchor — i.e. relative to the saved coord. This
+            -- matches where the engine actually places buildings.
+            local anchorOffsetX = meta.SkirtOffsetX or 0
+            local anchorOffsetZ = meta.SkirtOffsetZ or 0
             for index, loc in ipairs(locations) do
                 local x = g.ox + (loc[1] + anchorOffsetX) * g.ppu
                 local y = g.oy + (loc[2] + anchorOffsetZ) * g.ppu
@@ -364,6 +366,23 @@ function LoveChunkCanvas:mousepressed(mx, my, button)
 
     if rect then
         local key = selectionKey(rect.slot, rect.identifier, rect.index)
+
+        -- Double-click: a second left-click on the same building within the
+        -- threshold expands the selection to every transitively edge-
+        -- adjacent skirt. Doesn't start a drag.
+        local now = love.timer.getTime()
+        if not shift and not alt
+            and self.lastClickKey == key
+            and (now - self.lastClickTime) < 0.4
+        then
+            self:selectAdjacent(rect.slot, rect.identifier, rect.index)
+            self.lastClickKey = nil
+            self.lastClickTime = 0
+            return true
+        end
+        self.lastClickKey = key
+        self.lastClickTime = now
+
         if shift then
             self.ctx.state.selection[key] = true
             self.ctx.state.selectionHistory:push(self.ctx.state.selection)
@@ -708,6 +727,85 @@ function LoveChunkCanvas:assignSelectionToGroup(slot)
     end
     state.selection = newSel
     state.selectionHistory:push(newSel)
+end
+
+--- Two skirt rectangles share an edge — i.e. one rect's edge lies on the
+--- other's, with the projections on the perpendicular axis overlapping. Pure
+--- corner contact doesn't count (diagonal walls don't form a continuous
+--- wall). Buildings whose skirt offsets don't align (e.g. wall + power gen)
+--- can never satisfy this — there's always a half-cell gap, matching the
+--- engine.
+local function skirtsEdgeAdjacent(ax1, az1, ax2, az2, bx1, bz1, bx2, bz2)
+    local xTouch = (ax2 == bx1) or (ax1 == bx2)
+    local zOverlap = (az1 < bz2) and (bz1 < az2)
+    if xTouch and zOverlap then return true end
+    local zTouch = (az2 == bz1) or (az1 == bz2)
+    local xOverlap = (ax1 < bx2) and (bx1 < ax2)
+    return zTouch and xOverlap
+end
+
+--- Replace the selection with everything transitively edge-adjacent to the
+--- supplied building (BFS through skirt rectangles). The starter is
+--- included in the result. Adjacency uses each identifier's `SkirtOffsetX/Z`
+--- so wall + power gen pairs naturally don't connect (their skirts can't
+--- align flush).
+---@param slot integer
+---@param identifier LoveBuildingIdentifier
+---@param index integer
+function LoveChunkCanvas:selectAdjacent(slot, identifier, index)
+    local state = self.ctx.state
+    local tmpl = state.loadedTemplate
+    if not tmpl then return end
+
+    -- Collect every building's skirt rect once, keyed by selection key for
+    -- O(1) lookup during BFS.
+    local items = {}
+    for s, group in pairs(tmpl.Groups or {}) do
+        for id, locs in pairs(group.Locations or {}) do
+            local meta = (state.identifiers or {})[id] or {}
+            local sx = meta.SizeX or 1
+            local sz = meta.SizeZ or 1
+            local ox = meta.SkirtOffsetX or 0
+            local oz = meta.SkirtOffsetZ or 0
+            for idx, loc in ipairs(locs) do
+                local x1 = loc[1] + ox
+                local z1 = loc[2] + oz
+                table.insert(items, {
+                    key = selectionKey(s, id, idx),
+                    x1 = x1, z1 = z1, x2 = x1 + sx, z2 = z1 + sz,
+                })
+            end
+        end
+    end
+
+    local startKey = selectionKey(slot, identifier, index)
+    local visited = { [startKey] = true }
+    local queue = { startKey }
+    local byKey = {}
+    for _, it in ipairs(items) do byKey[it.key] = it end
+
+    -- Shrink-and-pop is O(n) per pop; for the typical chunk size this is
+    -- fine. Switch to an index cursor if the chunks ever grow large.
+    while #queue > 0 do
+        local key = table.remove(queue, 1)
+        local current = byKey[key]
+        if current then
+            for _, other in ipairs(items) do
+                if not visited[other.key] then
+                    if skirtsEdgeAdjacent(
+                        current.x1, current.z1, current.x2, current.z2,
+                        other.x1, other.z1, other.x2, other.z2
+                    ) then
+                        visited[other.key] = true
+                        table.insert(queue, other.key)
+                    end
+                end
+            end
+        end
+    end
+
+    state.selection = visited
+    state.selectionHistory:push(visited)
 end
 
 --- Replace selection with the contents of `slot`. No-op for empty slots.

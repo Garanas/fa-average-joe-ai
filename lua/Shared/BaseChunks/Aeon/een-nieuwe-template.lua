@@ -22,9 +22,9 @@ Template = {
       Locations = {
         T1EnergyProduction = { { 5, 12, 0, }, },
         Wall = {
-          { 3, 12, 0, },
-          { 4, 12, 0, },
           { 2, 12, 0, },
+          { 3, 12, 0, },
+          { 1, 12, 0, },
         },
       },
       Name = "Group 3",

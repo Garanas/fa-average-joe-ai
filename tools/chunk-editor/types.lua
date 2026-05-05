@@ -25,6 +25,8 @@
 ---@field Color string  # 6-char hex, no leading '#'
 ---@field SizeX integer
 ---@field SizeZ integer
+---@field SkirtOffsetX number  # skirt offset relative to the unit anchor (X axis); see units.md
+---@field SkirtOffsetZ number  # skirt offset relative to the unit anchor (Z axis); see units.md
 ---@field Category any  # opaque engine entity-category; black-holed in shim
 
 ---@class LoveCommand

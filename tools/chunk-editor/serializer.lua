@@ -65,6 +65,49 @@ end
 M.serializeValue = serializeValue
 M.serializeTable = serializeTable
 
+-- Walls live at chunk-coord cell-corner intersections in memory (the editor
+-- shows them centered on their saved coord). The on-disk format expects them
+-- shifted -1 on both axes; `loader.lua` applies the matching +1 on load to
+-- keep round-trips stable.
+local WALL_SAVE_DELTA = -1
+
+--- Build a copy of `template` with every `Wall` location shifted by
+--- `WALL_SAVE_DELTA` on both axes. Other identifiers and other fields are
+--- shared with the original (no full deep-copy needed — `serializeValue`
+--- doesn't mutate).
+---@param template LoveBaseChunk
+---@return LoveBaseChunk
+local function templateForSave(template)
+    if not template.Groups then return template end
+
+    local newGroups = {}
+    for slot, group in pairs(template.Groups) do
+        local locs = group.Locations
+        if locs and locs.Wall then
+            local newLocs = {}
+            for id, list in pairs(locs) do
+                if id == "Wall" then
+                    local shifted = {}
+                    for i, loc in ipairs(list) do
+                        shifted[i] = { loc[1] + WALL_SAVE_DELTA, loc[2] + WALL_SAVE_DELTA, loc[3] }
+                    end
+                    newLocs[id] = shifted
+                else
+                    newLocs[id] = list
+                end
+            end
+            newGroups[slot] = { Name = group.Name, Locations = newLocs }
+        else
+            newGroups[slot] = group
+        end
+    end
+
+    local copy = {}
+    for k, v in pairs(template) do copy[k] = v end
+    copy.Groups = newGroups
+    return copy
+end
+
 ---@param template LoveBaseChunk
 ---@return string
 function M.serializeTemplate(template)
@@ -73,7 +116,7 @@ function M.serializeTemplate(template)
         "-- - https://github.com/Garanas/fa-joe-ai",
         "",
         "---@type JoeBaseChunk",
-        "Template = " .. serializeValue(template),
+        "Template = " .. serializeValue(templateForSave(template)),
         "",
     }, "\r\n")
 end

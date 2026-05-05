@@ -115,6 +115,7 @@ CreateDefaultJoeBaseChunkLoader = function()
             baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/land_32x32_01.lua")
             baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/land_32x32_02.lua")
             baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/random_32x32_01.lua")
+              baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/Large_UEF_base_Chunk_222.lua")
         end
     )
 
