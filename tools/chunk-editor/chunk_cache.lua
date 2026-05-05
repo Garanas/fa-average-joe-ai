@@ -4,6 +4,7 @@
 -- caught when the user reloads the chunk through the editor.
 
 local Loader = require("loader")
+local Util = require("util")
 
 local POLL_INTERVAL = 2.0  -- seconds
 
@@ -77,7 +78,8 @@ end
 
 local function sortEntries(list)
     table.sort(list, function(a, b)
-        if a.faction ~= b.faction then return a.faction < b.faction end
+        local fa, fb = Util.entryFaction(a), Util.entryFaction(b)
+        if fa ~= fb then return fa < fb end
         return a.file < b.file
     end)
 end

@@ -38,9 +38,10 @@ end
 local function uniqueFactions(entries)
     local seen, list = {}, {}
     for _, e in ipairs(entries) do
-        if e.faction and not seen[e.faction] then
-            seen[e.faction] = true
-            table.insert(list, e.faction)
+        local f = Util.entryFaction(e)
+        if not seen[f] then
+            seen[f] = true
+            table.insert(list, f)
         end
     end
     table.sort(list)
@@ -144,11 +145,12 @@ function LoveSidebar:draw()
 
     local visible = self.ctx:filteredChunks()
     for i, entry in ipairs(visible) do
-        if entry.faction ~= prevFaction then
+        local entryFaction = Util.entryFaction(entry)
+        if entryFaction ~= prevFaction then
             love.graphics.setColor(0.6, 0.7, 0.9)
-            love.graphics.print(entry.faction, rect.x + 8, y)
+            love.graphics.print(entryFaction, rect.x + 8, y)
             y = y + SIDEBAR_ROW_H
-            prevFaction = entry.faction
+            prevFaction = entryFaction
         end
         self.rowYs[i] = { y = y, fsPath = entry.fsPath }
         local selected = (entry.fsPath == state.currentPath)

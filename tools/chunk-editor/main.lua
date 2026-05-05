@@ -10,6 +10,7 @@ local ResizeChunk = require("commands.ResizeChunk")
 local ReconfigureChunk = require("commands.ReconfigureChunk")
 local Snapshot = require("commands.group_snapshot")
 local ChunkCache = require("chunk_cache")
+local Util = require("util")
 
 local TopBar = require("components.TopBar")
 local Sidebar = require("components.Sidebar")
@@ -68,7 +69,7 @@ local function filteredChunks()
     if (not f.faction) and (not f.size) then return state.chunks end
     local out = {}
     for _, e in ipairs(state.chunks) do
-        if (not f.faction or e.faction == f.faction)
+        if (not f.faction or Util.entryFaction(e) == f.faction)
             and (not f.size or e.size == f.size) then
             table.insert(out, e)
         end

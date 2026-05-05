@@ -10,6 +10,15 @@ function M.pointInRect(rect, mx, my)
         and my >= rect.y1 and my < rect.y2
 end
 
+--- Effective faction of a chunk entry. Prefers the loaded template's
+--- `Faction` field; falls back to the parent folder name only if the
+--- template hasn't loaded yet (or had a load error).
+---@param entry LoveChunkEntry
+---@return string
+function M.entryFaction(entry)
+    return entry.templateFaction or entry.faction or "Unknown"
+end
+
 ---@param hex string?
 ---@return number r
 ---@return number g
