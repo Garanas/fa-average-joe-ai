@@ -271,8 +271,12 @@ function LoveChunkCanvas:draw()
             local r, gC, b = Util.hexColor(meta.Color)
             local sx = meta.SizeX or 1
             local sz = meta.SizeZ or 1
-            local anchorOffsetX = (sx % 2 == 0) and (1 - sx / 2) or 0
-            local anchorOffsetZ = (sz % 2 == 0) and (1 - sz / 2) or 0
+            -- Odd-sized buildings (1x1, 3x3, ...) sit centered on the saved
+            -- integer coordinate — that's a cell-corner intersection in chunk-
+            -- coords, which matches where the engine actually places them.
+            -- Even-sized buildings keep the existing top-left-ish anchor.
+            local anchorOffsetX = (sx % 2 == 0) and (1 - sx / 2) or -0.5
+            local anchorOffsetZ = (sz % 2 == 0) and (1 - sz / 2) or -0.5
             for index, loc in ipairs(locations) do
                 local x = g.ox + (loc[1] + anchorOffsetX) * g.ppu
                 local y = g.oy + (loc[2] + anchorOffsetZ) * g.ppu
@@ -303,6 +307,15 @@ function LoveChunkCanvas:draw()
                     love.graphics.setColor(0, 0, 0)
                     love.graphics.printf(identifier, x, y + math.floor(rh / 2) - 6, rw, "center")
                 end
+
+                -- Debug: black dot at the saved coordinate (the unit's anchor
+                -- point). The skirt rectangle is positioned relative to this
+                -- point via meta.SkirtOffsetX/Z.
+                local anchorPx = g.ox + loc[1] * g.ppu
+                local anchorPy = g.oy + loc[2] * g.ppu
+                local anchorR = math.max(2, math.floor(g.ppu * 0.12))
+                love.graphics.setColor(0, 0, 0, 0.9)
+                love.graphics.circle("fill", anchorPx, anchorPy, anchorR)
 
                 table.insert(self.rects, {
                     x1 = x, y1 = y, x2 = x + rw, y2 = y + rh,
