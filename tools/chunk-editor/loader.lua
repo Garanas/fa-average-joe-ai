@@ -129,6 +129,23 @@ function M.loadChunk(shim, fsPath)
     end
     tmpl.Groups = tmpl.Groups or {}
 
+    -- Drop placeholder groups inserted by the serializer to keep the on-disk
+    -- array part dense (slots between populated ones). They have an empty
+    -- Name and empty Locations — anything with content stays.
+    do
+        local toDrop = {}
+        for slot, group in pairs(tmpl.Groups) do
+            if (group.Name == nil or group.Name == "")
+                and (not group.Locations or not next(group.Locations))
+            then
+                table.insert(toDrop, slot)
+            end
+        end
+        for _, slot in ipairs(toDrop) do
+            tmpl.Groups[slot] = nil
+        end
+    end
+
     -- Walls live at cell-corner intersections in chunk-coords in memory. The
     -- on-disk format stores them shifted by -1 on both axes; reverse that
     -- here so the in-memory positions match what the editor renders. Save

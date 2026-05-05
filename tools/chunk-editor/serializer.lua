@@ -71,34 +71,53 @@ M.serializeTable = serializeTable
 -- keep round-trips stable.
 local WALL_SAVE_DELTA = -1
 
+-- Empty group inserted in slot gaps so the serializer doesn't hit `nil` in
+-- the array part and emit "<unsupported:nil>". `loader.lua` drops groups
+-- matching this exact signature on load so in-memory state stays sparse.
+local PLACEHOLDER_GROUP_NAME = ""
+
 --- Build a copy of `template` with every `Wall` location shifted by
---- `WALL_SAVE_DELTA` on both axes. Other identifiers and other fields are
---- shared with the original (no full deep-copy needed — `serializeValue`
---- doesn't mutate).
+--- `WALL_SAVE_DELTA` on both axes, and with the `Groups` table densified
+--- (slots `1..maxSlot`) — gaps between populated slots are filled with empty
+--- placeholder groups. Other identifiers and other fields are shared with
+--- the original (no full deep-copy needed — `serializeValue` doesn't mutate).
 ---@param template LoveBaseChunk
 ---@return LoveBaseChunk
 local function templateForSave(template)
     if not template.Groups then return template end
 
+    -- Find the highest populated slot so we can pad up to it.
+    local maxSlot = 0
+    for slot in pairs(template.Groups) do
+        if type(slot) == "number" and slot > maxSlot then
+            maxSlot = math.floor(slot)
+        end
+    end
+
     local newGroups = {}
-    for slot, group in pairs(template.Groups) do
-        local locs = group.Locations
-        if locs and locs.Wall then
-            local newLocs = {}
-            for id, list in pairs(locs) do
-                if id == "Wall" then
-                    local shifted = {}
-                    for i, loc in ipairs(list) do
-                        shifted[i] = { loc[1] + WALL_SAVE_DELTA, loc[2] + WALL_SAVE_DELTA, loc[3] }
-                    end
-                    newLocs[id] = shifted
-                else
-                    newLocs[id] = list
-                end
-            end
-            newGroups[slot] = { Name = group.Name, Locations = newLocs }
+    for slot = 1, maxSlot do
+        local group = template.Groups[slot]
+        if not group then
+            newGroups[slot] = { Name = PLACEHOLDER_GROUP_NAME, Locations = {} }
         else
-            newGroups[slot] = group
+            local locs = group.Locations
+            if locs and locs.Wall then
+                local newLocs = {}
+                for id, list in pairs(locs) do
+                    if id == "Wall" then
+                        local shifted = {}
+                        for i, loc in ipairs(list) do
+                            shifted[i] = { loc[1] + WALL_SAVE_DELTA, loc[2] + WALL_SAVE_DELTA, loc[3] }
+                        end
+                        newLocs[id] = shifted
+                    else
+                        newLocs[id] = list
+                    end
+                end
+                newGroups[slot] = { Name = group.Name, Locations = newLocs }
+            else
+                newGroups[slot] = group
+            end
         end
     end
 
