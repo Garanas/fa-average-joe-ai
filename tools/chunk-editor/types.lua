@@ -23,10 +23,12 @@
 
 ---@class LoveBuildingMetadata
 ---@field Color string  # 6-char hex, no leading '#'
----@field SizeX integer
+---@field FootprintX number  # cells the building physically occupies on the X axis; see units.md
+---@field FootprintZ number
+---@field SizeX integer  # skirt size X (keep-out rectangle the engine reserves)
 ---@field SizeZ integer
----@field SkirtOffsetX number  # skirt offset relative to the unit anchor (X axis); see units.md
----@field SkirtOffsetZ number  # skirt offset relative to the unit anchor (Z axis); see units.md
+---@field SkirtOffsetX number  # offset of the skirt rectangle from the footprint TL on the X axis; see units.md
+---@field SkirtOffsetZ number
 ---@field Category any  # opaque engine entity-category; black-holed in shim
 
 ---@class LoveCommand

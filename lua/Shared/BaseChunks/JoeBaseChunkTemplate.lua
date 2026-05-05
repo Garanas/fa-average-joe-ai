@@ -145,14 +145,10 @@ end
 
 -- Functionality that is related to debugging.
 
----@param blueprint UnitBlueprint
----@param axe 'SizeX' | 'SizeZ'
----@return number
-local function TemplateAxisOffset(blueprint, axe)
-    return (math.mod(math.ceil(blueprint.Footprint and blueprint.Footprint[axe] or blueprint[axe] or 1), 2) == 1 and 0 or 0.5)
-end
-
---- Transforms a base chunk into a build template that we all know and love.
+--- Transforms a base chunk into a build template the engine's command mode
+--- understands. Saved coords use the world-center − 0.5 convention (same as
+--- `unit:GetPosition()` after the −0.5 normalisation in `GetLocations`), so
+--- the build template just needs the +0.5 to recover the world center.
 ---@param template JoeBaseChunk
 ---@return UIBuildTemplate
 function ToBuildTemplate(template)
@@ -169,26 +165,20 @@ function ToBuildTemplate(template)
         ---@param buildingIdentifier JoeBuildingIdentifier
         ---@param locations JoeBaseChunkLocation[]
         for buildingIdentifier, locations in group.Locations do
-            local buildingCategories = JoeBuildingIdentifierModule.MapToCategory(buildingIdentifier)
-            if buildingCategories then
-                local unitId = EntityCategoryGetUnitList(buildingCategories * categories[template.Faction])[1]
+            local meta = JoeBuildingIdentifierModule.MapToMetadata(buildingIdentifier)
+            if meta then
+                local unitId = EntityCategoryGetUnitList(meta.Category * categories[template.Faction])[1]
                 if unitId then
                     ---@param location JoeBaseChunkLocation
                     for _, location in locations do
                         buildOrder = buildOrder + 1
-
-                        -- fix 1x1 and 3x3 buildings to be centered correctly
-                        local blueprint = __blueprints[unitId] --[[@as UnitBlueprint]]
-                        local offsetX = TemplateAxisOffset(blueprint, 'SizeX')
-                        local offsetZ = TemplateAxisOffset(blueprint, 'SizeZ')
-
-                        TableInsert(buildTemplate, { unitId, buildOrder, location[1] + offsetX, location[2] + offsetZ })
+                        TableInsert(buildTemplate, { unitId, buildOrder, location[1] + 0.5, location[2] + 0.5 })
                     end
                 else
-                    WARN(string.format("No unit found for building identifier '%s'", tostring(buildingIdentifier), tostring(buildingCategories)))
+                    WARN(string.format("No unit found for building identifier '%s'", tostring(buildingIdentifier)))
                 end
             else
-                WARN(string.format("No building categories found for identifier '%s'", tostring(buildingIdentifier)))
+                WARN(string.format("No metadata found for identifier '%s'", tostring(buildingIdentifier)))
             end
         end
     end

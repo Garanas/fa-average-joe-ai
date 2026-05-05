@@ -273,12 +273,15 @@ function LoveChunkCanvas:draw()
             local r, gC, b = Util.hexColor(meta.Color)
             local sx = meta.SizeX or 1
             local sz = meta.SizeZ or 1
-            -- Skirt offset (sourced from each unit's Physics.SkirtOffsetX/Z
-            -- blueprint, see units.md) positions the skirt rectangle relative
-            -- to the unit's anchor — i.e. relative to the saved coord. This
-            -- matches where the engine actually places buildings.
-            local anchorOffsetX = meta.SkirtOffsetX or 0
-            local anchorOffsetZ = meta.SkirtOffsetZ or 0
+            local fpX = meta.FootprintX or 1
+            local fpZ = meta.FootprintZ or 1
+            -- Saved coord = world-center − 0.5 (matches the engine's UI build
+            -- template convention and what `unit:GetPosition()` reports after
+            -- the −0.5 normalisation in `GetLocations`). To find the skirt
+            -- TL: skirt TL = footprint TL + SkirtOffset; footprint TL =
+            -- worldCenter − footprintSize/2 = (saved + 0.5) − footprintSize/2.
+            local anchorOffsetX = (meta.SkirtOffsetX or 0) + 0.5 - fpX / 2
+            local anchorOffsetZ = (meta.SkirtOffsetZ or 0) + 0.5 - fpZ / 2
             for index, loc in ipairs(locations) do
                 local x = g.ox + (loc[1] + anchorOffsetX) * g.ppu
                 local y = g.oy + (loc[2] + anchorOffsetZ) * g.ppu
