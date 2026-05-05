@@ -65,22 +65,16 @@ end
 M.serializeValue = serializeValue
 M.serializeTable = serializeTable
 
--- Walls live at chunk-coord cell-corner intersections in memory (the editor
--- shows them centered on their saved coord). The on-disk format expects them
--- shifted -1 on both axes; `loader.lua` applies the matching +1 on load to
--- keep round-trips stable.
-local WALL_SAVE_DELTA = -1
-
 -- Empty group inserted in slot gaps so the serializer doesn't hit `nil` in
 -- the array part and emit "<unsupported:nil>". `loader.lua` drops groups
 -- matching this exact signature on load so in-memory state stays sparse.
 local PLACEHOLDER_GROUP_NAME = ""
 
---- Build a copy of `template` with every `Wall` location shifted by
---- `WALL_SAVE_DELTA` on both axes, and with the `Groups` table densified
+--- Build a copy of `template` with the `Groups` table densified
 --- (slots `1..maxSlot`) — gaps between populated slots are filled with empty
---- placeholder groups. Other identifiers and other fields are shared with
---- the original (no full deep-copy needed — `serializeValue` doesn't mutate).
+--- placeholder groups so the serializer doesn't emit `nil` array entries.
+--- Other fields are shared with the original (no full deep-copy needed —
+--- `serializeValue` doesn't mutate).
 ---@param template LoveBaseChunk
 ---@return LoveBaseChunk
 local function templateForSave(template)
@@ -100,24 +94,7 @@ local function templateForSave(template)
         if not group then
             newGroups[slot] = { Name = PLACEHOLDER_GROUP_NAME, Locations = {} }
         else
-            local locs = group.Locations
-            if locs and locs.Wall then
-                local newLocs = {}
-                for id, list in pairs(locs) do
-                    if id == "Wall" then
-                        local shifted = {}
-                        for i, loc in ipairs(list) do
-                            shifted[i] = { loc[1] + WALL_SAVE_DELTA, loc[2] + WALL_SAVE_DELTA, loc[3] }
-                        end
-                        newLocs[id] = shifted
-                    else
-                        newLocs[id] = list
-                    end
-                end
-                newGroups[slot] = { Name = group.Name, Locations = newLocs }
-            else
-                newGroups[slot] = group
-            end
+            newGroups[slot] = group
         end
     end
 
