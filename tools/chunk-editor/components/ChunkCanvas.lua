@@ -277,22 +277,37 @@ function LoveChunkCanvas:draw()
             local fpZ = meta.FootprintZ or 1
             -- Saved coord = world-center − 0.5 (matches the engine's UI build
             -- template convention and what `unit:GetPosition()` reports after
-            -- the −0.5 normalisation in `GetLocations`). To find the skirt
-            -- TL: skirt TL = footprint TL + SkirtOffset; footprint TL =
-            -- worldCenter − footprintSize/2 = (saved + 0.5) − footprintSize/2.
-            local anchorOffsetX = (meta.SkirtOffsetX or 0) + 0.5 - fpX / 2
-            local anchorOffsetZ = (meta.SkirtOffsetZ or 0) + 0.5 - fpZ / 2
+            -- the −0.5 normalisation in `GetLocations`). Skirt TL = footprint
+            -- TL + SkirtOffset; footprint TL = worldCenter − footprintSize/2
+            --   = (saved + 0.5) − footprintSize/2.
+            local skirtOffsetX = (meta.SkirtOffsetX or 0) + 0.5 - fpX / 2
+            local skirtOffsetZ = (meta.SkirtOffsetZ or 0) + 0.5 - fpZ / 2
+            local fpAnchorX = 0.5 - fpX / 2
+            local fpAnchorZ = 0.5 - fpZ / 2
             for index, loc in ipairs(locations) do
-                local x = g.ox + (loc[1] + anchorOffsetX) * g.ppu
-                local y = g.oy + (loc[2] + anchorOffsetZ) * g.ppu
+                local x = g.ox + (loc[1] + skirtOffsetX) * g.ppu
+                local y = g.oy + (loc[2] + skirtOffsetZ) * g.ppu
                 local rw = sx * g.ppu
                 local rh = sz * g.ppu
+                local fpPx = g.ox + (loc[1] + fpAnchorX) * g.ppu
+                local fpPy = g.oy + (loc[2] + fpAnchorZ) * g.ppu
+                local fpPw = fpX * g.ppu
+                local fpPh = fpZ * g.ppu
                 local key = selectionKey(slot, identifier, index)
                 local isDragged = draggingSet[key]
                 local isSelected = state.selection[key]
 
-                love.graphics.setColor(r, gC, b, isDragged and 0.7 or 0.85)
+                -- Skirt: the engine's keep-out box. Drawn translucent.
+                love.graphics.setColor(r, gC, b, isDragged and 0.20 or 0.30)
                 love.graphics.rectangle("fill", x, y, rw, rh)
+
+                -- Footprint: the cells the building physically occupies.
+                -- Drawn opaque on top of the skirt to mark the actual
+                -- structure outline.
+                love.graphics.setColor(r, gC, b, isDragged and 0.55 or 0.75)
+                love.graphics.rectangle("fill", fpPx, fpPy, fpPw, fpPh)
+                love.graphics.setColor(0, 0, 0, 0.5)
+                love.graphics.rectangle("line", fpPx, fpPy, fpPw, fpPh)
 
                 if isDragged then
                     love.graphics.setColor(1, 1, 0)
@@ -305,7 +320,7 @@ function LoveChunkCanvas:draw()
                     love.graphics.rectangle("line", x, y, rw, rh)
                     love.graphics.setLineWidth(1)
                 else
-                    love.graphics.setColor(0, 0, 0, 0.6)
+                    love.graphics.setColor(0, 0, 0, 0.45)
                     love.graphics.rectangle("line", x, y, rw, rh)
                 end
                 if rw >= 36 and rh >= 14 then
@@ -313,9 +328,9 @@ function LoveChunkCanvas:draw()
                     love.graphics.printf(identifier, x, y + math.floor(rh / 2) - 6, rw, "center")
                 end
 
-                -- Debug: black dot at the saved coordinate (the unit's anchor
-                -- point). The skirt rectangle is positioned relative to this
-                -- point via meta.SkirtOffsetX/Z.
+                -- Debug: black dot at the saved coordinate. With the saved =
+                -- worldCenter − 0.5 convention, this lands on the cell-corner
+                -- at the upper-left of the central cell.
                 local anchorPx = g.ox + loc[1] * g.ppu
                 local anchorPy = g.oy + loc[2] * g.ppu
                 local anchorR = math.max(2, math.floor(g.ppu * 0.12))
@@ -825,6 +840,62 @@ function LoveChunkCanvas:selectAdjacent(slot, identifier, index)
 
     state.selection = visited
     state.selectionHistory:push(visited)
+end
+
+--- Replace the selection with every build site whose skirt overlaps another's
+--- (interior intersection — edge-touching is fine). Useful as a "validate"
+--- pass after editing to surface chunks the engine would refuse to place.
+function LoveChunkCanvas:detectOverlaps()
+    local state = self.ctx.state
+    local tmpl = state.loadedTemplate
+    if not tmpl then return end
+
+    -- Collect every site's skirt rect in chunk-space (same convention as
+    -- selectAdjacent — saved coord + SkirtOffset, sized by SizeX/Z).
+    local items = {}
+    for slot, group in pairs(tmpl.Groups or {}) do
+        for id, locs in pairs(group.Locations or {}) do
+            local meta = (state.identifiers or {})[id] or {}
+            local sx = meta.SizeX or 1
+            local sz = meta.SizeZ or 1
+            local ox = meta.SkirtOffsetX or 0
+            local oz = meta.SkirtOffsetZ or 0
+            for idx, loc in ipairs(locs) do
+                local x1 = loc[1] + ox
+                local z1 = loc[2] + oz
+                table.insert(items, {
+                    key = selectionKey(slot, id, idx),
+                    x1 = x1, z1 = z1, x2 = x1 + sx, z2 = z1 + sz,
+                })
+            end
+        end
+    end
+
+    -- Pairwise interior intersection. With ~50 buildings, n²/2 = 1250 cheap
+    -- checks per press — fine without a spatial index.
+    local overlap = {}
+    for i = 1, #items do
+        local a = items[i]
+        for j = i + 1, #items do
+            local b = items[j]
+            if a.x1 < b.x2 and a.x2 > b.x1 and a.z1 < b.z2 and a.z2 > b.z1 then
+                overlap[a.key] = true
+                overlap[b.key] = true
+            end
+        end
+    end
+
+    state.selection = overlap
+    state.selectionHistory:push(overlap)
+
+    local n = 0
+    for _ in pairs(overlap) do n = n + 1 end
+    if n == 0 then
+        state.saveStatus = "No overlapping sites"
+    else
+        state.saveStatus = string.format("%d overlapping site(s) selected", n)
+    end
+    print(state.saveStatus)
 end
 
 --- Replace selection with the contents of `slot`. No-op for empty slots.
