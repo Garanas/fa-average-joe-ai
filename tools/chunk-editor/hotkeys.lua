@@ -50,6 +50,7 @@ function M.bindings(actions)
         { group = "Selection", keys = "shift+tab",    name = "Previous selection",  fn = actions.prevSelection },
         { group = "Editing",   keys = "delete",       name = "Delete selection",    fn = actions.deleteSelected },
         { group = "Editing",   keys = "insert",       name = "Duplicate selection", fn = actions.duplicateSelected },
+        { group = "Editing",   keys = "ctrl+e",       name = "Detect overlaps",     fn = actions.detectOverlaps },
         { group = "Translate", keys = "left",         name = "Translate left",      fn = function() actions.translateSelection(-1, 0) end },
         { group = "Translate", keys = "right",        name = "Translate right",     fn = function() actions.translateSelection(1, 0) end },
         { group = "Translate", keys = "up",           name = "Translate up",        fn = function() actions.translateSelection(0, -1) end },

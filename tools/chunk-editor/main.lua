@@ -505,6 +505,7 @@ local actions = {
     duplicateSelected = function() if canvas then canvas:duplicateSelection() end end,
     translateSelection = function(dx, dz) if canvas then canvas:translateSelection(dx, dz) end end,
     addBuilding = function(id) if canvas then canvas:addBuilding(id) end end,
+    detectOverlaps = function() if canvas then canvas:detectOverlaps() end end,
 }
 
 local bindings = Hotkeys.bindings(actions)

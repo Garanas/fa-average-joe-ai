@@ -100,6 +100,7 @@
 ---@field duplicateSelected fun()
 ---@field translateSelection fun(dx: integer, dz: integer)
 ---@field addBuilding fun(identifier: LoveBuildingIdentifier)
+---@field detectOverlaps fun()
 
 ---@class LoveChunkFilter
 ---@field faction string?  # nil = any faction
