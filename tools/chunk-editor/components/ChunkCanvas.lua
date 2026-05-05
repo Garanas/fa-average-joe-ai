@@ -871,14 +871,20 @@ function LoveChunkCanvas:detectOverlaps()
         end
     end
 
-    -- Pairwise interior intersection. With ~50 buildings, n²/2 = 1250 cheap
-    -- checks per press — fine without a spatial index.
+    -- Pairwise interior intersection with a half-cell tolerance.
+    -- SkirtOffset values can be sub-cell (e.g. -0.5), so a 2x2 flush
+    -- against a 6x6 produces a 0.5-unit "interior" overlap that's actually
+    -- valid edge-adjacency. Anything larger than a half-cell on both axes
+    -- is a real conflict the engine would reject.
+    local TOLERANCE = 0.5
     local overlap = {}
     for i = 1, #items do
         local a = items[i]
         for j = i + 1, #items do
             local b = items[j]
-            if a.x1 < b.x2 and a.x2 > b.x1 and a.z1 < b.z2 and a.z2 > b.z1 then
+            local ix = math.min(a.x2, b.x2) - math.max(a.x1, b.x1)
+            local iz = math.min(a.z2, b.z2) - math.max(a.z1, b.z1)
+            if ix > TOLERANCE and iz > TOLERANCE then
                 overlap[a.key] = true
                 overlap[b.key] = true
             end
