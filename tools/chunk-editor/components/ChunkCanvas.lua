@@ -341,6 +341,22 @@ function LoveChunkCanvas:draw()
     end
 
     love.graphics.setScissor()
+
+    -- Publish the under-cursor chunk cell so other components (status bar)
+    -- can show it without owning the canvas's geometry.
+    local mx, my = love.mouse.getPosition()
+    if mx >= layout.x and mx < layout.x + layout.w
+        and my >= layout.y and my < layout.y + layout.h then
+        local cx = (mx - g.ox) / g.ppu
+        local cz = (my - g.oy) / g.ppu
+        if cx >= 0 and cz >= 0 and cx < g.size and cz < g.size then
+            state.mouseChunk = { x = math.floor(cx), z = math.floor(cz) }
+        else
+            state.mouseChunk = nil
+        end
+    else
+        state.mouseChunk = nil
+    end
 end
 
 function LoveChunkCanvas:mousepressed(mx, my, button)
@@ -367,11 +383,11 @@ function LoveChunkCanvas:mousepressed(mx, my, button)
     if rect then
         local key = selectionKey(rect.slot, rect.identifier, rect.index)
 
-        -- Double-click: a second left-click on the same building within the
-        -- threshold expands the selection to every transitively edge-
-        -- adjacent skirt. Doesn't start a drag.
+        -- Shift + double-click: a second shift-left-click on the same
+        -- building within the threshold expands the selection to every
+        -- transitively edge-adjacent skirt. Doesn't start a drag.
         local now = love.timer.getTime()
-        if not shift and not alt
+        if shift and not alt
             and self.lastClickKey == key
             and (now - self.lastClickTime) < 0.4
         then

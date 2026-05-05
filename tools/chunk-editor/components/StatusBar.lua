@@ -34,6 +34,9 @@ function LoveStatusBar:draw()
     else
         txt = "No chunk selected"
     end
+    if state.mouseChunk then
+        txt = txt .. string.format("  |  (%d, %d)", state.mouseChunk.x, state.mouseChunk.z)
+    end
     love.graphics.print(txt, rect.x + 8, rect.y + 6)
 
     if state.saveStatus then

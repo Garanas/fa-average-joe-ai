@@ -134,5 +134,6 @@
 ---@field selectionHistory LoveSelectionHistory
 ---@field chunkCache LoveChunkCache?
 ---@field chunkFilter LoveChunkFilter
+---@field mouseChunk { x: integer, z: integer }?  # under-cursor cell when mouse is inside the chunk; nil otherwise
 ---@field dialogOpen string?
 ---@field saveStatus string?
