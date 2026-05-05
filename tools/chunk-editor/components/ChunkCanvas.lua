@@ -850,16 +850,20 @@ function LoveChunkCanvas:detectOverlaps()
     local tmpl = state.loadedTemplate
     if not tmpl then return end
 
-    -- Collect every site's skirt rect in chunk-space (same convention as
-    -- selectAdjacent — saved coord + SkirtOffset, sized by SizeX/Z).
+    -- Collect every site's skirt rect in chunk-space using the same formula
+    -- the canvas uses to render: skirtTL = loc + SkirtOffset + 0.5 - Footprint/2.
+    -- (selectAdjacent's loc + SkirtOffset is wrong for odd footprints > 1
+    -- like hydro / factories — different rect than what the user sees.)
     local items = {}
     for slot, group in pairs(tmpl.Groups or {}) do
         for id, locs in pairs(group.Locations or {}) do
             local meta = (state.identifiers or {})[id] or {}
+            local fpX = meta.FootprintX or 1
+            local fpZ = meta.FootprintZ or 1
             local sx = meta.SizeX or 1
             local sz = meta.SizeZ or 1
-            local ox = meta.SkirtOffsetX or 0
-            local oz = meta.SkirtOffsetZ or 0
+            local ox = (meta.SkirtOffsetX or 0) + 0.5 - fpX / 2
+            local oz = (meta.SkirtOffsetZ or 0) + 0.5 - fpZ / 2
             for idx, loc in ipairs(locs) do
                 local x1 = loc[1] + ox
                 local z1 = loc[2] + oz
@@ -871,20 +875,16 @@ function LoveChunkCanvas:detectOverlaps()
         end
     end
 
-    -- Pairwise interior intersection with a half-cell tolerance.
-    -- SkirtOffset values can be sub-cell (e.g. -0.5), so a 2x2 flush
-    -- against a 6x6 produces a 0.5-unit "interior" overlap that's actually
-    -- valid edge-adjacency. Anything larger than a half-cell on both axes
-    -- is a real conflict the engine would reject.
-    local TOLERANCE = 0.5
+    -- Strict interior intersection with a tiny float epsilon so
+    -- edge-touches (a.x2 == b.x1) don't get flagged as overlap.
+    local EPS = 1e-9
     local overlap = {}
     for i = 1, #items do
         local a = items[i]
         for j = i + 1, #items do
             local b = items[j]
-            local ix = math.min(a.x2, b.x2) - math.max(a.x1, b.x1)
-            local iz = math.min(a.z2, b.z2) - math.max(a.z1, b.z1)
-            if ix > TOLERANCE and iz > TOLERANCE then
+            if a.x1 + EPS < b.x2 and a.x2 > b.x1 + EPS
+                and a.z1 + EPS < b.z2 and a.z2 > b.z1 + EPS then
                 overlap[a.key] = true
                 overlap[b.key] = true
             end
