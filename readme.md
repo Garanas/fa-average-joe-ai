@@ -32,6 +32,18 @@ You can use the (ab)use the [Run and Debug view](https://code.visualstudio.com/d
 
 This provides you with a single configuration. As you run the configuration it will ask you what map to start. You can pick a map and the game will launch. The default configuration will always launch a 1vs1 using the first two slots. You can edit this by changing the program arguments.
 
+## Tools
+
+### Chunk editor
+
+The mod ships with a Love2D-based editor for the base-chunk templates under [`lua/Shared/BaseChunks/`](./lua/Shared/BaseChunks/). It loads chunks straight from that tree, lets you place / move / group buildings on a visual grid, and writes back to the same files using the same on-disk format the in-game `CreateTemplate` produces — so chunks authored in the editor and chunks captured in-game are interchangeable.
+
+Run from the repo root:
+
+    love tools/chunk-editor
+
+See [`tools/chunk-editor/README.md`](./tools/chunk-editor/README.md) for the full hotkey list, the UI overview, and the implementation details (skirt vs footprint, the `saved = worldCenter − 0.5` coordinate convention, and how it flows into the in-game `ToBuildTemplate` / `MapTemplate` paths).
+
 ## Technical details
 
 Some functionality is hidden in the behavior of the engine. In this section we share some technical details that are relevant to understand some code design decisions.

@@ -180,12 +180,11 @@ JoeBaseBuildSiteComponent = ClassSimple {
         for identifier, locations in template.Locations do
             for k = 1, TableGetn(locations) do
                 local loc = locations[k]
+                -- Saved coords use the world-center − 0.5 convention; +0.5
+                -- recovers the world center which is what the engine wants.
                 ---@type JoeBaseChunkLocation
                 local worldPoint = {
-
-                    -- add offset here so that structures align properly with the in-game grid. In order to have templates work, we previously did -0.5. 
-
-                    anchorX + loc[1] + 0.5, 
+                    anchorX + loc[1] + 0.5,
                     anchorZ + loc[2] + 0.5,
                     loc[3],
                 }

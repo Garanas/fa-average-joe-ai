@@ -1,9 +1,30 @@
 
 local TableInsert = table.insert
+local TableGetn = table.getn
 
 local error = error
 local warn = WARN
 local pcall = pcall
+
+--- Builds a flat identifier→locations dict from a grouped chunk template. The runtime collapses groups at load time so consumers don't have to care about grouping.
+---@param template JoeBaseChunk
+---@return table<JoeBuildingIdentifier, JoeBaseChunkLocation[]>
+local function FlattenGroups(template)
+    local flat = {}
+    for _, group in template.Groups or {} do
+        for identifier, locs in group.Locations or {} do
+            local bucket = flat[identifier]
+            if not bucket then
+                bucket = {}
+                flat[identifier] = bucket
+            end
+            for k = 1, TableGetn(locs) do
+                TableInsert(bucket, locs[k])
+            end
+        end
+    end
+    return flat
+end
 
 --- Responsible for managing the base chunk templates that are loaded from files.
 ---@class JoeBaseChunkLoader
@@ -55,10 +76,20 @@ JoeBaseChunkLoader = ClassSimple {
             error("Field '" .. tostring(field) .. "' not found in template file: " .. tostring(file))
         end
 
+        -- migrate pre-Groups chunk files: wrap their flat Locations into a single default group
+        if (not template.Groups) and template.Locations then
+            template.Groups = {
+                [1] = { Name = "default", Locations = template.Locations },
+            }
+            template.Locations = nil
+        end
+
         -- promote the on-disk JoeBaseChunk to a runtime JoeLoadedBaseChunk by stamping loader fields
         local runtimeTemplate = template --[[@as JoeLoadedBaseChunk]]
         runtimeTemplate.Source = file
         runtimeTemplate.SourceField = field
+        -- collapse all groups into a single flat dict so consumers can ignore grouping
+        runtimeTemplate.Locations = FlattenGroups(template)
 
         self:AddTemplate(runtimeTemplate)
     end,
@@ -72,18 +103,20 @@ CreateDefaultJoeBaseChunkLoader = function()
     local ok, msg = pcall(
         function()
             -- Load templates from files in a deterministic manner. We can not load in all templates using a glob.
-            baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/air_16x16_01.lua")
-            baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/power_08x08_01.lua")
-            baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/power_16x16_01.lua")
-            baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/power_16x16_02.lua")
+            -- baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/air_16x16_01.lua")
+            -- baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/power_08x08_01.lua")
+            -- baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/power_16x16_01.lua")
+            -- baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/power_16x16_02.lua")
             baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/special_08x08_01.lua")
             baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/special_08x08_02.lua")
-            baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/special_16x16_01.lua")
-            baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/land_16x16_01.lua")
-            baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/land_16x16_02.lua")
-            baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/land_32x32_01.lua")
-            baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/land_32x32_02.lua")
-            baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/random_32x32_01.lua")
+            -- baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/special_16x16_01.lua")
+            -- baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/land_16x16_01.lua")
+            -- baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/land_16x16_02.lua")
+            -- baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/land_32x32_01.lua")
+            -- baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/land_32x32_02.lua")
+            -- baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/random_32x32_01.lua")
+              baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/Large_UEF_base_Chunk_222.lua")
+              baseChunkManager:LoadTemplate("/mods/fa-joe-ai/lua/Shared/BaseChunks/UEF/test-template-chunk-editor.lua")
         end
     )
 
