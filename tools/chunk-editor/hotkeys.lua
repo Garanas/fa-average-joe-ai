@@ -59,6 +59,9 @@ function M.bindings(actions)
         { group = "Translate", keys = "shift+right",  name = "Translate right x4",  fn = function() actions.translateSelection(4, 0) end },
         { group = "Translate", keys = "shift+up",     name = "Translate up x4",     fn = function() actions.translateSelection(0, -4) end },
         { group = "Translate", keys = "shift+down",   name = "Translate down x4",   fn = function() actions.translateSelection(0, 4) end },
+        { group = "Mirror",    keys = "ctrl+shift+x", name = "Mirror across X axis", fn = function() actions.mirrorSelection("x") end },
+        { group = "Mirror",    keys = "ctrl+shift+y", name = "Mirror across Y axis", fn = function() actions.mirrorSelection("y") end },
+        { group = "Mirror",    keys = "ctrl+shift+b", name = "Mirror across both",   fn = function() actions.mirrorSelection("xy") end },
     }
 
     -- Control-group bindings: Ctrl+1..9, Ctrl+0 assign; 1..9, 0 select. Slot 10 = "0" key.

@@ -99,6 +99,7 @@
 ---@field deleteSelected fun()
 ---@field duplicateSelected fun()
 ---@field translateSelection fun(dx: integer, dz: integer)
+---@field mirrorSelection fun(axis: "x" | "y" | "xy")
 ---@field addBuilding fun(identifier: LoveBuildingIdentifier)
 ---@field detectOverlaps fun()
 

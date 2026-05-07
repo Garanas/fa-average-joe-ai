@@ -1068,6 +1068,47 @@ function LoveChunkCanvas:translateSelection(dx, dz)
     state.saveStatus = nil
 end
 
+--- Mirror every selected building across the chunk's geometric centre.
+--- `axis` selects which world axis the reflection happens across:
+---   "x"  — reflect across the X axis: Z is flipped, X unchanged (top↔bottom)
+---   "y"  — reflect across the Y axis: X is flipped, Z unchanged (left↔right)
+---   "xy" — reflect across both: equivalent to a 180° rotation through centre
+--- Each location's saved coord becomes `(Size - 1) - oldCoord` on the flipped
+--- axes; this preserves the half-cell offset for odd-footprint buildings.
+--- Selected buildings keep their group membership; only positions change.
+--- Emitted as a single `Composite` so the whole flip is one undoable step.
+---@param axis "x" | "y" | "xy"
+function LoveChunkCanvas:mirrorSelection(axis)
+    local state = self.ctx.state
+    local tmpl = state.loadedTemplate
+    if not tmpl or not next(state.selection) then return end
+
+    local items = self:_buildDragItemsFromSelection(tmpl)
+    if #items == 0 then return end
+
+    local size = tmpl.Size or 16
+    local flipX = (axis == "y" or axis == "xy")
+    local flipZ = (axis == "x" or axis == "xy")
+    if not flipX and not flipZ then return end
+
+    local subs = {}
+    for _, it in ipairs(items) do
+        local toX = flipX and ((size - 1) - it.fromX) or it.fromX
+        local toZ = flipZ and ((size - 1) - it.fromZ) or it.fromZ
+        if toX ~= it.fromX or toZ ~= it.fromZ then
+            table.insert(subs, MoveBuilding.new(
+                it.slot, it.identifier, it.index,
+                it.fromX, it.fromZ, toX, toZ
+            ))
+        end
+    end
+    if #subs == 0 then return end
+
+    local cmd = (#subs == 1) and subs[1] or Composite.new(subs)
+    state.history:apply(tmpl, cmd)
+    state.saveStatus = nil
+end
+
 --- Duplicate selected buildings, offset by 1 unit toward chunk center on
 --- both axes. The new copies stay in the same group as their originals;
 --- selection becomes the copies.

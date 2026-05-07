@@ -521,6 +521,7 @@ local actions = {
     deleteSelected = function() if canvas then canvas:deleteSelection() end end,
     duplicateSelected = function() if canvas then canvas:duplicateSelection() end end,
     translateSelection = function(dx, dz) if canvas then canvas:translateSelection(dx, dz) end end,
+    mirrorSelection = function(axis) if canvas then canvas:mirrorSelection(axis) end end,
     addBuilding = function(id) if canvas then canvas:addBuilding(id) end end,
     detectOverlaps = function() if canvas then canvas:detectOverlaps() end end,
 }
