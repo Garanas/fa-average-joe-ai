@@ -43,8 +43,8 @@ function M.bindings(actions)
         { group = "History",   keys = "ctrl+z",       name = "Undo",                fn = actions.undo },
         { group = "History",   keys = "ctrl+y",       name = "Redo",                fn = actions.redo },
         { group = "History",   keys = "ctrl+shift+z", name = "Redo",                fn = actions.redo },
-        { group = "View",      keys = "ctrl+up",      name = "Zoom in",             fn = actions.zoomIn },
-        { group = "View",      keys = "ctrl+down",    name = "Zoom out",            fn = actions.zoomOut },
+        { group = "View",      keys = "ctrl+=",       name = "Zoom in",             fn = actions.zoomIn },
+        { group = "View",      keys = "ctrl+-",       name = "Zoom out",            fn = actions.zoomOut },
         { group = "View",      keys = "home",         name = "Recenter",            fn = actions.recenter },
         { group = "Selection", keys = "tab",          name = "Next selection",      fn = actions.nextSelection },
         { group = "Selection", keys = "shift+tab",    name = "Previous selection",  fn = actions.prevSelection },
@@ -59,9 +59,21 @@ function M.bindings(actions)
         { group = "Translate", keys = "shift+right",  name = "Translate right x4",  fn = function() actions.translateSelection(4, 0) end },
         { group = "Translate", keys = "shift+up",     name = "Translate up x4",     fn = function() actions.translateSelection(0, -4) end },
         { group = "Translate", keys = "shift+down",   name = "Translate down x4",   fn = function() actions.translateSelection(0, 4) end },
-        { group = "Mirror",    keys = "ctrl+shift+x", name = "Mirror across X axis", fn = function() actions.mirrorSelection("x") end },
-        { group = "Mirror",    keys = "ctrl+shift+y", name = "Mirror across Y axis", fn = function() actions.mirrorSelection("y") end },
-        { group = "Mirror",    keys = "ctrl+shift+b", name = "Mirror across both",   fn = function() actions.mirrorSelection("xy") end },
+        -- In-place transform around the selection's own centre. Arrow direction is mnemonic:
+        -- ←/→ flip horizontally, ↑/↓ flip vertically, alt+←/→ rotate CCW/CW.
+        { group = "Transform", keys = "ctrl+left",       name = "Mirror selection horizontally", fn = function() actions.transformSelection("flip-x") end },
+        { group = "Transform", keys = "ctrl+right",      name = "Mirror selection horizontally", fn = function() actions.transformSelection("flip-x") end },
+        { group = "Transform", keys = "ctrl+up",         name = "Mirror selection vertically",   fn = function() actions.transformSelection("flip-z") end },
+        { group = "Transform", keys = "ctrl+down",       name = "Mirror selection vertically",   fn = function() actions.transformSelection("flip-z") end },
+        { group = "Transform", keys = "alt+left",        name = "Rotate selection CCW",          fn = function() actions.transformSelection("rotate-ccw") end },
+        { group = "Transform", keys = "alt+right",       name = "Rotate selection CW",           fn = function() actions.transformSelection("rotate-cw") end },
+
+        -- Duplicate-and-transform around the chunk centre. Originals stay; copies become
+        -- the new selection. Useful for "build half a base, mirror it" workflows.
+        { group = "Transform", keys = "ctrl+insert",     name = "Duplicate mirrored across X axis", fn = function() actions.duplicateTransformSelection("flip-z") end },
+        { group = "Transform", keys = "ctrl+alt+insert", name = "Duplicate mirrored across Y axis", fn = function() actions.duplicateTransformSelection("flip-x") end },
+        { group = "Transform", keys = "shift+insert",    name = "Duplicate rotated 90° CW",         fn = function() actions.duplicateTransformSelection("rotate-cw") end },
+        { group = "Transform", keys = "alt+shift+insert", name = "Duplicate rotated 90° CCW",       fn = function() actions.duplicateTransformSelection("rotate-ccw") end },
     }
 
     -- Control-group bindings: Ctrl+1..9, Ctrl+0 assign; 1..9, 0 select. Slot 10 = "0" key.

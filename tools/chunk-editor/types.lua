@@ -99,7 +99,8 @@
 ---@field deleteSelected fun()
 ---@field duplicateSelected fun()
 ---@field translateSelection fun(dx: integer, dz: integer)
----@field mirrorSelection fun(axis: "x" | "y" | "xy")
+---@field transformSelection fun(transform: "flip-x" | "flip-z" | "rotate-cw" | "rotate-ccw")
+---@field duplicateTransformSelection fun(transform: "flip-x" | "flip-z" | "rotate-cw" | "rotate-ccw")
 ---@field addBuilding fun(identifier: LoveBuildingIdentifier)
 ---@field detectOverlaps fun()
 
