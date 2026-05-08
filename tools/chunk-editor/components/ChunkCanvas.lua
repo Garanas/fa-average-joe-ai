@@ -1106,21 +1106,70 @@ function LoveChunkCanvas:translateSelection(dx, dz)
     state.saveStatus = nil
 end
 
---- Transform every selected building in place around the centre of the
---- selection's saved-coord bounding box. Pieces flip/rotate within the
---- selection's envelope; the envelope itself stays put.
+--- Drop the selected buildings with the largest footprint area. Useful for
+--- quickly peeling factories or other oversized structures off a mixed
+--- selection — e.g. select-all in a chunk, then `shrinkSelection` to leave
+--- just the small stuff.
+---
+--- The metric is footprint area (`FootprintX * FootprintZ`); skirts are
+--- ignored. If every selected building shares the same footprint area, the
+--- whole selection is dropped (selection becomes empty). Identifiers without
+--- metadata are treated as 1×1.
+function LoveChunkCanvas:shrinkSelection()
+    local state = self.ctx.state
+    if not next(state.selection) then return end
+    local idents = state.identifiers or {}
+
+    local maxArea = 0
+    for key in pairs(state.selection) do
+        local _, id = parseSelectionKey(key)
+        if id then
+            local meta = idents[id] or {}
+            local area = (meta.FootprintX or 1) * (meta.FootprintZ or 1)
+            if area > maxArea then maxArea = area end
+        end
+    end
+
+    local newSel = {}
+    local dropped = 0
+    for key in pairs(state.selection) do
+        local _, id = parseSelectionKey(key)
+        if id then
+            local meta = idents[id] or {}
+            local area = (meta.FootprintX or 1) * (meta.FootprintZ or 1)
+            if area < maxArea then
+                newSel[key] = true
+            else
+                dropped = dropped + 1
+            end
+        end
+    end
+
+    if dropped == 0 then return end
+    state.selection = newSel
+    state.selectionHistory:push(newSel)
+end
+
+--- Transform every selected building in place. `pivot` chooses the centre
+--- of reflection / rotation:
+---   "selection" (default) — centre of the selection's saved-coord bounding
+---                            box. Pieces flip/rotate within the selection's
+---                            envelope; the envelope itself stays put.
+---   "chunk"               — geometric centre of the chunk. Useful for
+---                            "fold the whole layout across the chunk".
 ---
 --- `transform` is one of:
 ---   "flip-x"     — swap left/right (X flips, Z stays)
 ---   "flip-z"     — swap top/bottom (Z flips, X stays)
----   "rotate-cw"  — rotate the selection 90° clockwise (visually)
----   "rotate-ccw" — rotate the selection 90° counter-clockwise
+---   "rotate-cw"  — rotate 90° clockwise (visually, in screen space)
+---   "rotate-ccw" — rotate 90° counter-clockwise
 ---
 --- Buildings keep their group membership and selection keys; only saved
 --- coords change. Emitted as a single `Composite` so the whole transform is
 --- one undoable step.
 ---@param transform "flip-x" | "flip-z" | "rotate-cw" | "rotate-ccw"
-function LoveChunkCanvas:transformSelection(transform)
+---@param pivot? "selection" | "chunk"
+function LoveChunkCanvas:transformSelection(transform, pivot)
     local state = self.ctx.state
     local tmpl = state.loadedTemplate
     if not tmpl or not next(state.selection) then return end
@@ -1128,7 +1177,14 @@ function LoveChunkCanvas:transformSelection(transform)
     local items = self:_buildDragItemsFromSelection(tmpl)
     if #items == 0 then return end
 
-    local pivotX, pivotZ = selectionBboxCentre(items)
+    local pivotX, pivotZ
+    if pivot == "chunk" then
+        local size = tmpl.Size or 16
+        pivotX = (size - 1) / 2
+        pivotZ = (size - 1) / 2
+    else
+        pivotX, pivotZ = selectionBboxCentre(items)
+    end
 
     local subs = {}
     for _, it in ipairs(items) do
@@ -1145,92 +1201,6 @@ function LoveChunkCanvas:transformSelection(transform)
     local cmd = (#subs == 1) and subs[1] or Composite.new(subs)
     state.history:apply(tmpl, cmd)
     state.saveStatus = nil
-end
-
---- Duplicate the selection and apply `transform` to the copies, pivoting
---- around the chunk centre. Originals stay where they are; new copies land
---- at the transformed positions and become the new selection. Useful for
---- "build half a base, mirror it to the other half" or "build a quadrant,
---- rotate it three times to fill the chunk".
----
---- `transform` accepts the same values as `transformSelection`. New copies
---- inherit the slot/identifier of their originals; only coords differ.
----
---- Copies whose transformed position equals the original (a building exactly
---- at the chunk centre, for example) are skipped — placing two buildings on
---- the same cell isn't useful.
----@param transform "flip-x" | "flip-z" | "rotate-cw" | "rotate-ccw"
-function LoveChunkCanvas:duplicateTransformSelection(transform)
-    local state = self.ctx.state
-    local tmpl = state.loadedTemplate
-    if not tmpl or not next(state.selection) then return end
-
-    local size = tmpl.Size or 16
-    local pivotX = (size - 1) / 2
-    local pivotZ = (size - 1) / 2
-
-    local inserts = {}
-    for key in pairs(state.selection) do
-        local s, id, idx = parseSelectionKey(key)
-        if s and id and idx then
-            local loc = getLocation(tmpl, s, id, idx)
-            if loc then
-                local newX, newZ = applyTransform(transform, pivotX, pivotZ, loc[1], loc[2])
-                if newX ~= loc[1] or newZ ~= loc[2] then
-                    table.insert(inserts, {
-                        slot = s, identifier = id,
-                        location = { newX, newZ, loc[3] or 0 },
-                    })
-                end
-            end
-        end
-    end
-    if #inserts == 0 then return end
-
-    local affectedSlots = {}
-    for _, it in ipairs(inserts) do affectedSlots[it.slot] = true end
-
-    local beforeSlots = {}
-    for s in pairs(affectedSlots) do
-        beforeSlots[s] = deepCopyGroup(tmpl.Groups and tmpl.Groups[s])
-    end
-
-    local afterSlots = {}
-    for s in pairs(affectedSlots) do
-        local copy = deepCopyGroup(tmpl.Groups and tmpl.Groups[s])
-        if copy == false then
-            copy = { Name = "Group " .. s, Locations = {} }
-        end
-        afterSlots[s] = copy
-    end
-    for _, it in ipairs(inserts) do
-        local grp = afterSlots[it.slot]
-        grp.Locations[it.identifier] = grp.Locations[it.identifier] or {}
-        table.insert(grp.Locations[it.identifier], it.location)
-    end
-
-    local cmd = InsertBuildings.new(#inserts, beforeSlots, afterSlots)
-    state.history:apply(tmpl, cmd)
-    state.saveStatus = nil
-
-    -- Selection becomes the new copies. Same trick as `duplicateSelection`:
-    -- the copies sit at the END of each (slot, identifier) bucket post-apply.
-    local appendedPerSlotId = {}
-    for _, it in ipairs(inserts) do
-        appendedPerSlotId[it.slot] = appendedPerSlotId[it.slot] or {}
-        appendedPerSlotId[it.slot][it.identifier] = (appendedPerSlotId[it.slot][it.identifier] or 0) + 1
-    end
-    local newSel = {}
-    for slot, byId in pairs(appendedPerSlotId) do
-        for id, count in pairs(byId) do
-            local total = #(tmpl.Groups[slot].Locations[id] or {})
-            for k = total - count + 1, total do
-                newSel[selectionKey(slot, id, k)] = true
-            end
-        end
-    end
-    state.selection = newSel
-    state.selectionHistory:push(newSel)
 end
 
 --- Duplicate selected buildings, offset by 1 unit toward chunk center on

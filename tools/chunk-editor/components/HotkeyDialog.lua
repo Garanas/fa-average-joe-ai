@@ -4,13 +4,13 @@ local Util = require("util")
 -- block with a header and its items; greedy bin-packing puts each group into
 -- the currently-shortest column so column heights stay roughly equal.
 local HK_COLUMNS = 3
-local HK_ITEM_W = 240
+local HK_ITEM_W = 340
 local HK_ITEM_H = 18
 local HK_HEADER_H = 24
 local HK_GROUP_GAP = 8
 local HK_PADDING = 12
 local HK_KEY_OFFSET = 8     -- x-offset within the column where the key text starts
-local HK_NAME_OFFSET = 110  -- x-offset where the name text starts
+local HK_NAME_OFFSET = 150  -- x-offset where the name text starts
 
 ---@class LoveHotkeyDialog : LoveComponent
 ---@field ctx LoveAppContext
