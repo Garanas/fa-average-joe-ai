@@ -70,6 +70,44 @@ local function getLocation(tmpl, slot, identifier, index)
     return locs and locs[index]
 end
 
+--- Pure transform of a single saved (x, z) coord around the supplied pivot.
+--- Used by both the in-place transform (selection-centre pivot) and the
+--- duplicate transform (chunk-centre pivot). Names refer to the *coord* that
+--- changes, not the math axis of reflection — `flip-x` swaps left/right
+--- (X coord flips, Z stays); `flip-z` swaps top/bottom (Z coord flips).
+--- Rotation is in screen space: +X is right, +Z is down, so `rotate-cw`
+--- visually rotates clockwise.
+---@param transform "flip-x" | "flip-z" | "rotate-cw" | "rotate-ccw"
+---@param pivotX number
+---@param pivotZ number
+---@param x number
+---@param z number
+---@return number newX, number newZ
+local function applyTransform(transform, pivotX, pivotZ, x, z)
+    if transform == "flip-x" then
+        return 2 * pivotX - x, z
+    elseif transform == "flip-z" then
+        return x, 2 * pivotZ - z
+    elseif transform == "rotate-cw" then
+        return pivotX - (z - pivotZ), pivotZ + (x - pivotX)
+    elseif transform == "rotate-ccw" then
+        return pivotX + (z - pivotZ), pivotZ - (x - pivotX)
+    end
+    return x, z
+end
+
+local function selectionBboxCentre(items)
+    local minX, maxX = math.huge, -math.huge
+    local minZ, maxZ = math.huge, -math.huge
+    for _, it in ipairs(items) do
+        if it.fromX < minX then minX = it.fromX end
+        if it.fromX > maxX then maxX = it.fromX end
+        if it.fromZ < minZ then minZ = it.fromZ end
+        if it.fromZ > maxZ then maxZ = it.fromZ end
+    end
+    return (minX + maxX) / 2, (minZ + maxZ) / 2
+end
+
 ---@param ctx LoveAppContext
 ---@return LoveChunkCanvas
 function LoveChunkCanvas.new(ctx)
@@ -1062,6 +1100,103 @@ function LoveChunkCanvas:translateSelection(dx, dz)
             it.fromX + actualDX, it.fromZ + actualDZ
         ))
     end
+
+    local cmd = (#subs == 1) and subs[1] or Composite.new(subs)
+    state.history:apply(tmpl, cmd)
+    state.saveStatus = nil
+end
+
+--- Drop the selected buildings with the largest footprint area. Useful for
+--- quickly peeling factories or other oversized structures off a mixed
+--- selection — e.g. select-all in a chunk, then `shrinkSelection` to leave
+--- just the small stuff.
+---
+--- The metric is footprint area (`FootprintX * FootprintZ`); skirts are
+--- ignored. If every selected building shares the same footprint area, the
+--- whole selection is dropped (selection becomes empty). Identifiers without
+--- metadata are treated as 1×1.
+function LoveChunkCanvas:shrinkSelection()
+    local state = self.ctx.state
+    if not next(state.selection) then return end
+    local idents = state.identifiers or {}
+
+    local maxArea = 0
+    for key in pairs(state.selection) do
+        local _, id = parseSelectionKey(key)
+        if id then
+            local meta = idents[id] or {}
+            local area = (meta.FootprintX or 1) * (meta.FootprintZ or 1)
+            if area > maxArea then maxArea = area end
+        end
+    end
+
+    local newSel = {}
+    local dropped = 0
+    for key in pairs(state.selection) do
+        local _, id = parseSelectionKey(key)
+        if id then
+            local meta = idents[id] or {}
+            local area = (meta.FootprintX or 1) * (meta.FootprintZ or 1)
+            if area < maxArea then
+                newSel[key] = true
+            else
+                dropped = dropped + 1
+            end
+        end
+    end
+
+    if dropped == 0 then return end
+    state.selection = newSel
+    state.selectionHistory:push(newSel)
+end
+
+--- Transform every selected building in place. `pivot` chooses the centre
+--- of reflection / rotation:
+---   "selection" (default) — centre of the selection's saved-coord bounding
+---                            box. Pieces flip/rotate within the selection's
+---                            envelope; the envelope itself stays put.
+---   "chunk"               — geometric centre of the chunk. Useful for
+---                            "fold the whole layout across the chunk".
+---
+--- `transform` is one of:
+---   "flip-x"     — swap left/right (X flips, Z stays)
+---   "flip-z"     — swap top/bottom (Z flips, X stays)
+---   "rotate-cw"  — rotate 90° clockwise (visually, in screen space)
+---   "rotate-ccw" — rotate 90° counter-clockwise
+---
+--- Buildings keep their group membership and selection keys; only saved
+--- coords change. Emitted as a single `Composite` so the whole transform is
+--- one undoable step.
+---@param transform "flip-x" | "flip-z" | "rotate-cw" | "rotate-ccw"
+---@param pivot? "selection" | "chunk"
+function LoveChunkCanvas:transformSelection(transform, pivot)
+    local state = self.ctx.state
+    local tmpl = state.loadedTemplate
+    if not tmpl or not next(state.selection) then return end
+
+    local items = self:_buildDragItemsFromSelection(tmpl)
+    if #items == 0 then return end
+
+    local pivotX, pivotZ
+    if pivot == "chunk" then
+        local size = tmpl.Size or 16
+        pivotX = (size - 1) / 2
+        pivotZ = (size - 1) / 2
+    else
+        pivotX, pivotZ = selectionBboxCentre(items)
+    end
+
+    local subs = {}
+    for _, it in ipairs(items) do
+        local toX, toZ = applyTransform(transform, pivotX, pivotZ, it.fromX, it.fromZ)
+        if toX ~= it.fromX or toZ ~= it.fromZ then
+            table.insert(subs, MoveBuilding.new(
+                it.slot, it.identifier, it.index,
+                it.fromX, it.fromZ, toX, toZ
+            ))
+        end
+    end
+    if #subs == 0 then return end
 
     local cmd = (#subs == 1) and subs[1] or Composite.new(subs)
     state.history:apply(tmpl, cmd)

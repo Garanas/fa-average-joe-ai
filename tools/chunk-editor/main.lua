@@ -29,6 +29,21 @@ local TIMELINE_H = 76
 
 local SUPPORTED_SIZES = { 4, 8, 16, 32, 64, 128 }
 
+local FILENAME_HASH_CHARSET = "0123456789abcdefghijklmnopqrstuvwxyz"
+local FILENAME_HASH_LENGTH = 10
+
+--- Random alphanumeric suffix appended to the default save-as filename for a
+--- new chunk so two users authoring similar-purpose chunks ("T2 Power",
+--- "Defense Cluster") don't end up with colliding filenames.
+local function randomFilenameHash()
+    local chars = {}
+    for i = 1, FILENAME_HASH_LENGTH do
+        local idx = love.math.random(1, #FILENAME_HASH_CHARSET)
+        chars[i] = FILENAME_HASH_CHARSET:sub(idx, idx)
+    end
+    return table.concat(chars)
+end
+
 ---@param size integer
 ---@param direction integer  # +1 for next-larger, -1 for next-smaller
 ---@return integer?
@@ -151,7 +166,8 @@ local function createNewChunk(payload)
         Groups = { [1] = { Name = "default", Locations = {} } },
     }
 
-    local defaultName = (payload.name or "untitled"):gsub("%s+", "_") .. ".lua"
+    local sanitisedName = (payload.name or "untitled"):lower():gsub("%s+", "-")
+    local defaultName = sanitisedName .. "-" .. randomFilenameHash() .. ".lua"
     local path = FileDialog.saveFile(defaultDialogDir(), defaultName)
     if not path then return end
 
@@ -505,6 +521,8 @@ local actions = {
     deleteSelected = function() if canvas then canvas:deleteSelection() end end,
     duplicateSelected = function() if canvas then canvas:duplicateSelection() end end,
     translateSelection = function(dx, dz) if canvas then canvas:translateSelection(dx, dz) end end,
+    transformSelection = function(transform, pivot) if canvas then canvas:transformSelection(transform, pivot) end end,
+    shrinkSelection = function() if canvas then canvas:shrinkSelection() end end,
     addBuilding = function(id) if canvas then canvas:addBuilding(id) end end,
     detectOverlaps = function() if canvas then canvas:detectOverlaps() end end,
 }

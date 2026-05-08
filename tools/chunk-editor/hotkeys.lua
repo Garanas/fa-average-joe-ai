@@ -43,11 +43,12 @@ function M.bindings(actions)
         { group = "History",   keys = "ctrl+z",       name = "Undo",                fn = actions.undo },
         { group = "History",   keys = "ctrl+y",       name = "Redo",                fn = actions.redo },
         { group = "History",   keys = "ctrl+shift+z", name = "Redo",                fn = actions.redo },
-        { group = "View",      keys = "ctrl+up",      name = "Zoom in",             fn = actions.zoomIn },
-        { group = "View",      keys = "ctrl+down",    name = "Zoom out",            fn = actions.zoomOut },
+        { group = "View",      keys = "ctrl+=",       name = "Zoom in",             fn = actions.zoomIn },
+        { group = "View",      keys = "ctrl+-",       name = "Zoom out",            fn = actions.zoomOut },
         { group = "View",      keys = "home",         name = "Recenter",            fn = actions.recenter },
         { group = "Selection", keys = "tab",          name = "Next selection",      fn = actions.nextSelection },
         { group = "Selection", keys = "shift+tab",    name = "Previous selection",  fn = actions.prevSelection },
+        { group = "Selection", keys = "alt+-",        name = "Shrink selection",    fn = actions.shrinkSelection },
         { group = "Editing",   keys = "delete",       name = "Delete selection",    fn = actions.deleteSelected },
         { group = "Editing",   keys = "insert",       name = "Duplicate selection", fn = actions.duplicateSelected },
         { group = "Editing",   keys = "ctrl+e",       name = "Detect overlaps",     fn = actions.detectOverlaps },
@@ -59,6 +60,23 @@ function M.bindings(actions)
         { group = "Translate", keys = "shift+right",  name = "Translate right x4",  fn = function() actions.translateSelection(4, 0) end },
         { group = "Translate", keys = "shift+up",     name = "Translate up x4",     fn = function() actions.translateSelection(0, -4) end },
         { group = "Translate", keys = "shift+down",   name = "Translate down x4",   fn = function() actions.translateSelection(0, 4) end },
+        -- Mirror around the selection's own centre. Arrow direction is mnemonic:
+        -- ←/→ flip horizontally (X), ↑/↓ flip vertically (Z).
+        { group = "Transform", keys = "ctrl+left",        name = "Mirror selection horizontally",      fn = function() actions.transformSelection("flip-x", "selection") end },
+        { group = "Transform", keys = "ctrl+right",       name = "Mirror selection horizontally",      fn = function() actions.transformSelection("flip-x", "selection") end },
+        { group = "Transform", keys = "ctrl+up",          name = "Mirror selection vertically",        fn = function() actions.transformSelection("flip-z", "selection") end },
+        { group = "Transform", keys = "ctrl+down",        name = "Mirror selection vertically",        fn = function() actions.transformSelection("flip-z", "selection") end },
+
+        -- Mirror around the chunk centre. Same operation, different pivot — the selection
+        -- moves across the chunk so "build half, fold it" works in one keystroke.
+        { group = "Transform", keys = "ctrl+shift+left",  name = "Mirror across chunk X centre",       fn = function() actions.transformSelection("flip-x", "chunk") end },
+        { group = "Transform", keys = "ctrl+shift+right", name = "Mirror across chunk X centre",       fn = function() actions.transformSelection("flip-x", "chunk") end },
+        { group = "Transform", keys = "ctrl+shift+up",    name = "Mirror across chunk Z centre",       fn = function() actions.transformSelection("flip-z", "chunk") end },
+        { group = "Transform", keys = "ctrl+shift+down",  name = "Mirror across chunk Z centre",       fn = function() actions.transformSelection("flip-z", "chunk") end },
+
+        -- Rotate 90° around the selection's own centre. ←/→ pick direction.
+        { group = "Transform", keys = "ctrl+alt+left",    name = "Rotate selection 90° CCW",           fn = function() actions.transformSelection("rotate-ccw", "selection") end },
+        { group = "Transform", keys = "ctrl+alt+right",   name = "Rotate selection 90° CW",            fn = function() actions.transformSelection("rotate-cw",  "selection") end },
     }
 
     -- Control-group bindings: Ctrl+1..9, Ctrl+0 assign; 1..9, 0 select. Slot 10 = "0" key.
