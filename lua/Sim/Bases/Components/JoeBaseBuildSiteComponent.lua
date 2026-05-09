@@ -21,7 +21,7 @@ local StateColors = {
 ---@field Identifier JoeBuildingIdentifier   # The faction-agnostic role from the chunk template (e.g. "T1LandFactory").
 ---@field Unit? JoeUnit                      # The concrete unit, once one is assigned/built. nil until then.
 ---@field Leaf NavLeaf                       # The leaf this site belongs to (used for cascade-on-release).
----@field Claimed boolean                    # Transient reservation set by `BuildQueueComponent:RegisterBuildSite` and cleared on `RegisterUnit` or `FailJob`. Prevents two engineers from picking the same site between job claim and unit spawn.
+---@field Claimed boolean                    # Transient reservation set by `ConstructionQueueComponent:RegisterBuildSite` and cleared on `RegisterUnit` or `FailJob`. Prevents two engineers from picking the same site between job claim and unit spawn.
 ---@field Blocked boolean                    # Sticky flag set by engineer behaviors that gave up on the site (terrain formations, persistent obstruction). Stays until `Unblock` or leaf release.
 JoeBuildSite = ClassSimple {
 

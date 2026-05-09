@@ -5,7 +5,8 @@ local TableUtils = import("/mods/fa-joe-ai/lua/Shared/TableUtils.lua")
 
 local JoeBaseChunkComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseChunkComponent.lua").JoeBaseChunkComponent
 local JoeBaseBuildSiteComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseBuildSiteComponent.lua").JoeBaseBuildSiteComponent
-local JoeBaseBuildQueueComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseBuildQueueComponent.lua").JoeBaseBuildQueueComponent
+local JoeBaseConstructionQueueComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseConstructionQueueComponent.lua").JoeBaseConstructionQueueComponent
+local JoeBaseProductionQueueComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseProductionQueueComponent.lua").JoeBaseProductionQueueComponent
 
 local JoeBuildingIdentifierModule = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/JoeBuildingIdentifiers.lua")
 
@@ -33,7 +34,8 @@ local TableGetn = table.getn
 ---@field IdleBehavior BaseIdleBehavior
 ---@field ChunkComponent JoeBaseChunkComponent
 ---@field BuildSiteComponent JoeBaseBuildSiteComponent
----@field BuildQueueComponent JoeBaseBuildQueueComponent
+---@field ConstructionQueueComponent JoeBaseConstructionQueueComponent
+---@field ProductionQueueComponent JoeBaseProductionQueueComponent
 ---@field Units JoeUnit[]
 JoeBase = ClassSimple {
 
@@ -53,7 +55,8 @@ JoeBase = ClassSimple {
 
         self.ChunkComponent = JoeBaseChunkComponent(self)
         self.BuildSiteComponent = JoeBaseBuildSiteComponent(self)
-        self.BuildQueueComponent = JoeBaseBuildQueueComponent(self)
+        self.ConstructionQueueComponent = JoeBaseConstructionQueueComponent(self)
+        self.ProductionQueueComponent = JoeBaseProductionQueueComponent(self)
 
         self.Trash:Add(ForkThread(self.TickThread, self))
     end,
@@ -338,7 +341,7 @@ JoeBase = ClassSimple {
     TickThread = function(self)
         while true do
             self:RecycleEngineers()
-            self:ValidateBuildQueues()
+            self:ValidateQueues()
 
             WaitTicks(10)
         end
@@ -350,14 +353,20 @@ JoeBase = ClassSimple {
     ---------------------------------------------------------------------------
     --#region Periodic validation (cross-component coordination)
 
-    --- Runs each per-state validator on the build queue. The base owns the orchestration order so cross-component reconciliation (e.g. site state vs. job state) can grow here when invariants stretch beyond a single component.
+    --- Runs each per-state validator on both job queues. The base owns the orchestration order so cross-component reconciliation (e.g. site state vs. job state) can grow here when invariants stretch beyond a single component.
     ---@param self JoeBase
-    ValidateBuildQueues = function(self)
-        local queue = self.BuildQueueComponent
-        queue:ValidatePending()
-        queue:ValidateClaimed()
-        queue:ValidateBuilding()
-        queue:ValidateBuilt()
+    ValidateQueues = function(self)
+        local construction = self.ConstructionQueueComponent
+        construction:ValidatePending()
+        construction:ValidateClaimed()
+        construction:ValidateBuilding()
+        construction:ValidateBuilt()
+
+        local production = self.ProductionQueueComponent
+        production:ValidatePending()
+        production:ValidateClaimed()
+        production:ValidateBuilding()
+        production:ValidateBuilt()
     end,
 
     --#endregion

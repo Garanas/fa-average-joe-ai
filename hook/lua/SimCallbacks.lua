@@ -240,18 +240,81 @@ do
 
         local identifier = JoeBuildingIdentifierModule.MapToIdentifier(data.UnitId)
 
-        ---@type JoeBuildJobSpec
+        ---@type JoeConstructionJobSpec
         local spec = {
             Identifier = identifier,
             LocationHint = data.LocationHint,
         }
 
-        base.BuildQueueComponent:PushJob(spec)
+        base.ConstructionQueueComponent:PushJob(spec)
         print(
             "PushBuildJob:", data.UnitId,
             "->", identifier,
             data.LocationHint and "(with hint)" or "(no hint)",
-            "; queue size:", table.getn(base.BuildQueueComponent.Pending)
+            "; queue size:", table.getn(base.ConstructionQueueComponent.Pending)
+        )
+    end
+
+    ---@class JoeDebugPushProductionJobData
+    ---@field Location Vector
+    ---@field ArmyIndex number
+
+    --- Pushes one production job per selected unit onto the production queue of the base under the cursor. Each job's `UnitId` is the selected unit's own blueprint id, so the rule is "make more of what's selected." Base is resolved via the same two-step lookup as `JoeDebugAssignUnitsToBase` — unit-under-cursor first, leaf-under-cursor as fallback.
+    ---@param data JoeDebugPushProductionJobData
+    ---@param units JoeUnit[]
+    Callbacks.JoeDebugPushProductionJob = function(data, units)
+        if table.empty(units) then
+            print("No units selected")
+            return
+        end
+
+        local lx = data.Location[1]
+        local lz = data.Location[3]
+
+        -- 1. unit under mouse -> that unit's base
+        local base = nil
+        local nearby = GetUnitsInRect(lx - 2, lz - 2, lx + 2, lz + 2)
+        if nearby then
+            for k = 1, table.getn(nearby) do
+                local entity = nearby[k] --[[@as JoeUnit]]
+                if entity.JoeData and entity.JoeData.Base then
+                    base = entity.JoeData.Base
+                    break
+                end
+            end
+        end
+
+        -- 2. fallback: leaf under mouse -> its owning base
+        if not base then
+            local brain = GetArmyBrain(data.ArmyIndex) --[[@as JoeBrain]]
+            if brain and brain.ChunkComponent then
+                local leaf = brain.ChunkComponent:FindLeaf("Land", data.Location)
+                          or brain.ChunkComponent:FindLeaf("Water", data.Location)
+                if leaf then
+                    base = brain.ChunkComponent:GetOwner(leaf.Identifier)
+                end
+            end
+        end
+
+        if not base then
+            print("No base under cursor (no unit with a base, no claimed leaf)")
+            return
+        end
+
+        for k = 1, table.getn(units) do
+            local unit = units[k]
+            ---@type JoeProductionJobSpec
+            local spec = {
+                Category = categories[unit:GetUnitId()],
+                TechPreference = categories.ALLUNITS,
+                LocationHint = data.Location,
+            }
+            base.ProductionQueueComponent:PushJob(spec)
+        end
+
+        print(
+            "PushProductionJob: queued", table.getn(units),
+            "; queue size:", table.getn(base.ProductionQueueComponent.Pending)
         )
     end
 

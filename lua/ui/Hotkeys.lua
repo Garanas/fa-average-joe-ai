@@ -169,6 +169,12 @@ local BaseHotkeys = {
         name = "Joe AI - Push current command-mode unit as a build job with the cursor position as a hint",
         action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/Base/PushBuildJobAtCursor.lua").Handle()',
     },
+    {
+        category = KeyCategories.Base.Key,
+        key = 'average_joe_ai_push_production_job',
+        name = "Joe AI - Push selected units as production jobs on the base under cursor",
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/Base/PushProductionJob.lua").Handle()',
+    },
 }
 
 ---@type JoeHotkey[]

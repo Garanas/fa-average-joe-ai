@@ -9,7 +9,7 @@ The **brain** is the army-level coordinator. One brain per AI. It owns:
 
 ## Role: controller (army-level)
 
-The brain is the **army-level controller** in the model/controller framing (see the [top-level CLAUDE.md](../../../CLAUDE.md)). It reads state from its bases (`self.Bases`) and grids (`GridReclaim`, `GridRecon`, `GridPresence`) and pushes decisions back down — queueing jobs onto a base's `BuildQueueComponent`, dispatching roaming platoons, deciding when a base should expand. The brain doesn't store base-local state; it asks the base. Future brain components (threat / intel, expansion planner, resource budget) all sit on this side of the line: they decide, the base records.
+The brain is the **army-level controller** in the model/controller framing (see the [top-level CLAUDE.md](../../../CLAUDE.md)). It reads state from its bases (`self.Bases`) and grids (`GridReclaim`, `GridRecon`, `GridPresence`) and pushes decisions back down — queueing jobs onto a base's `ConstructionQueueComponent` (engineer-built structures) or `ProductionQueueComponent` (factory-built units), dispatching roaming platoons, deciding when a base should expand. The brain doesn't store base-local state; it asks the base. Future brain components (threat / intel, expansion planner, resource budget) all sit on this side of the line: they decide, the base records.
 
 ## Files in this tree
 
