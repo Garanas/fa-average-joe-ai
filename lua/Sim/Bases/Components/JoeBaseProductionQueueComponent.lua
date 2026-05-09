@@ -152,6 +152,39 @@ JoeBaseProductionQueueComponent = ClassSimple {
     --#endregion
 
     -----------------------------------------------------------------------------
+    --#region Debug logging
+
+    --- Dumps the queue contents to the log, one line per job across pending/active/complete, prefixed with the base id via `JoeBase:Log`. Cheap to call ad-hoc; not cheap enough to call per tick.
+    ---@param self JoeBaseProductionQueueComponent
+    LogState = function(self)
+        local base = self.Base
+        local pending = self.Pending
+        local active = self.Active
+        local complete = self.Complete
+        base:Log(string.format("ProductionQueue: pending=%d active=%d complete=%d",
+            TableGetn(pending), TableGetn(active), TableGetn(complete)))
+        for k = 1, TableGetn(pending) do
+            local job = pending[k]
+            base:Log(string.format("  pending[%d] category=%s tech=%s priority=%s delayed=%s",
+                k, tostring(job.Spec.Category), tostring(job.Spec.TechPreference),
+                tostring(job.Spec.Priority or 0), tostring(job.Delayed)))
+        end
+        for k = 1, TableGetn(active) do
+            local job = active[k]
+            local unitId = (job.Unit and job.Unit:GetUnitId()) or "?"
+            base:Log(string.format("  active[%d] state=%s factory=%s unit=%s",
+                k, job.State, tostring(job.Factory), tostring(unitId)))
+        end
+        for k = 1, TableGetn(complete) do
+            local job = complete[k]
+            local unitId = (job.Unit and job.Unit:GetUnitId()) or "?"
+            base:Log(string.format("  complete[%d] unit=%s", k, tostring(unitId)))
+        end
+    end,
+
+    --#endregion
+
+    -----------------------------------------------------------------------------
     --#region Per-state validation
     -- These methods are pure-storage maintenance: each handles the invariants of a single job state. `JoeBase` orchestrates the order in which they run from its own polling loop.
 

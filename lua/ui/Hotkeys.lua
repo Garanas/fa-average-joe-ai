@@ -175,6 +175,12 @@ local BaseHotkeys = {
         name = "Joe AI - Push selected units as production jobs on the base under cursor",
         action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/Base/PushProductionJob.lua").Handle()',
     },
+    {
+        category = KeyCategories.Base.Key,
+        key = 'average_joe_ai_log_base',
+        name = "Joe AI - Log the base under cursor and render it for 100 ticks",
+        action = 'UI_Lua import("/mods/fa-joe-ai/lua/ui/Actions/Base/LogBase.lua").Handle()',
+    },
 }
 
 ---@type JoeHotkey[]

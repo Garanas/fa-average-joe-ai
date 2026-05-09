@@ -97,6 +97,28 @@ JoeBaseChunkComponent = ClassSimple {
     --#endregion
 
     -----------------------------------------------------------------------------
+    --#region Debug logging
+
+    --- Dumps the component's claim list to the log, one line per leaf, prefixed with the base id via `JoeBase:Log`. Cheap to call ad-hoc; not cheap enough to call per tick.
+    ---@param self JoeBaseChunkComponent
+    LogState = function(self)
+        local base = self.Base
+        local count = 0
+        for _, _ in self.Leaves do
+            count = count + 1
+        end
+        base:Log(string.format("ChunkComponent: layer=%s minClaim=%d leaves=%d",
+            self.Layer, self.MinClaimSize, count))
+        for leafId, claim in self.Leaves do
+            local leaf = claim.Leaf
+            base:Log(string.format("  leaf #%d size=%d at=(%.1f, %.1f) chunkified=%s",
+                leafId, leaf.Size, leaf.px, leaf.pz, tostring(claim.Chunkified)))
+        end
+    end,
+
+    --#endregion
+
+    -----------------------------------------------------------------------------
     --#region Debug visualization
 
     --- Draws every claimed leaf, brighter when chunkified. Pure render — caller decides cadence (typically `JoeBase:Draw`).

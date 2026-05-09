@@ -401,6 +401,30 @@ JoeBase = ClassSimple {
         WARN(self:FormatMessage(message))
     end,
 
+    --- Dumps this base's full state to the log: a header line for the base itself, then each component's `LogState` (one log line per item in any list, prefixed with the base id via `Log`). Cheap enough to call from a debug hotkey; not cheap enough to call per tick.
+    ---@param self JoeBase
+    LogState = function(self)
+        self:Log(string.format("===== Base @ (%.1f, %.1f) =====",
+            self.Location[1], self.Location[3]))
+        self.ChunkComponent:LogState()
+        self.BuildSiteComponent:LogState()
+        self.ConstructionQueueComponent:LogState()
+        self.ProductionQueueComponent:LogState()
+        self:Log("")
+    end,
+
+    --- Forks a thread that calls `Draw` once per tick for `ticks` ticks, then exits. Trash-bagged so the burst dies with the base on `Retreat`. Multiple calls stack — each press of the debug hotkey starts an independent burst.
+    ---@param self JoeBase
+    ---@param ticks number
+    DrawForTicks = function(self, ticks)
+        self.Trash:Add(ForkThread(function()
+            for _ = 1, ticks do
+                self:Draw()
+                WaitTicks(1)
+            end
+        end))
+    end,
+
     --- A utility function that draws the current status quo. Composes per-aspect draw helpers so they can also be invoked individually.
     ---@param self JoeBase
     Draw = function(self)

@@ -264,6 +264,26 @@ JoeBaseBuildSiteComponent = ClassSimple {
     --#endregion
 
     -----------------------------------------------------------------------------
+    --#region Debug logging
+
+    --- Dumps the component's site list to the log, one line per site, prefixed with the base id via `JoeBase:Log`. Cheap to call ad-hoc; not cheap enough to call per tick.
+    ---@param self JoeBaseBuildSiteComponent
+    LogState = function(self)
+        local base = self.Base
+        local sites = self.Sites
+        local n = TableGetn(sites)
+        base:Log(string.format("BuildSiteComponent: sites=%d", n))
+        for k = 1, n do
+            local site = sites[k]
+            base:Log(string.format("  site[%d] %s at=(%.1f, %.1f) state=%s leaf=#%d",
+                k, tostring(site.Identifier), site.Point[1], site.Point[2],
+                site:GetState(), site.Leaf.Identifier))
+        end
+    end,
+
+    --#endregion
+
+    -----------------------------------------------------------------------------
     --#region Debug visualization
 
     --- Draws every build site this base owns. Pure render — caller decides cadence.

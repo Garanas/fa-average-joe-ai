@@ -254,6 +254,38 @@ JoeBaseConstructionQueueComponent = ClassSimple {
     --#endregion
 
     -----------------------------------------------------------------------------
+    --#region Debug logging
+
+    --- Dumps the queue contents to the log, one line per job across pending/active/complete, prefixed with the base id via `JoeBase:Log`. Cheap to call ad-hoc; not cheap enough to call per tick.
+    ---@param self JoeBaseConstructionQueueComponent
+    LogState = function(self)
+        local base = self.Base
+        local pending = self.Pending
+        local active = self.Active
+        local complete = self.Complete
+        base:Log(string.format("ConstructionQueue: pending=%d active=%d complete=%d",
+            TableGetn(pending), TableGetn(active), TableGetn(complete)))
+        for k = 1, TableGetn(pending) do
+            local job = pending[k]
+            base:Log(string.format("  pending[%d] id=%s priority=%s delayed=%s",
+                k, tostring(job.Spec.Identifier), tostring(job.Spec.Priority or 0),
+                tostring(job.Delayed)))
+        end
+        for k = 1, TableGetn(active) do
+            local job = active[k]
+            base:Log(string.format("  active[%d] id=%s state=%s engineers=%d",
+                k, tostring(job.Spec.Identifier), job.State, TableGetn(job.Engineers)))
+        end
+        for k = 1, TableGetn(complete) do
+            local job = complete[k]
+            base:Log(string.format("  complete[%d] id=%s",
+                k, tostring(job.Spec.Identifier)))
+        end
+    end,
+
+    --#endregion
+
+    -----------------------------------------------------------------------------
     --#region Per-state validation
     -- These methods are pure-storage maintenance: each handles the invariants of a single job state. `JoeBase` orchestrates the order in which they run from its own polling loop.
 

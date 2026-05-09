@@ -318,6 +318,32 @@ do
         )
     end
 
+    ---@class JoeDebugLogBaseData
+    ---@field Location Vector
+    ---@field ArmyIndex number
+
+    --- Dumps the state of the base under the cursor (`base:LogState()`) and starts a 100-tick draw burst (`base:DrawForTicks(100)`). Base resolution mirrors `JoeDebugAssignUnitsToBase` — unit-under-cursor first, leaf-under-cursor as fallback.
+    ---@param data JoeDebugLogBaseData
+    Callbacks.JoeDebugLogBase = function(data)
+        local base = nil
+        local brain = GetArmyBrain(data.ArmyIndex) --[[@as JoeBrain]]
+        if brain and brain.ChunkComponent then
+            local leaf = brain.ChunkComponent:FindLeaf("Land", data.Location)
+                        or brain.ChunkComponent:FindLeaf("Water", data.Location)
+            if leaf then
+                base = brain.ChunkComponent:GetOwner(leaf.Identifier)
+            end
+        end
+
+        if not base then
+            print("No base under cursor (no unit with a base, no claimed leaf)")
+            return
+        end
+
+        base:LogState()
+        base:DrawForTicks(100)
+    end
+
     ---@class JoeDebugAssignReclaimBehaviorData
     ---@field Location Vector
 
