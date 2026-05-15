@@ -1,0 +1,56 @@
+name: Package for FAForever vault
+
+on:
+    push:
+        branches:
+            - deploy/faforever-vault
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+jobs:
+    package:
+        name: Package mod
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout (with tags)
+              uses: actions/checkout@v6
+              with:
+                  fetch-depth: 0
+
+            - name: Read mod version
+              id: version
+              run: |
+                  version=$(grep -E '^version[[:space:]]*=' mod_info.lua \
+                      | sed -E 's/^version[[:space:]]*=[[:space:]]*"?([^"[:space:]]+)"?.*$/\1/')
+                  if [ -z "$version" ]; then
+                      echo "::error::Could not parse version from mod_info.lua"
+                      exit 1
+                  fi
+                  echo "Detected version: $version"
+                  echo "version=$version" >> "$GITHUB_OUTPUT"
+
+            - name: Verify version is bumped
+              env:
+                  VERSION: ${{ steps.version.outputs.version }}
+              run: |
+                  tag="v${VERSION}"
+                  if git rev-parse "refs/tags/${tag}" >/dev/null 2>&1; then
+                      echo "::error::Tag ${tag} already exists. Bump 'version' in mod_info.lua before deploying."
+                      exit 1
+                  fi
+                  echo "No existing tag for ${tag} - proceeding."
+
+            - name: Upload mod artifact
+              uses: actions/upload-artifact@v6
+              with:
+                  name: fa-joe-ai-v${{ steps.version.outputs.version }}
+                  if-no-files-found: error
+                  path: |
+                      hook/
+                      lua/
+                      textures/
+                      mod_info.lua
+                      thumbnail.png
+                      LICENSE
