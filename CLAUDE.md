@@ -63,6 +63,9 @@ local StringLen = string.len
 - EmmyLua-style: `---@class`, `---@field`, `---@param`, `---@return`, `---@type`, `---@alias`.
 - Mod-specific aliases (`JoeUnit`, `JoeBrain`, `JoeBuildingIdentifier`, …) are defined alongside the code that owns them. Reuse existing aliases instead of inventing parallel ones.
 
+### Comments
+Read [ADR 0001: Comment style](docs/adr/0001-comment-style.md) before writing or modifying any comments. It governs density, voice, EmmyLua application, in-body details, section banners, and forbidden shapes.
+
 ### Class systems
 - `Class()` — full classes with metatable inheritance and lifecycle hooks (`OnCreate` / `OnDestroy`). Use for engine-integrated objects: units, platoons, behaviors.
 - `ClassSimple()` — plain data classes without engine machinery. Use for managers, registries, value objects (e.g. [`JoeBaseChunkLoader`](lua/Shared/BaseChunks/JoeBaseChunkLoader.lua)).
