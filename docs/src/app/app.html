@@ -1,9 +1,13 @@
 <div class="flex min-h-screen flex-col">
-    <header class="flex items-center justify-between border-b border-border bg-surface px-6 py-4">
-        <a class="font-semibold tracking-tight text-text no-underline" routerLink="/">fa-joe-ai</a>
-        <nav class="text-sm">
-            <a class="text-muted no-underline hover:text-accent" href="https://github.com/FAForever/" target="_blank" rel="noopener">FAF</a>
-        </nav>
+    <header class="flex items-center justify-between gap-4 border-b border-border bg-surface px-6 py-3">
+        <a class="font-display text-lg font-semibold tracking-tight text-text no-underline" routerLink="/">
+            fa-joe-ai
+        </a>
+        <div class="flex items-center gap-2">
+            <app-theme-switcher />
+            <app-color-scheme-toggle />
+            <app-faf-link />
+        </div>
     </header>
     <main class="flex-1">
         <router-outlet />
