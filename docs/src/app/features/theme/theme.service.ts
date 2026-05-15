@@ -6,19 +6,31 @@ import { DEFAULT_FACTION, FACTIONS, FactionId, isFactionId } from './faction-the
 const STORAGE_KEY = 'fa-joe-ai-faction-theme';
 
 /**
- * Custom-property names + their corresponding texture filenames inside
- * /factions/<id>/minimap-border/. The pattern is identical per faction, so
- * dropping a new faction's textures into that path is all it takes.
+ * Custom-property names + their texture paths within /factions/<id>/.
+ * The directory structure and filenames are identical per faction, so
+ * dropping a new faction's textures into the same paths is all it takes.
  */
-const FRAME_ASSETS: readonly { property: string; file: string }[] = [
-    { property: '--frame-ul', file: 'mini-map-glow_brd_ul.png' },
-    { property: '--frame-ur', file: 'mini-map-glow_brd_ur.png' },
-    { property: '--frame-ll', file: 'mini-map-glow_brd_ll.png' },
-    { property: '--frame-lr', file: 'mini-map-glow_brd_lr.png' },
-    { property: '--frame-top', file: 'mini-map-glow_brd_horz_um.png' },
-    { property: '--frame-bottom', file: 'mini-map-glow_brd_lm.png' },
-    { property: '--frame-left', file: 'mini-map-glow_brd_vert_l.png' },
-    { property: '--frame-right', file: 'mini-map-glow_brd_vert_r.png' }
+interface FrameAsset {
+    property: string;
+    /** Path under /factions/<id>/, with leading slash. */
+    path: string;
+}
+
+const FRAME_ASSETS: readonly FrameAsset[] = [
+    { property: '--frame-ul', path: '/minimap-border/mini-map-glow_brd_ul.png' },
+    { property: '--frame-ur', path: '/minimap-border/mini-map-glow_brd_ur.png' },
+    { property: '--frame-ll', path: '/minimap-border/mini-map-glow_brd_ll.png' },
+    { property: '--frame-lr', path: '/minimap-border/mini-map-glow_brd_lr.png' },
+    { property: '--frame-top', path: '/minimap-border/mini-map-glow_brd_horz_um.png' },
+    { property: '--frame-bottom', path: '/minimap-border/mini-map-glow_brd_lm.png' },
+    { property: '--frame-left', path: '/minimap-border/mini-map-glow_brd_vert_l.png' },
+    { property: '--frame-right', path: '/minimap-border/mini-map-glow_brd_vert_r.png' },
+    { property: '--bracket-left-t', path: '/bracket-left/bracket_bmp_t.png' },
+    { property: '--bracket-left-m', path: '/bracket-left/bracket_bmp_m.png' },
+    { property: '--bracket-left-b', path: '/bracket-left/bracket_bmp_b.png' },
+    { property: '--bracket-right-t', path: '/bracket-right/bracket_bmp_t.png' },
+    { property: '--bracket-right-m', path: '/bracket-right/bracket_bmp_m.png' },
+    { property: '--bracket-right-b', path: '/bracket-right/bracket_bmp_b.png' }
 ];
 
 @Injectable({ providedIn: 'root' })
@@ -59,10 +71,8 @@ export class ThemeService {
      */
     private applyFrameAssets(faction: FactionId): void {
         const root = document.documentElement;
-        for (const { property, file } of FRAME_ASSETS) {
-            const href = this.location.prepareExternalUrl(
-                `/factions/${faction}/minimap-border/${file}`
-            );
+        for (const { property, path } of FRAME_ASSETS) {
+            const href = this.location.prepareExternalUrl(`/factions/${faction}${path}`);
             root.style.setProperty(property, `url("${href}")`);
         }
     }
