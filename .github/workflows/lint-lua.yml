@@ -27,7 +27,9 @@ jobs:
               run: apk add bash git findutils
 
             - name: Checkout
-              uses: actions/checkout@v6
+              # Pinned to v4 (Node 20) because v5/v6 use Node 24's Alpine binary,
+              # which requires a newer musl symbol than faforever/lua:v5.0-1 ships.
+              uses: actions/checkout@v4
               with:
                   sparse-checkout: |
                       lua
