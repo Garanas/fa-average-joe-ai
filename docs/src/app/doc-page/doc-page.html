@@ -1,12 +1,32 @@
 @if (entry(); as doc) {
     <article class="mx-auto max-w-3xl px-6 pt-8 pb-16">
         <header class="mb-8 border-b border-border pb-5">
-            <a class="mb-4 inline-block text-sm text-muted no-underline hover:text-accent" routerLink="/">&larr; All documents</a>
+            <a class="mb-4 inline-block text-sm text-muted no-underline hover:text-accent" routerLink="/">
+                &larr; All documents
+            </a>
             <h1 class="font-display text-4xl font-semibold tracking-tight">{{ doc.title }}</h1>
             @if (doc.summary) {
                 <p class="mt-3 text-[1.0625rem] leading-relaxed text-muted">{{ doc.summary }}</p>
             }
+            @if (doc.date || doc.author) {
+                <p class="mt-3 text-sm text-muted">
+                    @if (doc.date) {
+                        <time [attr.datetime]="doc.date">{{ doc.date | date: 'longDate' }}</time>
+                    }
+                    @if (doc.date && doc.author) {
+                        <span aria-hidden="true"> &middot; </span>
+                    }
+                    @if (doc.author) {
+                        <span>by {{ doc.author }}</span>
+                    }
+                </p>
+            }
         </header>
+
+        @if (doc.release) {
+            <app-release-embed class="mb-8 block" [tag]="releaseTag(doc)" />
+        }
+
         <markdown class="prose" [src]="src()!"></markdown>
     </article>
 } @else {

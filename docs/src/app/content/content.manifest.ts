@@ -2,6 +2,12 @@ export interface DocCategory {
     id: string;
     label: string;
     order: number;
+    sort: 'manual' | 'newest-first';
+}
+
+export interface ReleaseEmbedSpec {
+    /** Tag name to fetch, or omit for the repository's latest release. */
+    tag?: string;
 }
 
 export interface DocEntry {
@@ -11,14 +17,45 @@ export interface DocEntry {
     summary?: string;
     file: string;
     order: number;
+    /** ISO date string (YYYY-MM-DD). Required for blog posts. */
+    date?: string;
+    author?: string;
+    release?: ReleaseEmbedSpec;
 }
 
 export const DOC_CATEGORIES: readonly DocCategory[] = [
-    { id: 'adr', label: 'Architecture Decisions', order: 10 },
-    { id: 'internals', label: 'How the AI Works', order: 20 }
+    { id: 'blog', label: 'Blog', order: 5, sort: 'newest-first' },
+    { id: 'adr', label: 'Architecture Decisions', order: 10, sort: 'manual' },
+    { id: 'internals', label: 'How the AI Works', order: 20, sort: 'manual' }
 ];
 
 export const DOC_ENTRIES: readonly DocEntry[] = [
+    // ----- Blog --------------------------------------------------------------
+
+    {
+        category: 'blog',
+        slug: '2026-05-15-v0-1-release',
+        title: 'v0.1 — first playable release',
+        summary: 'The first tagged release is out: cleaner boot, smarter openings, and engineers that actually reclaim wrecks.',
+        file: 'blog/2026-05-15-v0-1-release.md',
+        order: 0,
+        date: '2026-05-15',
+        author: 'Jip',
+        release: { tag: 'v0.1' }
+    },
+    {
+        category: 'blog',
+        slug: '2026-04-20-build-system-refactor',
+        title: 'Build system refactor: from imperative to declarative',
+        summary: 'Engineers used to walk through a hand-coded checklist. Now they pull jobs off a queue and the rule lives in one place.',
+        file: 'blog/2026-04-20-build-system-refactor.md',
+        order: 0,
+        date: '2026-04-20',
+        author: 'Jip'
+    },
+
+    // ----- ADRs --------------------------------------------------------------
+
     {
         category: 'adr',
         slug: '0001-comment-style',
@@ -51,6 +88,9 @@ export const DOC_ENTRIES: readonly DocEntry[] = [
         file: 'adr/0004-theme-tokens-in-ts.md',
         order: 4
     },
+
+    // ----- Internals ---------------------------------------------------------
+
     {
         category: 'internals',
         slug: 'brain-overview',
@@ -100,10 +140,18 @@ export function findDoc(category: string, slug: string): DocEntry | undefined {
 export function docsByCategory(): { category: DocCategory; entries: DocEntry[] }[] {
     return DOC_CATEGORIES.map((category) => ({
         category,
-        entries: DOC_ENTRIES.filter((entry) => entry.category === category.id).sort(
-            (a, b) => a.order - b.order
+        entries: sortEntries(
+            category,
+            DOC_ENTRIES.filter((entry) => entry.category === category.id)
         )
     })).sort((a, b) => a.category.order - b.category.order);
+}
+
+function sortEntries(category: DocCategory, entries: DocEntry[]): DocEntry[] {
+    if (category.sort === 'newest-first') {
+        return [...entries].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
+    }
+    return [...entries].sort((a, b) => a.order - b.order);
 }
 
 export function docAssetPath(entry: DocEntry): string {
