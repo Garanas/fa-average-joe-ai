@@ -12,7 +12,7 @@ import { docAssetPath, findDoc } from '../content/content.manifest';
     imports: [MarkdownComponent, RouterLink],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './doc-page.html',
-    styleUrl: './doc-page.css'
+    host: { class: 'block' }
 })
 export class DocPage {
     private readonly location = inject(Location);

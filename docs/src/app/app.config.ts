@@ -2,6 +2,7 @@ import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withFetch } from '@angular/common/http';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { MARKED_OPTIONS, provideMarkdown } from 'ngx-markdown';
 
 import { routes } from './app.routes';
@@ -15,6 +16,7 @@ export const appConfig: ApplicationConfig = {
         ),
         provideClientHydration(withEventReplay()),
         provideHttpClient(withFetch()),
+        provideAnimationsAsync(),
         provideMarkdown({
             markedOptions: {
                 provide: MARKED_OPTIONS,

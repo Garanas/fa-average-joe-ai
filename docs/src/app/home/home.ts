@@ -9,7 +9,7 @@ import { docsByCategory } from '../content/content.manifest';
     imports: [RouterLink],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './home.html',
-    styleUrl: './home.css'
+    host: { class: 'block' }
 })
 export class Home {
     protected readonly groups = docsByCategory();

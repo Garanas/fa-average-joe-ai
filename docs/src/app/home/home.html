@@ -1,30 +1,33 @@
-<section class="home">
-    <header class="home__intro">
-        <h1>fa-joe-ai</h1>
-        <p>
+<section class="mx-auto max-w-3xl px-6 pt-8 pb-16">
+    <header class="mb-10 border-b border-border pb-6">
+        <h1 class="mb-2 text-5xl font-medium leading-none tracking-tight">fa-joe-ai</h1>
+        <p class="text-[1.0625rem] leading-relaxed text-muted">
             The "Average Joe AI" mod for Supreme Commander: Forged Alliance Forever &mdash;
             a thematic AI built on FAF's <code>AIBrain</code> extension surface.
         </p>
     </header>
 
     @for (group of groups; track group.category.id) {
-        <section class="home__group">
-            <h2>{{ group.category.label }}</h2>
+        <section class="mb-10">
+            <h2 class="mb-4 text-xl font-medium">{{ group.category.label }}</h2>
             @if (group.entries.length) {
-                <ul class="home__list">
+                <ul class="grid list-none gap-2 p-0">
                     @for (entry of group.entries; track entry.slug) {
-                        <li class="home__item">
-                            <a [routerLink]="['/docs', entry.category, entry.slug]">
-                                <span class="home__item-title">{{ entry.title }}</span>
+                        <li>
+                            <a
+                                class="block rounded-lg border border-border px-4 py-3.5 text-inherit no-underline transition-colors hover:border-accent hover:bg-surface"
+                                [routerLink]="['/docs', entry.category, entry.slug]"
+                            >
+                                <span class="block font-medium">{{ entry.title }}</span>
                                 @if (entry.summary) {
-                                    <span class="home__item-summary">{{ entry.summary }}</span>
+                                    <span class="mt-1 block text-[0.9375rem] text-muted">{{ entry.summary }}</span>
                                 }
                             </a>
                         </li>
                     }
                 </ul>
             } @else {
-                <p class="home__empty">Nothing here yet.</p>
+                <p class="italic text-muted">Nothing here yet.</p>
             }
         </section>
     }

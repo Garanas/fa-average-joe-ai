@@ -6,6 +6,6 @@ import { RouterLink, RouterOutlet } from '@angular/router';
     imports: [RouterOutlet, RouterLink],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './app.html',
-    styleUrl: './app.css'
+    host: { class: 'block' }
 })
 export class App {}

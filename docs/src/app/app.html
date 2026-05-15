@@ -1,14 +1,14 @@
-<div class="shell">
-    <header class="shell__header">
-        <a class="shell__brand" routerLink="/">fa-joe-ai</a>
-        <nav class="shell__nav">
-            <a href="https://github.com/FAForever/" target="_blank" rel="noopener">FAF</a>
+<div class="flex min-h-screen flex-col">
+    <header class="flex items-center justify-between border-b border-border bg-surface px-6 py-4">
+        <a class="font-semibold tracking-tight text-text no-underline" routerLink="/">fa-joe-ai</a>
+        <nav class="text-sm">
+            <a class="text-muted no-underline hover:text-accent" href="https://github.com/FAForever/" target="_blank" rel="noopener">FAF</a>
         </nav>
     </header>
-    <main class="shell__main">
+    <main class="flex-1">
         <router-outlet />
     </main>
-    <footer class="shell__footer">
+    <footer class="border-t border-border px-6 py-4 text-center text-muted">
         <small>Average Joe AI &mdash; documentation</small>
     </footer>
 </div>
