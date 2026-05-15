@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { HeroBanner } from '../hero-banner/hero-banner';
-import { docsByCategory } from '../content/content.manifest';
+import { HeroBanner } from '../theme/hero-banner';
+import { docsByCategory } from '../docs/content.manifest';
 
 @Component({
     selector: 'app-home',

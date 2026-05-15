@@ -1,6 +1,6 @@
 import { RenderMode, ServerRoute } from '@angular/ssr';
 
-import { DOC_ENTRIES } from './content/content.manifest';
+import { DOC_ENTRIES } from './features/docs/content.manifest';
 
 export const serverRoutes: ServerRoute[] = [
     {

@@ -4,8 +4,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { DatePipe, Location } from '@angular/common';
 import { MarkdownComponent } from 'ngx-markdown';
 
-import { DocEntry, docAssetPath, findDoc } from '../content/content.manifest';
-import { ReleaseEmbed } from '../release-embed/release-embed';
+import { DocEntry, docAssetPath, findDoc } from './content.manifest';
+import { ReleaseEmbed } from './release-embed';
 
 @Component({
     selector: 'app-doc-page',

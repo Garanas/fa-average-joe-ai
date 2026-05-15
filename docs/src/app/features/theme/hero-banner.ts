@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { Location } from '@angular/common';
 
-import { findFaction } from '../theme/faction-theme';
-import { ThemeService } from '../theme/theme.service';
+import { findFaction } from './faction-theme';
+import { ThemeService } from './theme.service';
 
 @Component({
     selector: 'app-hero-banner',

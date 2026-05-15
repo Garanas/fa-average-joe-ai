@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 
-import { ColorSchemeToggle } from './theme/color-scheme-toggle';
-import { FafLink } from './theme/faf-link';
-import { ThemeSwitcher } from './theme/theme-switcher';
+import { ColorSchemeToggle } from '../features/theme/color-scheme-toggle';
+import { FafLink } from '../features/theme/faf-link';
+import { ThemeSwitcher } from '../features/theme/theme-switcher';
 
 @Component({
     selector: 'app-root',
