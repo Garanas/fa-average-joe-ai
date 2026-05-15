@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { Location } from '@angular/common';
 import { MarkdownComponent } from 'ngx-markdown';
 
-import { docUrl, findDoc } from '../content/content.manifest';
+import { docAssetPath, findDoc } from '../content/content.manifest';
 
 @Component({
     selector: 'app-doc-page',
@@ -14,6 +15,7 @@ import { docUrl, findDoc } from '../content/content.manifest';
     styleUrl: './doc-page.css'
 })
 export class DocPage {
+    private readonly location = inject(Location);
     private readonly params = toSignal(inject(ActivatedRoute).paramMap, { requireSync: true });
 
     protected readonly entry = computed(() => {
@@ -28,6 +30,6 @@ export class DocPage {
 
     protected readonly src = computed(() => {
         const entry = this.entry();
-        return entry ? docUrl(entry) : undefined;
+        return entry ? this.location.prepareExternalUrl(docAssetPath(entry)) : undefined;
     });
 }

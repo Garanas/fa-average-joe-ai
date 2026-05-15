@@ -42,7 +42,7 @@ export function docsByCategory(): { category: DocCategory; entries: DocEntry[] }
     })).sort((a, b) => a.category.order - b.category.order);
 }
 
-export function docUrl(entry: DocEntry): string {
+export function docAssetPath(entry: DocEntry): string {
     return `/content/${entry.file}`;
 }
 
