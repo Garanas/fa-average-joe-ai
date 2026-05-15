@@ -7,10 +7,10 @@ local JoeBuildingIdentifierModule = import("/mods/fa-joe-ai/lua/Shared/BaseChunk
 --- Per-assist-behavior runtime state. Stashed on `self.BehaviorState` so a state's `Main` can read what previous states resolved without recomputing.
 ---@class AIAssistBehaviorState
 ---@field Engineer JoeUnit          # The Support engineer this behavior assists with.
----@field Base JoeBase              # The base whose `BuildQueueComponent` we're watching.
----@field Job? JoeBuildJob          # The currently-assisted job. Nil when in `WaitForTarget`.
+---@field Base JoeBase              # The base whose `ConstructionQueueComponent` we're watching.
+---@field Job? JoeConstructionJob          # The currently-assisted job. Nil when in `WaitForTarget`.
 
---- Engineer behavior that piggy-backs on someone else's build. The platoon's Support engineer never claims a job itself — it watches the base's `BuildQueueComponent` for `Building`-state jobs that still have assistant capacity, joins as an assistant, and `IssueGuard`s the claimer engineer so the engine takes care of helping with construction.
+--- Engineer behavior that piggy-backs on someone else's build. The platoon's Support engineer never claims a job itself — it watches the base's `ConstructionQueueComponent` for `Building`-state jobs that still have assistant capacity, joins as an assistant, and `IssueGuard`s the claimer engineer so the engine takes care of helping with construction.
 ---
 --- When the assisted job ends (the unit was completed, destroyed, or the job otherwise leaves `Building` state) the assistant leaves and looks for a new target. The factory-assist case will be handled by an upcoming structure manager — for now the assist behavior is purely build-job-shaped.
 ---@class AIAssistBehavior : AIPlatoonBehavior
@@ -58,7 +58,7 @@ AssistBehavior = Class(AIPlatoonBehavior) {
         Main = function(self)
             local engineer = self.BehaviorState.Engineer
             local base = self.BehaviorState.Base
-            local job = base.BuildQueueComponent:FindAssistTarget()
+            local job = base.ConstructionQueueComponent:FindAssistTarget()
 
             if not job then
                 self:ChangeState(self.WaitForTarget)
@@ -66,7 +66,7 @@ AssistBehavior = Class(AIPlatoonBehavior) {
             end
 
             -- Race protection: another assistant may have just filled the slot.
-            if not base.BuildQueueComponent:JoinAsAssistant(job, engineer) then
+            if not base.ConstructionQueueComponent:JoinAsAssistant(job, engineer) then
                 self:ChangeState(self.WaitForTarget)
                 return
             end
@@ -99,7 +99,7 @@ AssistBehavior = Class(AIPlatoonBehavior) {
 
         ---@param self AIAssistBehavior
         Main = function(self)
-            local job = self.BehaviorState.Job --[[@as JoeBuildJob]]
+            local job = self.BehaviorState.Job --[[@as JoeConstructionJob]]
             local site = job.BuildSite
 
             if not site then
@@ -218,7 +218,7 @@ AssistBehavior = Class(AIPlatoonBehavior) {
             local base = self.BehaviorState.Base
 
             if job and engineer then
-                base.BuildQueueComponent:LeaveJob(job, engineer)
+                base.ConstructionQueueComponent:LeaveJob(job, engineer)
             end
 
             IssueClearCommands(self:GetPlatoonUnits())

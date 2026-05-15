@@ -46,12 +46,12 @@ end
 --- Per-build-behavior runtime state. Stashed on `self.BehaviorState` so a state's `Main` can read what previous states resolved without recomputing. Fields populated as the behavior progresses; the optional ones are nil between jobs.
 ---@class AIBuildBehaviorState
 ---@field Engineer JoeUnit          # The platoon's primary engineer (the queue claimer).
----@field Base JoeBase              # The base whose `BuildQueueComponent` we're draining.
----@field Job? JoeBuildJob          # The currently-claimed job. Nil when in `WaitForJob`.
+---@field Base JoeBase              # The base whose `ConstructionQueueComponent` we're draining.
+---@field Job? JoeConstructionJob          # The currently-claimed job. Nil when in `WaitForJob`.
 ---@field Site? JoeBuildSite        # The resolved build site for the current job.
 ---@field UnitId? UnitId            # The faction-specific unit id resolved from the job's identifier.
 
---- Queue-driven build behavior. The platoon's engineers loop through jobs from the base's `BuildQueueComponent`, claiming and building one structure at a time. The platoon stays alive between jobs; an empty queue parks it in `WaitForJob`.
+--- Queue-driven build behavior. The platoon's engineers loop through jobs from the base's `ConstructionQueueComponent`, claiming and building one structure at a time. The platoon stays alive between jobs; an empty queue parks it in `WaitForJob`.
 ---
 --- There is no dedicated "Support" squad — engineers in the platoon (any squad) participate in the build via `GetPlatoonUnits`. Other engineers are free to assist via the separate `AssistBehavior`.
 ---
@@ -99,7 +99,7 @@ BuildBehavior = Class(AIPlatoonBehavior) {
             local engineer = self.BehaviorState.Engineer
             local base = self.BehaviorState.Base
 
-            local job = base.BuildQueueComponent:ClaimJob(engineer)
+            local job = base.ConstructionQueueComponent:ClaimJob(engineer)
 
             if not job then
                 self:ChangeState(self.WaitForJob)
@@ -129,7 +129,7 @@ BuildBehavior = Class(AIPlatoonBehavior) {
         ---@param self AIBuildBehavior
         Main = function(self)
             -- Job is non-nil here: we only enter this state via AcquireJob's success path.
-            local job = self.BehaviorState.Job --[[@as JoeBuildJob]]
+            local job = self.BehaviorState.Job --[[@as JoeConstructionJob]]
             local base = self.BehaviorState.Base
             local engineer = self.BehaviorState.Engineer
             local brain = self:GetBrain()
@@ -138,7 +138,7 @@ BuildBehavior = Class(AIPlatoonBehavior) {
             local unitId = ResolveUnitIdForBuilder(job.Spec.Identifier, engineer)
             if not unitId then
                 self:Warn('No faction-specific unit for ' .. tostring(job.Spec.Identifier))
-                base.BuildQueueComponent:FailJob(job, false)
+                base.ConstructionQueueComponent:FailJob(job, false)
                 self:ChangeState(self.AcquireJob)
                 return
             end
@@ -146,7 +146,7 @@ BuildBehavior = Class(AIPlatoonBehavior) {
             local blueprint = __blueprints[unitId]
             if not blueprint then
                 self:Warn('No blueprint for ' .. tostring(unitId))
-                base.BuildQueueComponent:FailJob(job, false)
+                base.ConstructionQueueComponent:FailJob(job, false)
                 self:ChangeState(self.AcquireJob)
                 return
             end
@@ -157,7 +157,7 @@ BuildBehavior = Class(AIPlatoonBehavior) {
             local sites = base:AcquireBuildSitesForIdentifier(job.Spec.Identifier)
             if table.empty(sites) then
                 self:Warn('No build site for ' .. tostring(job.Spec.Identifier))
-                base.BuildQueueComponent:FailJob(job, false)
+                base.ConstructionQueueComponent:FailJob(job, false)
                 self:ChangeState(self.AcquireJob)
                 return
             end
@@ -171,7 +171,7 @@ BuildBehavior = Class(AIPlatoonBehavior) {
                 return
             end
 
-            base.BuildQueueComponent:RegisterBuildSite(job, site)
+            base.ConstructionQueueComponent:RegisterBuildSite(job, site)
             self.BehaviorState.Site = site
 
             self:ChangeState(self.ClearBuildSite)
@@ -231,9 +231,9 @@ BuildBehavior = Class(AIPlatoonBehavior) {
         ---@param order string
         OnStartBuild = function(self, unit, target, order)
             -- Job is non-nil while in WaitForConstruction.
-            local job = self.BehaviorState.Job --[[@as JoeBuildJob]]
+            local job = self.BehaviorState.Job --[[@as JoeConstructionJob]]
             local base = self.BehaviorState.Base
-            base.BuildQueueComponent:RegisterUnit(job, target --[[@as JoeUnit]])
+            base.ConstructionQueueComponent:RegisterUnit(job, target --[[@as JoeUnit]])
         end,
 
         --- Fires when the engineer stops building (success, interruption, or target lost). Distinguish the cases via the target's fraction-complete and destroyed flags.
@@ -243,24 +243,24 @@ BuildBehavior = Class(AIPlatoonBehavior) {
         ---@param order string
         OnStopBuild = function(self, unit, target, order)
             -- Job is non-nil while in WaitForConstruction.
-            local job = self.BehaviorState.Job --[[@as JoeBuildJob]]
+            local job = self.BehaviorState.Job --[[@as JoeConstructionJob]]
             local base = self.BehaviorState.Base
 
             if (not target) or IsDestroyed(target) or target.Dead then
                 self:Warn('Build target destroyed mid-construction')
-                base.BuildQueueComponent:FailJob(job, true)
+                base.ConstructionQueueComponent:FailJob(job, true)
                 self:ChangeState(self.AcquireJob)
                 return
             end
 
             if target:GetFractionComplete() < 1.0 then
                 self:Log('Build interrupted (fraction < 1)')
-                base.BuildQueueComponent:FailJob(job, true)
+                base.ConstructionQueueComponent:FailJob(job, true)
                 self:ChangeState(self.AcquireJob)
                 return
             end
 
-            base.BuildQueueComponent:CompleteJob(job)
+            base.ConstructionQueueComponent:CompleteJob(job)
             self:ChangeState(self.AcquireJob)
         end,
     },

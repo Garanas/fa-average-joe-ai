@@ -21,7 +21,7 @@ local StateColors = {
 ---@field Identifier JoeBuildingIdentifier   # The faction-agnostic role from the chunk template (e.g. "T1LandFactory").
 ---@field Unit? JoeUnit                      # The concrete unit, once one is assigned/built. nil until then.
 ---@field Leaf NavLeaf                       # The leaf this site belongs to (used for cascade-on-release).
----@field Claimed boolean                    # Transient reservation set by `BuildQueueComponent:RegisterBuildSite` and cleared on `RegisterUnit` or `FailJob`. Prevents two engineers from picking the same site between job claim and unit spawn.
+---@field Claimed boolean                    # Transient reservation set by `ConstructionQueueComponent:RegisterBuildSite` and cleared on `RegisterUnit` or `FailJob`. Prevents two engineers from picking the same site between job claim and unit spawn.
 ---@field Blocked boolean                    # Sticky flag set by engineer behaviors that gave up on the site (terrain formations, persistent obstruction). Stays until `Unblock` or leaf release.
 JoeBuildSite = ClassSimple {
 
@@ -258,6 +258,26 @@ JoeBaseBuildSiteComponent = ClassSimple {
                 sites[head] = site
                 head = head + 1
             end
+        end
+    end,
+
+    --#endregion
+
+    -----------------------------------------------------------------------------
+    --#region Debug logging
+
+    --- Dumps the component's site list to the log, one line per site, prefixed with the base id via `JoeBase:Log`. Cheap to call ad-hoc; not cheap enough to call per tick.
+    ---@param self JoeBaseBuildSiteComponent
+    LogState = function(self)
+        local base = self.Base
+        local sites = self.Sites
+        local n = TableGetn(sites)
+        base:Log(string.format("BuildSiteComponent: sites=%d", n))
+        for k = 1, n do
+            local site = sites[k]
+            base:Log(string.format("  site[%d] %s at=(%.1f, %.1f) state=%s leaf=#%d",
+                k, tostring(site.Identifier), site.Point[1], site.Point[2],
+                site:GetState(), site.Leaf.Identifier))
         end
     end,
 

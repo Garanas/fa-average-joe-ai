@@ -5,53 +5,53 @@ local TableRemove = table.remove
 local IsDestroyed = IsDestroyed
 
 --- A predicate consulted periodically to decide whether a pending job should be temporarily skipped. Receives the brain, the owning base, and the job; returns true to delay.
----@alias JoeBuildJobDelayPredicate fun(brain: JoeBrain, base: JoeBase, job: JoeBuildJob): boolean
+---@alias JoeConstructionJobDelayPredicate fun(brain: JoeBrain, base: JoeBase, job: JoeConstructionJob): boolean
 
---- An immutable description of *what* should be built. Callers construct one of these and push it into a base's queue. Held verbatim on the resulting `JoeBuildJob` as `job.Spec` so consumers (build / assist behaviors) can inspect the request without reaching into runtime fields.
+--- An immutable description of *what* should be built. Callers construct one of these and push it into a base's queue. Held verbatim on the resulting `JoeConstructionJob` as `job.Spec` so consumers (build / assist behaviors) can inspect the request without reaching into runtime fields.
 ---
 --- One identifier per job — batching multiple identifiers complicates re-queueing (only some structures destroyed) and assist mechanics (which sub-build are we helping?). Push N jobs to build N walls.
----@class JoeBuildJobSpec
+---@class JoeConstructionJobSpec
 ---@field Identifier JoeBuildingIdentifier       # The single structure role to build.
 ---@field LocationHint? Vector                   # Preferred world position; the build planner may bias toward this.
 ---@field Priority? number                       # Higher = sooner. Nil treated as 0.
 ---@field MaxAssistants? number                  # Per-job cap on engineers who may join via `JoinAsAssistant`. Nil falls back to the component default.
----@field DelayPredicate? JoeBuildJobDelayPredicate  # Periodic check; true means skip for now.
+---@field DelayPredicate? JoeConstructionJobDelayPredicate  # Periodic check; true means skip for now.
 
----@alias JoeBuildJobState
+---@alias JoeConstructionJobState
 ---| 'Pending'     # In the queue, no engineer claimed yet.
 ---| 'Claimed'     # Engineer claimed but hasn't started construction.
 ---| 'Building'    # Construction has begun; `Unit` is live.
 ---| 'Built'       # Structure has finished construction.
 ---| 'Failed'      # Engineer / build aborted, not requeued.
 
---- The runtime record for one queued build. Wraps the immutable `Spec` with the assignment state the queue mutates as the job progresses. Assistants read `Spec` + `Unit`; the build behavior owns the rest.
+--- The runtime record for one queued construction job. Wraps the immutable `Spec` with the assignment state the queue mutates as the job progresses. Assistants read `Spec` + `Unit`; the build behavior owns the rest.
 ---
 --- `Engineers` holds every engineer working the job. By convention `Engineers[1]` is the claimer; entries `[2..n]` are assistants joined via `JoinAsAssistant`. The queue does not promote on claimer death — see `FailJob`.
----@class JoeBuildJob
----@field Spec JoeBuildJobSpec
----@field State JoeBuildJobState
+---@class JoeConstructionJob
+---@field Spec JoeConstructionJobSpec
+---@field State JoeConstructionJobState
 ---@field Engineers JoeUnit[]                # [1] claimer, [2..n] assistants.
 ---@field BuildSite? JoeBuildSite            # The resolved build site for this job's structure.
 ---@field Unit? JoeUnit                      # The structure once `OnStartBuild` fired. Stays set after `Built` so the validation poll can detect destruction.
 ---@field Delayed boolean                    # Last-evaluated `DelayPredicate` result. `ClaimJob` skips delayed jobs.
 
---- Per-base build-job queue. Holds three arrays:
+--- Per-base construction-job queue. Engineers drain it: each job is a single structure to be built by an engineer (with optional assistants). Holds three arrays:
 ---  * `Pending`  — unclaimed jobs, available to any engineer's build behavior.
 ---  * `Active`   — claimed jobs whose engineers are en route, building, or assisting-eligible.
 ---  * `Complete` — finished jobs (every identifier built, units alive).
 ---
 --- The component is pure storage. Periodic validation is driven by `JoeBase` via the per-state `ValidatePending` / `ValidateClaimed` / `ValidateBuilding` / `ValidateBuilt` methods.
----@class JoeBaseBuildQueueComponent
+---@class JoeBaseConstructionQueueComponent
 ---@field Base JoeBase
----@field Pending JoeBuildJob[]
----@field Active JoeBuildJob[]
----@field Complete JoeBuildJob[]
-JoeBaseBuildQueueComponent = ClassSimple {
+---@field Pending JoeConstructionJob[]
+---@field Active JoeConstructionJob[]
+---@field Complete JoeConstructionJob[]
+JoeBaseConstructionQueueComponent = ClassSimple {
 
     --- Default cap on assistants per job. A spec may override via `MaxAssistants`. The cap counts only assistants — the claimer is always allowed.
     DefaultMaxAssistants = 3,
 
-    ---@param self JoeBaseBuildQueueComponent
+    ---@param self JoeBaseConstructionQueueComponent
     ---@param base JoeBase
     __init = function(self, base)
         self.Base = base
@@ -63,12 +63,12 @@ JoeBaseBuildQueueComponent = ClassSimple {
     -----------------------------------------------------------------------------
     --#region Pushing jobs
 
-    --- Wraps a spec in a fresh `JoeBuildJob` and adds it to `Pending`. Callers don't construct `JoeBuildJob` directly — pass a spec, get the live job back if you need a handle on it.
-    ---@param self JoeBaseBuildQueueComponent
-    ---@param spec JoeBuildJobSpec
-    ---@return JoeBuildJob
+    --- Wraps a spec in a fresh `JoeConstructionJob` and adds it to `Pending`. Callers don't construct `JoeConstructionJob` directly — pass a spec, get the live job back if you need a handle on it.
+    ---@param self JoeBaseConstructionQueueComponent
+    ---@param spec JoeConstructionJobSpec
+    ---@return JoeConstructionJob
     PushJob = function(self, spec)
-        ---@type JoeBuildJob
+        ---@type JoeConstructionJob
         local job = {
             Spec = spec,
             State = 'Pending',
@@ -85,10 +85,10 @@ JoeBaseBuildQueueComponent = ClassSimple {
     --#region Claiming and tracking (build behavior)
 
     --- Claims the first eligible non-delayed pending job for `engineer`. The optional `predicate(job, engineer)` filters which jobs the engineer will take. Moves the job from `Pending` to `Active`, transitions to `Claimed`, and inserts the engineer as `Engineers[1]` (the claimer).
-    ---@param self JoeBaseBuildQueueComponent
+    ---@param self JoeBaseConstructionQueueComponent
     ---@param engineer JoeUnit
-    ---@param predicate? fun(job: JoeBuildJob, engineer: JoeUnit): boolean
-    ---@return JoeBuildJob?
+    ---@param predicate? fun(job: JoeConstructionJob, engineer: JoeUnit): boolean
+    ---@return JoeConstructionJob?
     ClaimJob = function(self, engineer, predicate)
         local pending = self.Pending
         for k = 1, TableGetn(pending) do
@@ -105,8 +105,8 @@ JoeBaseBuildQueueComponent = ClassSimple {
     end,
 
     --- Records the build site the engineer chose for the *current* structure. Called once the build behavior has resolved a site via `JoeBase:AcquireBuildSitesForUnit` for the next identifier in the list. Marks the site as `Claimed` so other engineers won't pick it before the unit spawns.
-    ---@param self JoeBaseBuildQueueComponent
-    ---@param job JoeBuildJob
+    ---@param self JoeBaseConstructionQueueComponent
+    ---@param job JoeConstructionJob
     ---@param buildSite JoeBuildSite
     RegisterBuildSite = function(self, job, buildSite)
         job.BuildSite = buildSite
@@ -114,8 +114,8 @@ JoeBaseBuildQueueComponent = ClassSimple {
     end,
 
     --- Transitions the job into `Building` state with the actual structure unit. Called from the build behavior's `OnStartBuild` event handler. Also wires the unit back to the build site so site state-predicates (`IsBuilding`, `IsBuilt`) reflect reality, and clears the `Claimed` reservation now that `Unit` owns the slot.
-    ---@param self JoeBaseBuildQueueComponent
-    ---@param job JoeBuildJob
+    ---@param self JoeBaseConstructionQueueComponent
+    ---@param job JoeConstructionJob
     ---@param unit JoeUnit
     RegisterUnit = function(self, job, unit)
         job.State = 'Building'
@@ -127,8 +127,8 @@ JoeBaseBuildQueueComponent = ClassSimple {
     end,
 
     --- Marks the job's structure as fully built. State transitions to `Built`, the job moves from `Active` to `Complete`. `Unit` is left in place so the validation poll can detect destruction later. Called from the build behavior's `OnStopBuild` when the structure finishes.
-    ---@param self JoeBaseBuildQueueComponent
-    ---@param job JoeBuildJob
+    ---@param self JoeBaseConstructionQueueComponent
+    ---@param job JoeConstructionJob
     CompleteJob = function(self, job)
         job.State = 'Built'
         self:RemoveFromActive(job)
@@ -136,8 +136,8 @@ JoeBaseBuildQueueComponent = ClassSimple {
     end,
 
     --- Marks the job failed. If `requeue` is true, the spec is recycled into a fresh pending job (engineer / site / unit refs cleared). Otherwise the job moves to `Failed` and is dropped.
-    ---@param self JoeBaseBuildQueueComponent
-    ---@param job JoeBuildJob
+    ---@param self JoeBaseConstructionQueueComponent
+    ---@param job JoeConstructionJob
     ---@param requeue boolean
     FailJob = function(self, job, requeue)
         self:RemoveFromActive(job)
@@ -163,9 +163,9 @@ JoeBaseBuildQueueComponent = ClassSimple {
     --#region Assisting (assist behavior)
 
     --- Returns the first active job that is assistable: either `Building` with a live unit (assistants accelerate construction) or `Claimed` with a registered build site (assistants pre-position at the site before construction starts). Optional predicate filters further. Returning the job does *not* register the assistant — call `JoinAsAssistant` after.
-    ---@param self JoeBaseBuildQueueComponent
-    ---@param predicate? fun(job: JoeBuildJob): boolean
-    ---@return JoeBuildJob?
+    ---@param self JoeBaseConstructionQueueComponent
+    ---@param predicate? fun(job: JoeConstructionJob): boolean
+    ---@return JoeConstructionJob?
     FindAssistTarget = function(self, predicate)
         local active = self.Active
         for k = 1, TableGetn(active) do
@@ -190,8 +190,8 @@ JoeBaseBuildQueueComponent = ClassSimple {
     end,
 
     --- Adds `engineer` to the job's engineer list as an assistant. Returns false if the job is already at its assistant cap.
-    ---@param self JoeBaseBuildQueueComponent
-    ---@param job JoeBuildJob
+    ---@param self JoeBaseConstructionQueueComponent
+    ---@param job JoeConstructionJob
     ---@param engineer JoeUnit
     ---@return boolean
     JoinAsAssistant = function(self, job, engineer)
@@ -203,8 +203,8 @@ JoeBaseBuildQueueComponent = ClassSimple {
     end,
 
     --- Removes `engineer` from the job's engineer list. Returns true if a removal happened. Use when an engineer abandons assisting (death, re-tasking).
-    ---@param self JoeBaseBuildQueueComponent
-    ---@param job JoeBuildJob
+    ---@param self JoeBaseConstructionQueueComponent
+    ---@param job JoeConstructionJob
     ---@param engineer JoeUnit
     ---@return boolean
     LeaveJob = function(self, job, engineer)
@@ -224,16 +224,16 @@ JoeBaseBuildQueueComponent = ClassSimple {
     --#region Accessors
 
     --- Returns the engineer that originally claimed the job, or nil if the job has no engineers (e.g. just-failed-and-being-cleared).
-    ---@param self JoeBaseBuildQueueComponent
-    ---@param job JoeBuildJob
+    ---@param self JoeBaseConstructionQueueComponent
+    ---@param job JoeConstructionJob
     ---@return JoeUnit?
     GetClaimer = function(self, job)
         return job.Engineers[1]
     end,
 
     --- Returns how many assistants are currently registered on the job. The claimer is excluded from the count.
-    ---@param self JoeBaseBuildQueueComponent
-    ---@param job JoeBuildJob
+    ---@param self JoeBaseConstructionQueueComponent
+    ---@param job JoeConstructionJob
     ---@return number
     GetAssistantCount = function(self, job)
         local n = TableGetn(job.Engineers)
@@ -244,11 +244,43 @@ JoeBaseBuildQueueComponent = ClassSimple {
     end,
 
     --- Returns the assistant cap that applies to the job — its spec override if set, else the component default.
-    ---@param self JoeBaseBuildQueueComponent
-    ---@param job JoeBuildJob
+    ---@param self JoeBaseConstructionQueueComponent
+    ---@param job JoeConstructionJob
     ---@return number
     GetMaxAssistants = function(self, job)
         return job.Spec.MaxAssistants or self.DefaultMaxAssistants
+    end,
+
+    --#endregion
+
+    -----------------------------------------------------------------------------
+    --#region Debug logging
+
+    --- Dumps the queue contents to the log, one line per job across pending/active/complete, prefixed with the base id via `JoeBase:Log`. Cheap to call ad-hoc; not cheap enough to call per tick.
+    ---@param self JoeBaseConstructionQueueComponent
+    LogState = function(self)
+        local base = self.Base
+        local pending = self.Pending
+        local active = self.Active
+        local complete = self.Complete
+        base:Log(string.format("ConstructionQueue: pending=%d active=%d complete=%d",
+            TableGetn(pending), TableGetn(active), TableGetn(complete)))
+        for k = 1, TableGetn(pending) do
+            local job = pending[k]
+            base:Log(string.format("  pending[%d] id=%s priority=%s delayed=%s",
+                k, tostring(job.Spec.Identifier), tostring(job.Spec.Priority or 0),
+                tostring(job.Delayed)))
+        end
+        for k = 1, TableGetn(active) do
+            local job = active[k]
+            base:Log(string.format("  active[%d] id=%s state=%s engineers=%d",
+                k, tostring(job.Spec.Identifier), job.State, TableGetn(job.Engineers)))
+        end
+        for k = 1, TableGetn(complete) do
+            local job = complete[k]
+            base:Log(string.format("  complete[%d] id=%s",
+                k, tostring(job.Spec.Identifier)))
+        end
     end,
 
     --#endregion
@@ -258,7 +290,7 @@ JoeBaseBuildQueueComponent = ClassSimple {
     -- These methods are pure-storage maintenance: each handles the invariants of a single job state. `JoeBase` orchestrates the order in which they run from its own polling loop.
 
     --- Walks `Pending` and refreshes each job's `Delayed` flag by re-evaluating the spec's `DelayPredicate` (jobs without a predicate are always not-delayed). Lets brain/base condition changes unblock or pause queued work without callers having to push/pop jobs.
-    ---@param self JoeBaseBuildQueueComponent
+    ---@param self JoeBaseConstructionQueueComponent
     ValidatePending = function(self)
         local brain = self.Base.Brain
         local pending = self.Pending
@@ -274,7 +306,7 @@ JoeBaseBuildQueueComponent = ClassSimple {
     end,
 
     --- Walks `Active` in reverse and fails (with requeue) any job in `Claimed` state whose claimer engineer is gone. The job's spec returns to `Pending`; another engineer can pick it up. Reverse iteration keeps `FailJob`'s `RemoveFromActive` from breaking the index.
-    ---@param self JoeBaseBuildQueueComponent
+    ---@param self JoeBaseConstructionQueueComponent
     ValidateClaimed = function(self)
         local active = self.Active
         for k = TableGetn(active), 1, -1 do
@@ -289,7 +321,7 @@ JoeBaseBuildQueueComponent = ClassSimple {
     end,
 
     --- Walks `Active` in reverse and fails (with requeue) any job in `Building` state whose structure unit has been destroyed mid-construction. Reverse iteration keeps `FailJob`'s `RemoveFromActive` from breaking the index.
-    ---@param self JoeBaseBuildQueueComponent
+    ---@param self JoeBaseConstructionQueueComponent
     ValidateBuilding = function(self)
         local active = self.Active
         for k = TableGetn(active), 1, -1 do
@@ -304,7 +336,7 @@ JoeBaseBuildQueueComponent = ClassSimple {
     end,
 
     --- Walks `Complete` in reverse and re-queues any entry whose finished unit has since been destroyed (e.g. enemy fire took it down after `Built` transitioned). Reverse iteration keeps `TableRemove`'s shifting from breaking the index.
-    ---@param self JoeBaseBuildQueueComponent
+    ---@param self JoeBaseConstructionQueueComponent
     ValidateBuilt = function(self)
         local complete = self.Complete
         for k = TableGetn(complete), 1, -1 do
@@ -334,8 +366,8 @@ JoeBaseBuildQueueComponent = ClassSimple {
     --#region Internal helpers
 
     --- Linear-scan removal from `Active`. Keep private; callers go through `CompleteJob` / `FailJob` so the state field stays consistent with list membership.
-    ---@param self JoeBaseBuildQueueComponent
-    ---@param job JoeBuildJob
+    ---@param self JoeBaseConstructionQueueComponent
+    ---@param job JoeConstructionJob
     RemoveFromActive = function(self, job)
         local active = self.Active
         for k = 1, TableGetn(active) do

@@ -5,7 +5,9 @@ local TableUtils = import("/mods/fa-joe-ai/lua/Shared/TableUtils.lua")
 
 local JoeBaseChunkComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseChunkComponent.lua").JoeBaseChunkComponent
 local JoeBaseBuildSiteComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseBuildSiteComponent.lua").JoeBaseBuildSiteComponent
-local JoeBaseBuildQueueComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseBuildQueueComponent.lua").JoeBaseBuildQueueComponent
+local JoeBaseConstructionQueueComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseConstructionQueueComponent.lua").JoeBaseConstructionQueueComponent
+local JoeBaseProductionQueueComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseProductionQueueComponent.lua").JoeBaseProductionQueueComponent
+local JoeBaseStructureManagerComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseStructureManagerComponent.lua").JoeBaseStructureManagerComponent
 
 local JoeBuildingIdentifierModule = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/JoeBuildingIdentifiers.lua")
 
@@ -33,7 +35,9 @@ local TableGetn = table.getn
 ---@field IdleBehavior BaseIdleBehavior
 ---@field ChunkComponent JoeBaseChunkComponent
 ---@field BuildSiteComponent JoeBaseBuildSiteComponent
----@field BuildQueueComponent JoeBaseBuildQueueComponent
+---@field ConstructionQueueComponent JoeBaseConstructionQueueComponent
+---@field ProductionQueueComponent JoeBaseProductionQueueComponent
+---@field StructureManager JoeBaseStructureManagerComponent
 ---@field Units JoeUnit[]
 JoeBase = ClassSimple {
 
@@ -49,11 +53,13 @@ JoeBase = ClassSimple {
             Reclaiming = TableUtils.CreateWeakValueTable()
         }
 
-        self.IdleBehavior = PlatoonBuilderModule.Build(self.Brain, PlatoonBuilderUtils.PlatoonBehaviors.Base.IdleBehavior):End() --[[@as BaseIdleBehavior]]
+        self.IdleBehavior = PlatoonBuilderModule.BuildUnique(self.Brain, PlatoonBuilderUtils.PlatoonBehaviors.Base.IdleBehavior, tostring(self) .. "BaseIdleBehavior"):End() --[[@as BaseIdleBehavior]]
 
         self.ChunkComponent = JoeBaseChunkComponent(self)
         self.BuildSiteComponent = JoeBaseBuildSiteComponent(self)
-        self.BuildQueueComponent = JoeBaseBuildQueueComponent(self)
+        self.ConstructionQueueComponent = JoeBaseConstructionQueueComponent(self)
+        self.ProductionQueueComponent = JoeBaseProductionQueueComponent(self)
+        self.StructureManager = JoeBaseStructureManagerComponent(self)
 
         self.Trash:Add(ForkThread(self.TickThread, self))
     end,
@@ -263,7 +269,6 @@ JoeBase = ClassSimple {
     FindEngineersToReclaim = function(self)
         local candidates = {}
 
-        local idleUnits = self.IdleBehavior:GetPlatoonUnits()
         local reclaimUnits = EntityCategoryFilterDown(categories.RECLAIM, idleUnits)
         for k = 1, table.getn(reclaimUnits) do
             local unit = reclaimUnits[k]
@@ -273,6 +278,45 @@ JoeBase = ClassSimple {
         -- TODO: add candidates of other type of behavior, such as patrolling and/or assisting.
 
         return candidates
+    end,
+
+    --#endregion
+    ---------------------------------------------------------------------------
+
+    ---------------------------------------------------------------------------
+    --#region Unit assignment (cross-component coordination)
+
+    --- Records a finished structure as belonging to this base. Adds it to the `StructureManager` and mirrors `JoeData.Base` on the unit so the brain's dispatch can read the assignment back later. Called by `JoeBrain:OnUnitStopBeingBuilt` once it has resolved the right base for a structure.
+    ---@param self JoeBase
+    ---@param structure JoeUnit
+    AssignStructure = function(self, structure)
+        structure.JoeData = structure.JoeData or {}
+        structure.JoeData.Base = self
+
+        self.StructureManager:AddStructure(structure)
+        structure:OnAssignedToBase(self)
+
+        -- always assign platoon behavior last, to make sure the state on the unit is updated in advance
+        if EntityCategoryContains(categories.FACTORY, structure) then
+            PlatoonBuilderModule.Build(self.Brain, PlatoonBuilderUtils.PlatoonBehaviors.FactoryBehavior)
+                :AssignSupportUnit(structure)
+                :StartBehavior()
+                :End()
+        end
+    end,
+
+    --- Records a freshly-built engineer as belonging to this base. Adds it to the base's `IdleBehavior` platoon under the `Unassigned` squad (mirroring `JoeBaseBuilder:AssignUnits`) and mirrors `JoeData.Base` on the unit. The engineer becomes available to `RecycleEngineers` and downstream tasking from there. Called by `JoeBrain:OnUnitStopBeingBuilt`.
+    ---@param self JoeBase
+    ---@param engineer JoeUnit
+    AssignEngineer = function(self, engineer)
+        engineer.JoeData = engineer.JoeData or {}
+        engineer.JoeData.Base = self
+
+        -- always assign platoon behavior last, to make sure the state on the unit is updated in advance
+        PlatoonBuilderModule.Build(self.Brain, PlatoonBuilderUtils.PlatoonBehaviors.Base.IdleBehavior)
+            :AssignSupportUnit(engineer)
+            :StartBehavior()
+            :End()
     end,
 
     --#endregion
@@ -338,7 +382,7 @@ JoeBase = ClassSimple {
     TickThread = function(self)
         while true do
             self:RecycleEngineers()
-            self:ValidateBuildQueues()
+            self:ValidateQueues()
 
             WaitTicks(10)
         end
@@ -350,14 +394,20 @@ JoeBase = ClassSimple {
     ---------------------------------------------------------------------------
     --#region Periodic validation (cross-component coordination)
 
-    --- Runs each per-state validator on the build queue. The base owns the orchestration order so cross-component reconciliation (e.g. site state vs. job state) can grow here when invariants stretch beyond a single component.
+    --- Runs each per-state validator on both job queues. The base owns the orchestration order so cross-component reconciliation (e.g. site state vs. job state) can grow here when invariants stretch beyond a single component.
     ---@param self JoeBase
-    ValidateBuildQueues = function(self)
-        local queue = self.BuildQueueComponent
-        queue:ValidatePending()
-        queue:ValidateClaimed()
-        queue:ValidateBuilding()
-        queue:ValidateBuilt()
+    ValidateQueues = function(self)
+        local construction = self.ConstructionQueueComponent
+        construction:ValidatePending()
+        construction:ValidateClaimed()
+        construction:ValidateBuilding()
+        construction:ValidateBuilt()
+
+        local production = self.ProductionQueueComponent
+        production:ValidatePending()
+        production:ValidateClaimed()
+        production:ValidateBuilding()
+        production:ValidateBuilt()
     end,
 
     --#endregion
@@ -390,6 +440,31 @@ JoeBase = ClassSimple {
     ---@param self JoeBase
     Warn = function(self, message)
         WARN(self:FormatMessage(message))
+    end,
+
+    --- Dumps this base's full state to the log: a header line for the base itself, then each component's `LogState` (one log line per item in any list, prefixed with the base id via `Log`). Cheap enough to call from a debug hotkey; not cheap enough to call per tick.
+    ---@param self JoeBase
+    LogState = function(self)
+        self:Log(string.format("===== Base @ (%.1f, %.1f) =====",
+            self.Location[1], self.Location[3]))
+        -- self.ChunkComponent:LogState()       --  is shown visually and causes a lot of noise
+        -- self.BuildSiteComponent:LogState()   --  is shown visually and causes a lot of noise
+        self.ConstructionQueueComponent:LogState()
+        self.ProductionQueueComponent:LogState()
+        self.StructureManager:LogState()
+        self:Log("")
+    end,
+
+    --- Forks a thread that calls `Draw` once per tick for `ticks` ticks, then exits. Trash-bagged so the burst dies with the base on `Retreat`. Multiple calls stack — each press of the debug hotkey starts an independent burst.
+    ---@param self JoeBase
+    ---@param ticks number
+    DrawForTicks = function(self, ticks)
+        self.Trash:Add(ForkThread(function()
+            for _ = 1, ticks do
+                self:Draw()
+                WaitTicks(1)
+            end
+        end))
     end,
 
     --- A utility function that draws the current status quo. Composes per-aspect draw helpers so they can also be invoked individually.
