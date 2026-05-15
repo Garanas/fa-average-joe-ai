@@ -165,6 +165,18 @@ Build = function(brain, behavior)
     return PlatoonBuilder(brain, platoon)
 end
 
+--- A unique platoon lasts even when it has no units.
+---@param brain JoeBrain
+---@return AIPlatoonBuilder
+BuildUnique = function(brain, behavior, name)
+    local platoon = brain:MakePlatoon(name, "") --[[@as AIPlatoonBehavior]]
+    setmetatable(platoon, behavior)
+
+    -- initialize state of the behavior
+    platoon:OnCreate()
+    return PlatoonBuilder(brain, platoon)
+end
+
 --- Extends an existing platoon.
 ---@param brain JoeBrain
 ---@param platoon AIPlatoonBehavior

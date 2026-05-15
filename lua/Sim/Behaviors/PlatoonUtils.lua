@@ -12,6 +12,9 @@ PlatoonBehaviors = {
     BuildBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/Engineers/BuildBehavior.lua").BuildBehavior,
     AssistBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/Engineers/AssistBehavior.lua").AssistBehavior,
 
+    -- factory behavior
+    FactoryBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/Factories/FactoryBehavior.lua").FactoryBehavior,
+
     -- base behavior
     Base = {
         IdleBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/Base/IdleBehavior.lua").BaseIdleBehavior

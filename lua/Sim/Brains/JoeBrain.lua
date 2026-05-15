@@ -18,6 +18,8 @@ local StandardBrainOnCreateAI = StandardBrain.OnCreateAI
 ---@field ChunkComponent JoeBrainChunkComponent
 ---@field ChunkLoader JoeBaseChunkLoader
 ---@field Bases JoeBase[]
+---@field UnassignedStructures JoeUnit[]    # Finished structures we couldn't tie to a base via builder or leaf-owner. Drained by future controller logic that promotes them to a base when one becomes eligible.
+---@field UnassignedEngineers JoeUnit[]     # Freshly-built engineers whose builder had no base. Same shape and intent as `UnassignedStructures`.
 ---@field Debug boolean
 ---@field DrawThread? thread
 JoeBrain = Class(StandardBrain) {
@@ -38,6 +40,8 @@ JoeBrain = Class(StandardBrain) {
         self.ChunkLoader = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/JoeBaseChunkLoader.lua").CreateDefaultJoeBaseChunkLoader()
 
         self.Bases = {}
+        self.UnassignedStructures = {}
+        self.UnassignedEngineers = {}
     end,
 
     ---------------------------------------------------------------------------
@@ -109,6 +113,30 @@ JoeBrain = Class(StandardBrain) {
         return self:FindNearestBaseXZ(location[1], location[3])
     end,
 
+    --- Resolves which base a finished structure should belong to. Prefers the builder's base (the engineer that built it carries its assignment forward); falls back to the base that owns the nav-mesh leaf the structure sits on. Returns nil if neither resolves — the brain orphans the structure in that case.
+    ---
+    --- Distinct from `FindNearestBaseXZ`, which returns *some* base by spatial fallback. Structure assignment must be precise: a structure that doesn't belong to a builder *and* isn't on claimed territory genuinely has no owner yet, and inventing one by proximity would silently corrupt base ownership.
+    ---@param self JoeBrain
+    ---@param structure JoeUnit
+    ---@param builder Unit?
+    ---@return JoeBase?
+    FindBaseForStructure = function(self, structure, builder)
+        local builderUnit = builder --[[@as JoeUnit?]]
+        if builderUnit and builderUnit.JoeData and builderUnit.JoeData.Base then
+            return builderUnit.JoeData.Base
+        end
+
+        local position = structure:GetPosition()
+        local chunkComponent = self.ChunkComponent
+        local leaf = chunkComponent:FindLeaf("Land", position)
+                  or chunkComponent:FindLeaf("Water", position)
+        if leaf then
+            return chunkComponent:GetOwner(leaf.Identifier)
+        end
+
+        return nil
+    end,
+
     --#endregion
     ---------------------------------------------------------------------------
 
@@ -122,16 +150,64 @@ JoeBrain = Class(StandardBrain) {
     OnUnitStartBeingBuilt = function(self, unit, builder, layer)
     end,
 
-    ---@param self EasyAIBrain
+    --- Categorizes a freshly-built unit and routes it:
+    ---   * **Structure** — assigned to the base resolved by `FindBaseForStructure` (builder's base, falling back to leaf-owner). Orphaned to `UnassignedStructures` if neither resolves.
+    ---   * **Engineer** — assigned to the builder's base only (engineers travel with their builder; leaf-owner fallback would silently misattribute them). Orphaned to `UnassignedEngineers` if the builder has no base.
+    ---   * **Other mobile unit** — currently a no-op. Dispatch policy for non-engineer mobiles (assign to roaming pool? nearest base?) hasn't been decided yet.
+    ---@param self JoeBrain
     ---@param unit JoeUnit
     ---@param builder Unit
     ---@param layer Layer
     OnUnitStopBeingBuilt = function(self, unit, builder, layer)
+        if EntityCategoryContains(categories.STRUCTURE, unit) then
+            local base = self:FindBaseForStructure(unit, builder)
+            if base then
+                base:AssignStructure(unit)
+            else
+                table.insert(self.UnassignedStructures, unit)
+            end
+            return
+        end
+
+        if EntityCategoryContains(categories.ENGINEER, unit) then
+            local builderUnit = builder --[[@as JoeUnit?]]
+            local base = builderUnit and builderUnit.JoeData and builderUnit.JoeData.Base or nil
+            if base then
+                base:AssignEngineer(unit)
+            else
+                table.insert(self.UnassignedEngineers, unit)
+            end
+            return
+        end
+
+        if EntityCategoryContains(categories.MOBILE, unit) then
+            -- TODO: dispatch policy for non-engineer mobile units (roaming pool? nearest base? per-faction batches?). Held off until the brain has a strategy layer that knows what to do with raw army units.
+            return
+        end
     end,
 
-    ---@param self EasyAIBrain
+    --- Cleans up structure tracking when a unit is destroyed. Removes the structure from its assigned base's `StructureManager`, or from `UnassignedStructures` if it never made it onto a base. Non-structures (engineers, mobile units) are skipped — engineer cleanup in `IdleBehavior` is handled by the platoon's own destroyed-unit filtering, and the unassigned-engineer staleness is a separate cleanup we'll wire when needed.
+    ---@param self JoeBrain
     ---@param unit JoeUnit
     OnUnitDestroy = function(self, unit)
+        if not EntityCategoryContains(categories.STRUCTURE, unit) then
+            return
+        end
+
+        local base = unit.JoeData and unit.JoeData.Base
+        if base then
+            base.StructureManager:RemoveStructure(unit)
+            return
+        end
+
+        -- structure was on the orphan list
+        local unassigned = self.UnassignedStructures
+        for k = 1, table.getn(unassigned) do
+            if unassigned[k] == unit then
+                table.remove(unassigned, k)
+                return
+            end
+        end
     end,
 
     ---@param self EasyAIBrain

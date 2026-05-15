@@ -47,6 +47,8 @@ do
             :AssignUnits(units)
             :StartBehavior(data.BehaviorInput)
             :End()
+
+        print("CreatePlatoon:", data.BehaviorName, "->", table.getn(units), "units")
     end
 
     ---@class JoeDebugCreateBaseAtLocationData

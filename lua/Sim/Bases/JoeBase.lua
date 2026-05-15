@@ -7,6 +7,7 @@ local JoeBaseChunkComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/J
 local JoeBaseBuildSiteComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseBuildSiteComponent.lua").JoeBaseBuildSiteComponent
 local JoeBaseConstructionQueueComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseConstructionQueueComponent.lua").JoeBaseConstructionQueueComponent
 local JoeBaseProductionQueueComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseProductionQueueComponent.lua").JoeBaseProductionQueueComponent
+local JoeBaseStructureManagerComponent = import("/mods/fa-joe-ai/lua/Sim/Bases/Components/JoeBaseStructureManagerComponent.lua").JoeBaseStructureManagerComponent
 
 local JoeBuildingIdentifierModule = import("/mods/fa-joe-ai/lua/Shared/BaseChunks/JoeBuildingIdentifiers.lua")
 
@@ -36,6 +37,7 @@ local TableGetn = table.getn
 ---@field BuildSiteComponent JoeBaseBuildSiteComponent
 ---@field ConstructionQueueComponent JoeBaseConstructionQueueComponent
 ---@field ProductionQueueComponent JoeBaseProductionQueueComponent
+---@field StructureManager JoeBaseStructureManagerComponent
 ---@field Units JoeUnit[]
 JoeBase = ClassSimple {
 
@@ -51,12 +53,13 @@ JoeBase = ClassSimple {
             Reclaiming = TableUtils.CreateWeakValueTable()
         }
 
-        self.IdleBehavior = PlatoonBuilderModule.Build(self.Brain, PlatoonBuilderUtils.PlatoonBehaviors.Base.IdleBehavior):End() --[[@as BaseIdleBehavior]]
+        self.IdleBehavior = PlatoonBuilderModule.BuildUnique(self.Brain, PlatoonBuilderUtils.PlatoonBehaviors.Base.IdleBehavior, tostring(self) .. "BaseIdleBehavior"):End() --[[@as BaseIdleBehavior]]
 
         self.ChunkComponent = JoeBaseChunkComponent(self)
         self.BuildSiteComponent = JoeBaseBuildSiteComponent(self)
         self.ConstructionQueueComponent = JoeBaseConstructionQueueComponent(self)
         self.ProductionQueueComponent = JoeBaseProductionQueueComponent(self)
+        self.StructureManager = JoeBaseStructureManagerComponent(self)
 
         self.Trash:Add(ForkThread(self.TickThread, self))
     end,
@@ -266,7 +269,6 @@ JoeBase = ClassSimple {
     FindEngineersToReclaim = function(self)
         local candidates = {}
 
-        local idleUnits = self.IdleBehavior:GetPlatoonUnits()
         local reclaimUnits = EntityCategoryFilterDown(categories.RECLAIM, idleUnits)
         for k = 1, table.getn(reclaimUnits) do
             local unit = reclaimUnits[k]
@@ -276,6 +278,45 @@ JoeBase = ClassSimple {
         -- TODO: add candidates of other type of behavior, such as patrolling and/or assisting.
 
         return candidates
+    end,
+
+    --#endregion
+    ---------------------------------------------------------------------------
+
+    ---------------------------------------------------------------------------
+    --#region Unit assignment (cross-component coordination)
+
+    --- Records a finished structure as belonging to this base. Adds it to the `StructureManager` and mirrors `JoeData.Base` on the unit so the brain's dispatch can read the assignment back later. Called by `JoeBrain:OnUnitStopBeingBuilt` once it has resolved the right base for a structure.
+    ---@param self JoeBase
+    ---@param structure JoeUnit
+    AssignStructure = function(self, structure)
+        structure.JoeData = structure.JoeData or {}
+        structure.JoeData.Base = self
+
+        self.StructureManager:AddStructure(structure)
+        structure:OnAssignedToBase(self)
+
+        -- always assign platoon behavior last, to make sure the state on the unit is updated in advance
+        if EntityCategoryContains(categories.FACTORY, structure) then
+            PlatoonBuilderModule.Build(self.Brain, PlatoonBuilderUtils.PlatoonBehaviors.FactoryBehavior)
+                :AssignSupportUnit(structure)
+                :StartBehavior()
+                :End()
+        end
+    end,
+
+    --- Records a freshly-built engineer as belonging to this base. Adds it to the base's `IdleBehavior` platoon under the `Unassigned` squad (mirroring `JoeBaseBuilder:AssignUnits`) and mirrors `JoeData.Base` on the unit. The engineer becomes available to `RecycleEngineers` and downstream tasking from there. Called by `JoeBrain:OnUnitStopBeingBuilt`.
+    ---@param self JoeBase
+    ---@param engineer JoeUnit
+    AssignEngineer = function(self, engineer)
+        engineer.JoeData = engineer.JoeData or {}
+        engineer.JoeData.Base = self
+
+        -- always assign platoon behavior last, to make sure the state on the unit is updated in advance
+        PlatoonBuilderModule.Build(self.Brain, PlatoonBuilderUtils.PlatoonBehaviors.Base.IdleBehavior)
+            :AssignSupportUnit(engineer)
+            :StartBehavior()
+            :End()
     end,
 
     --#endregion
@@ -406,10 +447,11 @@ JoeBase = ClassSimple {
     LogState = function(self)
         self:Log(string.format("===== Base @ (%.1f, %.1f) =====",
             self.Location[1], self.Location[3]))
-        self.ChunkComponent:LogState()
-        self.BuildSiteComponent:LogState()
+        -- self.ChunkComponent:LogState()       --  is shown visually and causes a lot of noise
+        -- self.BuildSiteComponent:LogState()   --  is shown visually and causes a lot of noise
         self.ConstructionQueueComponent:LogState()
         self.ProductionQueueComponent:LogState()
+        self.StructureManager:LogState()
         self:Log("")
     end,
 

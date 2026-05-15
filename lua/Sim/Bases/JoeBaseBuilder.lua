@@ -21,6 +21,10 @@ JoeBaseBuilder = ClassSimple {
         self.Base = base
     end,
 
+    --- Routes each unit to the right base bucket using the same split as `JoeBrain:OnUnitStopBeingBuilt`:
+    ---   * **Structure** → `JoeBase:AssignStructure` (StructureManager).
+    ---   * **Engineer** → `JoeBase:AssignEngineer` (IdleBehavior platoon, `Unassigned` squad).
+    ---   * **Other mobile unit** → currently dropped into the IdleBehavior platoon as a fallback so manual assignments (the debug callbacks call this) don't silently lose units. The brain's parallel dispatch is a no-op TODO; once that's decided, both sites converge on the same policy.
     ---@param self JoeBaseBuilder
     ---@param units JoeUnit[]
     ---@return JoeBaseBuilder
