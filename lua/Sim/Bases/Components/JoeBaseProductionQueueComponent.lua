@@ -1,6 +1,7 @@
 local TableInsert = table.insert
 local TableGetn = table.getn
 local TableRemove = table.remove
+local TableSetn = table.setn
 
 local IsDestroyed = IsDestroyed
 
@@ -9,12 +10,14 @@ local IsDestroyed = IsDestroyed
 
 --- An immutable description of *what* should be produced. Callers construct one of these and push it into a base's production queue. Held verbatim on the resulting `JoeProductionJob` as `job.Spec` so consumers (factory behaviors) can inspect the request without reaching into runtime fields.
 ---
---- The spec is **role-shaped, not blueprint-shaped**: callers describe the unit they want as a category (e.g. `categories.MOBILE * categories.LAND * categories.DIRECTFIRE`) plus a tech-preference category. The claiming factory resolves a concrete blueprint at production time by intersecting `Category * TechPreference * <factory's faction>` and picking from the resulting unit list. This keeps the spec faction-agnostic and lets the same intent escalate from T1 → T2 → T3 by mutating `TechPreference` (e.g. `categories.TECH1` → `categories.TECH2`) rather than re-issuing it.
+--- The spec is **role-shaped, not blueprint-shaped**: callers describe the unit they want as a category (e.g. `categories.MOBILE * categories.LAND * categories.DIRECTFIRE`) plus a preferred tech tier (the `TechCategory` string the factory's own blueprint would carry). Two stages process the spec:
+---  * eligibility — `CollectEligibleFor` intersects `Spec.Category` with the factory's `FactionCategory` and `TechCategory`; the job is eligible iff that intersection has ≥1 buildable unit.
+---  * preference — the factory behavior sorts eligible jobs so those whose `TechPreference` equals the factory's own `TechCategory` come first. A T2 factory presented with a TECH1 and a TECH2 spec will pick the TECH2 one. A T1 factory presented with only a TECH2 spec will still build it — at T1 — so a job doesn't sit forever if no matching-tier factory exists.
 ---
 --- One unit per job — a quantity field would complicate re-queueing (only some units lost) and factory-claim mechanics (which sub-build are we tracking?). Push N jobs to produce N units.
 ---@class JoeProductionJobSpec
----@field Category EntityCategory                # Selects matching unit blueprints. Intersected with `TechPreference` and the producing factory's faction at claim time.
----@field TechPreference EntityCategory          # Tier filter applied alongside `Category`. Use `categories.TECH1` / `TECH2` / `TECH3` (or sums) to constrain tier. Always present — pass `categories.ALLUNITS` when tier doesn't matter, so the consumer can intersect unconditionally.
+---@field Category EntityCategory                # Selects matching unit blueprints. Intersected with the producing factory's faction and tech for eligibility.
+---@field TechPreference TechCategory            # Preferred tech tier as the `TechCategory` string (e.g. `'TECH1'`, `'TECH2'`). Compared verbatim against the factory's blueprint `TechCategory` for preference ordering; *not* a hard filter — see the class comment.
 ---@field LocationHint? Vector                   # Preferred world position; the factory selector may bias toward factories near this point.
 ---@field Priority? number                       # Higher = sooner. Nil treated as 0.
 ---@field DelayPredicate? JoeProductionJobDelayPredicate  # Periodic check; true means skip for now.
@@ -81,16 +84,44 @@ JoeBaseProductionQueueComponent = ClassSimple {
     -----------------------------------------------------------------------------
     --#region Claiming and tracking (factory behavior)
 
-    --- Claims the first eligible non-delayed pending job for `factory`. The optional `predicate(job, factory)` filters which jobs the factory will take (faction match, tech tier, blueprint compatibility — selection logic lives in the factory behavior, not the queue). Moves the job from `Pending` to `Active` and transitions to `Claimed`.
+    --- Collects every non-delayed pending job the `factory` can actually build into `cache`. Eligibility is purely a category intersection: `Spec.Category * categories[factory.FactionCategory] * categories[factory.TechCategory]` must resolve to ≥1 unit. The cache is cleared first and returned for chaining (caller-supplied-cache convention — see `Sim/CLAUDE.md` §3.2). Pass a reused table to avoid allocations on hot paths; pass nil to allocate a fresh one.
+    ---
+    --- Eligibility only — selection (which of the eligible jobs to claim) and tech-preference ordering live in the consuming behavior. `Spec.TechPreference` is intentionally *not* consulted here: a job tagged `TECH2` is still eligible for a T1 factory, so it doesn't sit forever if no matching-tier factory exists.
     ---@param self JoeBaseProductionQueueComponent
     ---@param factory JoeUnit
-    ---@param predicate? fun(job: JoeProductionJob, factory: JoeUnit): boolean
-    ---@return JoeProductionJob?
-    ClaimJob = function(self, factory, predicate)
+    ---@param cache? JoeProductionJob[]
+    ---@return JoeProductionJob[]
+    CollectEligibleFor = function(self, factory, cache)
+        cache = cache or {}
+        TableSetn(cache, 0)
+
+        local blueprint = factory:GetBlueprint()
+        local factionCategory = categories[blueprint.FactionCategory] or categories.ALLUNITS
+        local techCategory = categories[blueprint.TechCategory] or categories.ALLUNITS
+        local factoryFilter = factionCategory * techCategory
+
         local pending = self.Pending
         for k = 1, TableGetn(pending) do
             local job = pending[k]
-            if not job.Delayed and ((not predicate) or predicate(job, factory)) then
+            if not job.Delayed and EntityCategoryGetUnitList(job.Spec.Category * factoryFilter)[1] then
+                TableInsert(cache, job)
+            end
+        end
+
+        return cache
+    end,
+
+    --- Claims a specific `job` for `factory`. Pure state management: moves the job from `Pending` to `Active`, transitions it to `Claimed`, and records the factory. Returns the job on success; returns nil if the job was no longer in `Pending` (e.g. another factory claimed it between the caller's `CollectEligibleFor` and this call).
+    ---
+    --- Selection — which job out of the eligible set — lives in the factory behavior. This method only mutates internal state.
+    ---@param self JoeBaseProductionQueueComponent
+    ---@param job JoeProductionJob
+    ---@param factory JoeUnit
+    ---@return JoeProductionJob?
+    ClaimJob = function(self, job, factory)
+        local pending = self.Pending
+        for k = 1, TableGetn(pending) do
+            if pending[k] == job then
                 TableRemove(pending, k)
                 job.State = 'Claimed'
                 job.Factory = factory

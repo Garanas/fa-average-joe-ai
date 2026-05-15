@@ -1,13 +1,16 @@
 local AIPlatoonBehavior = import("/mods/fa-joe-ai/lua/Sim/Behaviors/PlatoonBehavior.lua").AIPlatoonBehavior
 
---- Resolves a `JoeProductionJobSpec` plus a factory to a concrete UnitId for that factory's faction. Intersects `Spec.Category * Spec.TechPreference * categories[<factory's faction>]` and returns the first matching blueprint, or nil if no blueprint satisfies the intersection. Mirrors `ResolveUnitIdForBuilder` in [Engineers/BuildBehavior.lua](../Engineers/BuildBehavior.lua) — the same role-shaped→blueprint-shaped resolution, but the spec describes a unit category instead of a building identifier.
+local TableGetn = table.getn
+
+--- Resolves a `JoeProductionJobSpec` plus a factory to a concrete UnitId for that factory. Intersects `Spec.Category * categories[<factory's FactionCategory>] * categories[<factory's TechCategory>]` and returns the first matching blueprint, or nil if no blueprint satisfies the intersection. The tier filter is the *factory's* `TechCategory`, not `Spec.TechPreference` — preference influences ordering (see `AcquireJob`), not the concrete blueprint we actually build. Mirrors `ResolveUnitIdForBuilder` in [Engineers/BuildBehavior.lua](../Engineers/BuildBehavior.lua) — same role-shaped→blueprint-shaped resolution, but the spec describes a unit category instead of a building identifier.
 ---@param spec JoeProductionJobSpec
 ---@param factory JoeUnit
 ---@return UnitId?
 local function ResolveUnitIdForFactory(spec, factory)
-    local faction = factory:GetBlueprint().FactionCategory
-    local factionCategory = categories[faction] or categories.ALLUNITS
-    local resolved = spec.Category * spec.TechPreference * factionCategory
+    local blueprint = factory:GetBlueprint()
+    local factionCategory = categories[blueprint.FactionCategory] or categories.ALLUNITS
+    local techCategory = categories[blueprint.TechCategory] or categories.ALLUNITS
+    local resolved = spec.Category * factionCategory * techCategory
     return EntityCategoryGetUnitList(resolved)[1]
 end
 
@@ -16,14 +19,17 @@ end
 
 --- Per-factory-behavior runtime state. Stashed on `self.BehaviorState` so a state's `Main` can read what previous states resolved without recomputing.
 ---@class AIFactoryBehaviorState
----@field Factory JoeUnit            # The factory unit producing for this platoon.
----@field Base JoeBase               # The base whose `ProductionQueueComponent` we're draining.
----@field Job? JoeProductionJob      # The currently-claimed job. Nil when in `WaitForJob`.
----@field UnitId? UnitId             # The faction-specific unit id resolved from the job's spec.
+---@field Factory JoeUnit                  # The factory unit producing for this platoon.
+---@field Base JoeBase                     # The base whose `ProductionQueueComponent` we're draining.
+---@field Job? JoeProductionJob            # The currently-claimed job. Nil when in `WaitForJob`.
+---@field UnitId? UnitId                   # The faction-specific unit id resolved from the job's spec.
+---@field EligibleCache? JoeProductionJob[]  # Scratch table reused across `AcquireJob` iterations so `CollectEligibleFor` doesn't allocate a fresh eligible list on every poll. Allocated on first call.
 
 --- Queue-driven factory behavior. The platoon's factory loops through jobs from the base's `ProductionQueueComponent`, claiming and producing one unit at a time. The platoon stays alive between jobs; an empty (or unsatisfiable) queue parks it in `WaitForJob`.
 ---
---- Job claim is filtered by a faction-aware resolution check: the factory only claims jobs whose `Spec.Category * Spec.TechPreference * categories[<faction>]` resolves to at least one buildable blueprint, so faction-incompatible specs (e.g. an Aeon-only category sitting in the queue while only a Cybran factory is available) stay pending until something else can fulfil them.
+--- Job selection runs in two stages:
+---  * eligibility — `CollectEligibleFor` returns jobs whose `Spec.Category` resolves to ≥1 unit when intersected with the factory's faction and tech tier; faction- or tier-incompatible specs (e.g. an Aeon-only category while only a Cybran factory is available) stay pending.
+---  * preference — this behavior picks the eligible job whose `Spec.TechPreference` equals the factory's own `TechCategory` if one exists, otherwise the first eligible job. Preference influences ordering, never eligibility — a TECH2 spec is still built by a T1 factory (at T1) if nothing better is available.
 ---
 --- Factory events: `OnStartBuild` registers the produced unit on the job; `OnStopBuild` either completes or re-queues the job depending on the unit's state.
 ---@class AIFactoryBehavior : AIPlatoonBehavior
@@ -68,17 +74,38 @@ FactoryBehavior = Class(AIPlatoonBehavior) {
         Main = function(self)
             local factory = self.BehaviorState.Factory
             local base = self.BehaviorState.Base
+            local queue = base.ProductionQueueComponent
 
-            local job = base.ProductionQueueComponent:ClaimJob(factory, function(candidate, claimingFactory)
-                return ResolveUnitIdForFactory(candidate.Spec, claimingFactory) ~= nil
-            end)
+            -- Ask the queue for everything we *could* build. Eligibility (faction + tech intersection) is the queue's job; preference ordering is ours.
+            local eligible = queue:CollectEligibleFor(factory, self.BehaviorState.EligibleCache)
+            self.BehaviorState.EligibleCache = eligible
 
-            if not job then
+            local eligibleCount = TableGetn(eligible)
+            if eligibleCount == 0 then
                 self:ChangeState(self.WaitForJob)
                 return
             end
 
-            -- Re-resolve so the produce state has the UnitId without re-running the predicate.
+            -- Preference: prefer jobs whose TechPreference matches the factory's own TechCategory (e.g. a T2 factory facing both a TECH1 and a TECH2 spec picks TECH2). Anything unmatched falls back to the first eligible job, so a tier mismatch never strands work.
+            local factoryTech = factory:GetBlueprint().TechCategory
+            local pick = eligible[1]
+            if pick.Spec.TechPreference ~= factoryTech then
+                for k = 2, eligibleCount do
+                    local candidate = eligible[k]
+                    if candidate.Spec.TechPreference == factoryTech then
+                        pick = candidate
+                        break
+                    end
+                end
+            end
+
+            local job = queue:ClaimJob(pick, factory)
+            if not job then
+                -- Raced with another factory between collect and claim — fall back to waiting; the next poll will re-collect.
+                self:ChangeState(self.WaitForJob)
+                return
+            end
+
             self.BehaviorState.Job = job
             self.BehaviorState.UnitId = ResolveUnitIdForFactory(job.Spec, factory)
             self:ChangeState(self.Produce)
