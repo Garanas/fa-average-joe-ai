@@ -1,0 +1,33 @@
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { MarkdownComponent } from 'ngx-markdown';
+
+import { docUrl, findDoc } from '../content/content.manifest';
+
+@Component({
+    selector: 'app-doc-page',
+    standalone: true,
+    imports: [MarkdownComponent, RouterLink],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    templateUrl: './doc-page.html',
+    styleUrl: './doc-page.css'
+})
+export class DocPage {
+    private readonly params = toSignal(inject(ActivatedRoute).paramMap, { requireSync: true });
+
+    protected readonly entry = computed(() => {
+        const params = this.params();
+        const category = params.get('category');
+        const slug = params.get('slug');
+        if (!category || !slug) {
+            return undefined;
+        }
+        return findDoc(category, slug);
+    });
+
+    protected readonly src = computed(() => {
+        const entry = this.entry();
+        return entry ? docUrl(entry) : undefined;
+    });
+}
