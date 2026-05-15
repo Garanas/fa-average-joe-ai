@@ -2,7 +2,9 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { HeroBanner } from '../theme/hero-banner';
-import { docsByCategory } from '../docs/content.manifest';
+import { recentByCategory } from '../docs/content.manifest';
+
+const PREVIEW_LIMIT = 2;
 
 @Component({
     selector: 'app-home',
@@ -13,5 +15,5 @@ import { docsByCategory } from '../docs/content.manifest';
     host: { class: 'block' }
 })
 export class Home {
-    protected readonly groups = docsByCategory();
+    protected readonly groups = recentByCategory(PREVIEW_LIMIT);
 }

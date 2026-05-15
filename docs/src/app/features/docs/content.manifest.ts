@@ -133,25 +133,73 @@ export const DOC_ENTRIES: readonly DocEntry[] = [
     }
 ];
 
+export interface CategoryPreview {
+    category: DocCategory;
+    /** Sorted by recency (newest first). Capped at the requested limit. */
+    entries: DocEntry[];
+    /** Total entries in this category, regardless of the cap. */
+    totalCount: number;
+}
+
 export function findDoc(category: string, slug: string): DocEntry | undefined {
     return DOC_ENTRIES.find((entry) => entry.category === category && entry.slug === slug);
+}
+
+export function findCategory(id: string): DocCategory | undefined {
+    return DOC_CATEGORIES.find((category) => category.id === id);
+}
+
+export function entriesForCategory(id: string): DocEntry[] {
+    const category = findCategory(id);
+    if (!category) {
+        return [];
+    }
+    return naturalSort(
+        category,
+        DOC_ENTRIES.filter((entry) => entry.category === id)
+    );
 }
 
 export function docsByCategory(): { category: DocCategory; entries: DocEntry[] }[] {
     return DOC_CATEGORIES.map((category) => ({
         category,
-        entries: sortEntries(
+        entries: naturalSort(
             category,
             DOC_ENTRIES.filter((entry) => entry.category === category.id)
         )
     })).sort((a, b) => a.category.order - b.category.order);
 }
 
-function sortEntries(category: DocCategory, entries: DocEntry[]): DocEntry[] {
+/**
+ * Per-category preview used by the home page: the N most-recent entries
+ * plus the total count, so the caller can decide whether to render a
+ * "View all" link.
+ */
+export function recentByCategory(limit: number): CategoryPreview[] {
+    return DOC_CATEGORIES.map((category) => {
+        const all = DOC_ENTRIES.filter((entry) => entry.category === category.id);
+        return {
+            category,
+            entries: recencySort(category, all).slice(0, limit),
+            totalCount: all.length
+        };
+    }).sort((a, b) => a.category.order - b.category.order);
+}
+
+/** Sort that matches the category's "reading order" (oldest-first for manual, newest-first for blog). */
+function naturalSort(category: DocCategory, entries: DocEntry[]): DocEntry[] {
     if (category.sort === 'newest-first') {
         return [...entries].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
     }
     return [...entries].sort((a, b) => a.order - b.order);
+}
+
+/** Sort that always puts the most-recent entry first, regardless of natural reading order. */
+function recencySort(category: DocCategory, entries: DocEntry[]): DocEntry[] {
+    if (category.sort === 'newest-first') {
+        return [...entries].sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
+    }
+    return [...entries].sort((a, b) => b.order - a.order);
 }
 
 export function docAssetPath(entry: DocEntry): string {
@@ -160,4 +208,8 @@ export function docAssetPath(entry: DocEntry): string {
 
 export function docRoute(entry: DocEntry): string[] {
     return ['/', 'docs', entry.category, entry.slug];
+}
+
+export function categoryRoute(id: string): string[] {
+    return ['/', 'docs', id];
 }

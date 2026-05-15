@@ -1,16 +1,18 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { Location } from '@angular/common';
 
+import { FactionFrame } from './faction-frame';
 import { findFaction } from './faction-theme';
 import { ThemeService } from './theme.service';
 
 @Component({
     selector: 'app-hero-banner',
     standalone: true,
+    imports: [FactionFrame],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <section class="hero-banner overflow-hidden rounded-2xl border border-border">
-            <div class="relative flex items-center gap-6 px-8 py-10 sm:px-12 sm:py-14">
+        <app-faction-frame>
+            <div class="hero-banner relative flex items-center gap-6 px-8 py-10 sm:px-12 sm:py-14">
                 <div class="relative z-10 max-w-xl">
                     <p class="font-display text-xs font-semibold uppercase tracking-[0.18em] text-accent">
                         {{ faction().hero.eyebrow }}
@@ -28,12 +30,14 @@ import { ThemeService } from './theme.service';
                     alt=""
                 />
             </div>
-        </section>
+        </app-faction-frame>
     `,
     styles: [
         `
             .hero-banner {
-                position: relative;
+                /* The faction frame draws the outer chrome; this gradient sits */
+                /* inside it as the content background and follows the active   */
+                /* faction's --color-accent.                                     */
                 background:
                     radial-gradient(
                         circle at 100% 0%,

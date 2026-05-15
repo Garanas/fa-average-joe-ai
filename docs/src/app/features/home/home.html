@@ -28,6 +28,21 @@
                         </li>
                     }
                 </ul>
+                @if (group.totalCount > group.entries.length) {
+                    <a
+                        class="mt-3 inline-block text-sm text-accent hover:underline"
+                        [routerLink]="['/docs', group.category.id]"
+                    >
+                        View all {{ group.totalCount }} &rarr;
+                    </a>
+                } @else {
+                    <a
+                        class="mt-3 inline-block text-sm text-muted hover:text-accent hover:underline"
+                        [routerLink]="['/docs', group.category.id]"
+                    >
+                        See full overview &rarr;
+                    </a>
+                }
             } @else {
                 <p class="italic text-muted">Nothing here yet.</p>
             }
