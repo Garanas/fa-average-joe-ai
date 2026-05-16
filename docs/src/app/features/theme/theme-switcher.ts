@@ -1,7 +1,6 @@
 import {
     ChangeDetectionStrategy,
     Component,
-    HostListener,
     inject,
     signal
 } from '@angular/core';
@@ -48,7 +47,6 @@ const OVERLAY_POSITIONS: ConnectedPosition[] = [
 
 @Component({
     selector: 'app-theme-switcher',
-    standalone: true,
     imports: [MatButtonModule, MatIconModule, OverlayModule],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
@@ -151,7 +149,11 @@ const OVERLAY_POSITIONS: ConnectedPosition[] = [
             }
         `
     ],
-    host: { class: 'inline-block' }
+    host: {
+        class: 'inline-block',
+        '(document:keydown.escape)': 'onEscape()',
+        '(document:keydown)': 'onDocumentKeydown($event)'
+    }
 })
 export class ThemeSwitcher {
     protected readonly theme = inject(ThemeService);
@@ -172,8 +174,7 @@ export class ThemeSwitcher {
     }
 
     /** Esc closes the overlay when open. */
-    @HostListener('document:keydown.escape')
-    onEscape(): void {
+    protected onEscape(): void {
         if (this.open()) {
             this.close();
         }
@@ -183,8 +184,7 @@ export class ThemeSwitcher {
      * Global Ctrl + ←/→ cycles through factions. Skipped when the user is
      * typing in a text field so we don't fight word-jump shortcuts.
      */
-    @HostListener('document:keydown', ['$event'])
-    onDocumentKeydown(event: KeyboardEvent): void {
+    protected onDocumentKeydown(event: KeyboardEvent): void {
         if (!event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) {
             return;
         }

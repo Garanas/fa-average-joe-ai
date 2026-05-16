@@ -9,7 +9,6 @@ import { ReleaseEmbed } from './release-embed';
 
 @Component({
     selector: 'app-doc-page',
-    standalone: true,
     imports: [MarkdownComponent, RouterLink, DatePipe, ReleaseEmbed],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './doc-page.html',

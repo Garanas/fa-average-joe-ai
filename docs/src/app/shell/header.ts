@@ -5,7 +5,6 @@ import { ThemeSwitcher } from '../features/theme/theme-switcher';
 
 @Component({
     selector: 'app-header',
-    standalone: true,
     imports: [RouterLink, ThemeSwitcher],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `

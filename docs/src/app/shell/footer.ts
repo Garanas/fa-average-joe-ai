@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 
 @Component({
     selector: 'app-footer',
-    standalone: true,
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `<small>Average Joe AI &mdash; documentation</small>`,
     host: {

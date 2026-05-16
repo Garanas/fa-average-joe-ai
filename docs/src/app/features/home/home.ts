@@ -8,7 +8,6 @@ const PREVIEW_LIMIT = 2;
 
 @Component({
     selector: 'app-home',
-    standalone: true,
     imports: [RouterLink, HeroBanner],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './home.html',

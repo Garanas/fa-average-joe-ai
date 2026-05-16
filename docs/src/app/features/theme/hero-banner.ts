@@ -7,7 +7,6 @@ import { ThemeService } from './theme.service';
 
 @Component({
     selector: 'app-hero-banner',
-    standalone: true,
     imports: [FactionFrame, MatIconModule],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `

@@ -7,7 +7,6 @@ import { entriesForCategory, findCategory } from './content.manifest';
 
 @Component({
     selector: 'app-category-overview',
-    standalone: true,
     imports: [RouterLink, DatePipe],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './category-overview.html',

@@ -37,7 +37,6 @@ type ReleaseState =
 
 @Component({
     selector: 'app-release-embed',
-    standalone: true,
     imports: [MarkdownComponent, DatePipe, DecimalPipe],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
