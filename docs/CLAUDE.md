@@ -16,7 +16,7 @@ The MCP server itself (`@playwright/mcp`) is fetched on demand by npx — see [.
 
 - Start the dev server with `npm start` and wait for it to report a successful build before navigating.
 - Use `browser_snapshot` to locate elements and obtain refs. `browser_take_screenshot` is for visual checks only — don't try to read it to find elements.
-- Screenshots and snapshots land in [`.playwright-mcp/`](.playwright-mcp/) (the MCP's output directory) by default — this path is gitignored. Pass `filename` as a relative path to keep new captures inside it; avoid absolute paths that would escape the gitignored area.
+- Snapshots and screenshots write to [`.playwright-mcp/`](.playwright-mcp/) (gitignored). Always pass `filename: "images/<name>.png"` to `browser_take_screenshot` so screenshots collect under [`.playwright-mcp/images/`](.playwright-mcp/images/) instead of mixing with snapshot YAML at the root. Use relative paths only — absolute paths escape the gitignored area.
 - After a route change or any DOM-altering action, snapshot again. Refs from the prior page are stale.
 - For forms with more than one field, call `browser_fill_form` once instead of chaining `browser_type` calls.
 - For dynamic content, use `browser_wait_for` (text appearing or disappearing) rather than retrying interactions.
