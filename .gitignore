@@ -1,6 +1,6 @@
 
-# Contains personal information, such as a path to the repository
-.vscode/*
+# MCP-related files
+
 .playwright-mcp/*
 
 # Source code that we want to use as context

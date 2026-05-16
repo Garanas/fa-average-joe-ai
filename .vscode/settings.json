@@ -1,0 +1,51 @@
+{
+  "Lua.telemetry.enable": false,
+
+  "Lua.completion.showWord": "Disable",
+  "Lua.completion.requireSeparator": "/",
+  "Lua.completion.autoRequire": false,
+
+  "Lua.runtime.version": "Lua 5.1",
+  "Lua.runtime.path": ["/?"],
+  "Lua.runtime.plugin": ".vscode/fa-plugin.lua",
+  "Lua.runtime.pathStrict": false,
+  "Lua.runtime.exportEnvDefault": true,
+  "Lua.runtime.nonstandardSymbol": ["continue", "!="],
+  "Lua.runtime.special": {
+    "import": "require",
+    "doscript": "require",
+    "lazyimport": "require"
+  },
+
+  "Lua.workspace.checkThirdParty": false,
+  "Lua.workspace.library": ["D:/faf-development/fa"],
+  "Lua.workspace.ignoreDir": [".vscode", "loc", "*.bp"],
+
+
+  "Lua.diagnostics.enable": true,
+  "Lua.diagnostics.globals": ["ScenarioInfo"],
+
+  "Lua.format.defaultConfig": {
+    "max_line_length": "unset",
+  },
+
+  "files.associations": {
+    "*.bp": "lua"
+  },
+  "chat.mcp.serverSampling": {
+    "fa-joe-ai/.mcp.json: angular-cli": {
+      "allowedModels": [
+        "copilot/auto",
+        "copilotcli/claude-sonnet-4.6",
+        "claude-code/claude-haiku-4.5",
+        "copilot/claude-haiku-4.5",
+        "copilotcli/claude-haiku-4.5",
+        "claude-code/claude-sonnet-4.5",
+        "copilot/claude-sonnet-4.5",
+        "copilotcli/claude-sonnet-4.5",
+        "claude-code/claude-sonnet-4.6",
+        "copilot/claude-sonnet-4.6"
+      ]
+    }
+  },
+}
