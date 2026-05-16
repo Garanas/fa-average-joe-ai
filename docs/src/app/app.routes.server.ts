@@ -1,4 +1,4 @@
-import { RenderMode, ServerRoute } from '@angular/ssr';
+import { RenderMode, type ServerRoute } from '@angular/ssr';
 
 import { DOC_CATEGORIES, DOC_ENTRIES } from './features/docs/content.manifest';
 

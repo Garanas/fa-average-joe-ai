@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { ConnectedPosition, OverlayModule } from '@angular/cdk/overlay';
+import { type ConnectedPosition, OverlayModule } from '@angular/cdk/overlay';
 
-import { ColorScheme, ColorSchemeService } from './color-scheme.service';
+import { type ColorScheme, ColorSchemeService } from './color-scheme.service';
 import { FACTIONS } from './faction-theme';
 import { ThemeService } from './theme.service';
 

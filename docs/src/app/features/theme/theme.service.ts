@@ -1,7 +1,7 @@
 import { Injectable, PLATFORM_ID, effect, inject, signal } from '@angular/core';
 import { Location, isPlatformBrowser } from '@angular/common';
 
-import { DEFAULT_FACTION, FACTIONS, FactionId, isFactionId } from './faction-theme';
+import { DEFAULT_FACTION, FACTIONS, type FactionId, isFactionId } from './faction-theme';
 
 const STORAGE_KEY = 'fa-joe-ai-faction-theme';
 
