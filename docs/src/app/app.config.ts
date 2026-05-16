@@ -2,7 +2,8 @@ import {
     ApplicationConfig,
     inject,
     provideAppInitializer,
-    provideBrowserGlobalErrorListeners
+    provideBrowserGlobalErrorListeners,
+    provideZonelessChangeDetection
 } from '@angular/core';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withFetch } from '@angular/common/http';
@@ -17,6 +18,7 @@ import { FACTIONS } from './features/theme/faction-theme';
 
 export const appConfig: ApplicationConfig = {
     providers: [
+        provideZonelessChangeDetection(),
         provideBrowserGlobalErrorListeners(),
         provideRouter(
             routes,
