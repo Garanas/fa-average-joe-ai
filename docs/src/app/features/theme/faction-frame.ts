@@ -57,6 +57,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
 
       .faction-frame {
         position: relative;
+        padding: 4px;
         /* Bevel size for the content's clipped corners. Should roughly match  */
         /* the inner bevel of the frame's corner texture (40 px corner minus   */
         /* 24 px edge thickness ≈ 16 px). Tune freely.                         */
