@@ -9,6 +9,6 @@ import { Footer } from './footer';
     imports: [RouterOutlet, Header, Footer],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './app.html',
-    host: { class: 'block' }
+    host: { class: 'block' },
 })
 export class App {}

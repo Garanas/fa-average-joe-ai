@@ -13,10 +13,14 @@ import { ThemeService } from './theme.service';
         <app-faction-frame>
             <div class="hero-banner relative flex items-center gap-6 px-8 py-10 sm:px-12 sm:py-14">
                 <div class="relative z-10 max-w-xl">
-                    <p class="font-display text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+                    <p
+                        class="font-display text-xs font-semibold uppercase tracking-[0.18em] text-accent"
+                    >
                         {{ faction().hero.eyebrow }}
                     </p>
-                    <h1 class="mt-2 font-display text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
+                    <h1
+                        class="mt-2 font-display text-3xl font-bold leading-tight tracking-tight sm:text-4xl"
+                    >
                         {{ faction().hero.title }}
                     </h1>
                     <p class="mt-4 text-base leading-relaxed text-muted sm:text-[1.0625rem]">
@@ -59,11 +63,13 @@ import { ThemeService } from './theme.service';
                 height: 14rem;
                 font-size: 14rem;
                 color: var(--color-accent);
-                filter: drop-shadow(0 0 28px color-mix(in srgb, var(--color-accent) 60%, transparent));
+                filter: drop-shadow(
+                    0 0 28px color-mix(in srgb, var(--color-accent) 60%, transparent)
+                );
             }
-        `
+        `,
     ],
-    host: { class: 'block' }
+    host: { class: 'block' },
 })
 export class HeroBanner {
     private readonly theme = inject(ThemeService);

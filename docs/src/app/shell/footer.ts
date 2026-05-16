@@ -6,7 +6,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
     template: `<small>Average Joe AI &mdash; documentation</small>`,
     host: {
         class: 'border-t border-border px-6 py-4 text-center text-muted',
-        role: 'contentinfo'
-    }
+        role: 'contentinfo',
+    },
 })
 export class Footer {}

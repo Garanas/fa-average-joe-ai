@@ -11,7 +11,7 @@ const PREVIEW_LIMIT = 2;
     imports: [RouterLink, HeroBanner],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './home.html',
-    host: { class: 'block' }
+    host: { class: 'block' },
 })
 export class Home {
     protected readonly groups = recentByCategory(PREVIEW_LIMIT);

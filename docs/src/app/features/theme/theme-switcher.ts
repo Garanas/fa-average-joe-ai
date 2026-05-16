@@ -1,9 +1,4 @@
-import {
-    ChangeDetectionStrategy,
-    Component,
-    inject,
-    signal
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { ConnectedPosition, OverlayModule } from '@angular/cdk/overlay';
@@ -21,7 +16,7 @@ interface SchemeOption {
 const SCHEMES: readonly SchemeOption[] = [
     { id: 'light', label: 'Light theme', icon: 'light_mode' },
     { id: 'dark', label: 'Dark theme', icon: 'dark_mode' },
-    { id: 'auto', label: 'Auto (system)', icon: 'brightness_auto' }
+    { id: 'auto', label: 'Auto (system)', icon: 'brightness_auto' },
 ];
 
 /**
@@ -34,15 +29,15 @@ const OVERLAY_POSITIONS: ConnectedPosition[] = [
         originY: 'bottom',
         overlayX: 'end',
         overlayY: 'top',
-        offsetY: 8
+        offsetY: 8,
     },
     {
         originX: 'end',
         originY: 'top',
         overlayX: 'end',
         overlayY: 'bottom',
-        offsetY: -8
-    }
+        offsetY: -8,
+    },
 ];
 
 @Component({
@@ -147,13 +142,13 @@ const OVERLAY_POSITIONS: ConnectedPosition[] = [
                 background-color: var(--mat-sys-secondary-container);
                 color: var(--mat-sys-on-secondary-container);
             }
-        `
+        `,
     ],
     host: {
         class: 'inline-block',
         '(document:keydown.escape)': 'onEscape()',
-        '(document:keydown)': 'onDocumentKeydown($event)'
-    }
+        '(document:keydown)': 'onDocumentKeydown($event)',
+    },
 })
 export class ThemeSwitcher {
     protected readonly theme = inject(ThemeService);
@@ -192,9 +187,7 @@ export class ThemeSwitcher {
             return;
         }
         const target = event.target as HTMLElement | null;
-        if (
-            target?.matches('input, textarea, [contenteditable=""], [contenteditable="true"]')
-        ) {
+        if (target?.matches('input, textarea, [contenteditable=""], [contenteditable="true"]')) {
             return;
         }
         event.preventDefault();

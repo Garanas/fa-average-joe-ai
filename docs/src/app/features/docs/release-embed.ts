@@ -4,7 +4,7 @@ import {
     PLATFORM_ID,
     computed,
     inject,
-    input
+    input,
 } from '@angular/core';
 import { DatePipe, DecimalPipe, isPlatformBrowser } from '@angular/common';
 import { HttpErrorResponse, httpResource } from '@angular/common/http';
@@ -44,10 +44,7 @@ interface GitHubRelease {
                     <h3 class="font-display text-lg font-semibold tracking-tight">
                         {{ data.name || data.tag_name }}
                     </h3>
-                    <time
-                        class="ml-auto text-xs text-muted"
-                        [attr.datetime]="data.published_at"
-                    >
+                    <time class="ml-auto text-xs text-muted" [attr.datetime]="data.published_at">
                         {{ data.published_at | date: 'longDate' }}
                     </time>
                 </div>
@@ -92,18 +89,21 @@ interface GitHubRelease {
             } @else if (missing()) {
                 <div class="px-5 py-4 text-sm text-muted">
                     No release published yet for
-                    <code>{{ tag() }}</code> &mdash; the embed will appear automatically once it's tagged.
+                    <code>{{ tag() }}</code> &mdash; the embed will appear automatically once it's
+                    tagged.
                 </div>
             } @else if (errorMessage(); as message) {
                 <div class="px-5 py-4 text-sm text-muted">
                     Could not load release info: {{ message }}
                 </div>
             } @else {
-                <div class="px-5 py-4 text-sm text-muted">Release embed will load in the browser.</div>
+                <div class="px-5 py-4 text-sm text-muted">
+                    Release embed will load in the browser.
+                </div>
             }
         </aside>
     `,
-    host: { class: 'block' }
+    host: { class: 'block' },
 })
 export class ReleaseEmbed {
     readonly tag = input<string>('latest');
@@ -130,7 +130,7 @@ export class ReleaseEmbed {
      * state, so the template never reads it directly.
      */
     protected readonly data = computed(() =>
-        this.release.hasValue() ? this.release.value() : undefined
+        this.release.hasValue() ? this.release.value() : undefined,
     );
 
     /** True only for the "release not tagged yet" case (HTTP 404). */

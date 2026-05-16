@@ -19,7 +19,7 @@ import { ThemeSwitcher } from '../features/theme/theme-switcher';
     `,
     host: {
         class: 'flex items-center justify-between gap-4 border-b border-border bg-surface px-6 py-3',
-        role: 'banner'
-    }
+        role: 'banner',
+    },
 })
 export class Header {}

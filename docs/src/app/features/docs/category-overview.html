@@ -1,7 +1,10 @@
 @if (category(); as cat) {
     <article class="mx-auto max-w-3xl px-6 pt-8 pb-16">
         <header class="mb-8 border-b border-border pb-5">
-            <a class="mb-4 inline-block text-sm text-muted no-underline hover:text-accent" routerLink="/">
+            <a
+                class="mb-4 inline-block text-sm text-muted no-underline hover:text-accent"
+                routerLink="/"
+            >
                 &larr; Home
             </a>
             <h1 class="font-display text-4xl font-semibold tracking-tight">{{ cat.label }}</h1>
@@ -19,12 +22,16 @@
                     >
                         <span class="block font-medium">{{ entry.title }}</span>
                         @if (entry.summary) {
-                            <span class="mt-1 block text-[0.9375rem] text-muted">{{ entry.summary }}</span>
+                            <span class="mt-1 block text-[0.9375rem] text-muted">{{
+                                entry.summary
+                            }}</span>
                         }
                         @if (entry.date || entry.author) {
                             <span class="mt-2 block text-xs text-muted">
                                 @if (entry.date) {
-                                    <time [attr.datetime]="entry.date">{{ entry.date | date: 'longDate' }}</time>
+                                    <time [attr.datetime]="entry.date">{{
+                                        entry.date | date: 'longDate'
+                                    }}</time>
                                 }
                                 @if (entry.date && entry.author) {
                                     <span aria-hidden="true"> &middot; </span>
@@ -44,8 +51,6 @@
 } @else {
     <article class="mx-auto max-w-3xl px-6 pt-8 pb-16 text-center">
         <h1 class="font-display text-3xl font-semibold tracking-tight">Category not found</h1>
-        <p class="mt-4">
-            That category doesn't exist. <a routerLink="/">Back to home</a>.
-        </p>
+        <p class="mt-4">That category doesn't exist. <a routerLink="/">Back to home</a>.</p>
     </article>
 }

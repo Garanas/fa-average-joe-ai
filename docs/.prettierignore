@@ -1,0 +1,13 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+out-tsc
+.angular
+
+# Generated lockfiles — owned by the package manager, not by humans.
+package-lock.json
+
+# Public assets (binary-ish or third-party).
+public

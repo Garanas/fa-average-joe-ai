@@ -10,7 +10,7 @@ import { entriesForCategory, findCategory } from './content.manifest';
     imports: [RouterLink, DatePipe],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './category-overview.html',
-    host: { class: 'block' }
+    host: { class: 'block' },
 })
 export class CategoryOverview {
     private readonly params = toSignal(inject(ActivatedRoute).paramMap, { requireSync: true });

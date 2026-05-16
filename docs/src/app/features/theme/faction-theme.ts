@@ -20,8 +20,8 @@ export const FACTIONS: readonly FactionTheme[] = [
             eyebrow: 'United Earth Federation',
             title: 'Hold the line. Build the line.',
             tagline:
-                'Heavy armour, dependable engineers, and the discipline to grind any battlefield into a UEF parade ground.'
-        }
+                'Heavy armour, dependable engineers, and the discipline to grind any battlefield into a UEF parade ground.',
+        },
     },
     {
         id: 'cybran',
@@ -30,8 +30,8 @@ export const FACTIONS: readonly FactionTheme[] = [
             eyebrow: 'Cybran Nation',
             title: 'Strike fast. Strike everywhere.',
             tagline:
-                'Stealth, speed, and surgical reclaim — the AI that turns your opponent’s footprint into your next factory.'
-        }
+                'Stealth, speed, and surgical reclaim — the AI that turns your opponent’s footprint into your next factory.',
+        },
     },
     {
         id: 'aeon',
@@ -40,8 +40,8 @@ export const FACTIONS: readonly FactionTheme[] = [
             eyebrow: 'Aeon Illuminate',
             title: 'The Way is one of patience.',
             tagline:
-                'Energy-rich, hover-mobile, and unrelenting. Outlast the opening, then convert the map one shrine at a time.'
-        }
+                'Energy-rich, hover-mobile, and unrelenting. Outlast the opening, then convert the map one shrine at a time.',
+        },
     },
     {
         id: 'seraphim',
@@ -50,9 +50,9 @@ export const FACTIONS: readonly FactionTheme[] = [
             eyebrow: 'The Seraphim',
             title: 'Ythotha’rein. We return.',
             tagline:
-                'Late-game terror and shielded behemoths. Trade tempo for unstoppable mass, then close the door behind you.'
-        }
-    }
+                'Late-game terror and shielded behemoths. Trade tempo for unstoppable mass, then close the door behind you.',
+        },
+    },
 ];
 
 export const DEFAULT_FACTION: FactionId = 'uef';

@@ -12,7 +12,7 @@ import { ReleaseEmbed } from './release-embed';
     imports: [MarkdownComponent, RouterLink, DatePipe, ReleaseEmbed],
     changeDetection: ChangeDetectionStrategy.OnPush,
     templateUrl: './doc-page.html',
-    host: { class: 'block' }
+    host: { class: 'block' },
 })
 export class DocPage {
     private readonly location = inject(Location);

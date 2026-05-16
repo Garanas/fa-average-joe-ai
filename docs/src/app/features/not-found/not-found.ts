@@ -24,6 +24,6 @@ import { RouterLink } from '@angular/router';
             </a>
         </article>
     `,
-    host: { class: 'block' }
+    host: { class: 'block' },
 })
 export class NotFound {}

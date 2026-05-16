@@ -3,7 +3,7 @@ import {
     inject,
     provideAppInitializer,
     provideBrowserGlobalErrorListeners,
-    provideZonelessChangeDetection
+    provideZonelessChangeDetection,
 } from '@angular/core';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
 import { provideHttpClient, withFetch } from '@angular/common/http';
@@ -22,7 +22,7 @@ export const appConfig: ApplicationConfig = {
         provideBrowserGlobalErrorListeners(),
         provideRouter(
             routes,
-            withInMemoryScrolling({ scrollPositionRestoration: 'top', anchorScrolling: 'enabled' })
+            withInMemoryScrolling({ scrollPositionRestoration: 'top', anchorScrolling: 'enabled' }),
         ),
         provideClientHydration(withEventReplay()),
         provideHttpClient(withFetch()),
@@ -33,9 +33,9 @@ export const appConfig: ApplicationConfig = {
                 useValue: {
                     gfm: true,
                     breaks: false,
-                    pedantic: false
-                }
-            }
+                    pedantic: false,
+                },
+            },
         }),
         /* Register each faction SVG under the "factions" namespace so any */
         /* component can render <mat-icon svgIcon="factions:uef"> etc.    */
@@ -55,10 +55,10 @@ export const appConfig: ApplicationConfig = {
                     'factions',
                     faction.id,
                     sanitizer.bypassSecurityTrustResourceUrl(
-                        location.prepareExternalUrl(`/factions/${faction.id}/icon.svg`)
-                    )
+                        location.prepareExternalUrl(`/factions/${faction.id}/icon.svg`),
+                    ),
                 );
             }
-        })
-    ]
+        }),
+    ],
 };

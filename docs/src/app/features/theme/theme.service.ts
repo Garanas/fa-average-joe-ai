@@ -36,7 +36,7 @@ const FAVICON_LINKS: readonly FaviconLink[] = [
     { rel: 'icon', type: 'image/x-icon', file: 'favicon.ico' },
     { rel: 'icon', type: 'image/png', file: 'favicon-32x32.png', sizes: '32x32' },
     { rel: 'icon', type: 'image/png', file: 'favicon-16x16.png', sizes: '16x16' },
-    { rel: 'apple-touch-icon', type: 'image/png', file: 'apple-touch-icon.png' }
+    { rel: 'apple-touch-icon', type: 'image/png', file: 'apple-touch-icon.png' },
 ];
 
 const FRAME_ASSETS: readonly FrameAsset[] = [
@@ -53,7 +53,7 @@ const FRAME_ASSETS: readonly FrameAsset[] = [
     { property: '--bracket-left-b', path: '/bracket-left/bracket_bmp_b.png' },
     { property: '--bracket-right-t', path: '/bracket-right/bracket_bmp_t.png' },
     { property: '--bracket-right-m', path: '/bracket-right/bracket_bmp_m.png' },
-    { property: '--bracket-right-b', path: '/bracket-right/bracket_bmp_b.png' }
+    { property: '--bracket-right-b', path: '/bracket-right/bracket_bmp_b.png' },
 ];
 
 @Injectable({ providedIn: 'root' })
@@ -133,9 +133,7 @@ export class ThemeService {
                 head.appendChild(link);
             }
             link.type = type;
-            link.href = this.location.prepareExternalUrl(
-                `/factions/${faction}/favicons/${file}`
-            );
+            link.href = this.location.prepareExternalUrl(`/factions/${faction}/favicons/${file}`);
         }
     }
 
