@@ -52,8 +52,8 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
                 }
             }
 
-            <!-- Inner 9-slice + brackets + clipped content. The body wrapper -->
-            <!-- always renders — only the *border* pieces and brackets gate. -->
+            <!-- Inner 9-slice + clipped content. The body wrapper always       -->
+            <!-- renders — only the *border* pieces gate on 'showInner'.        -->
             <div class="faction-frame__inner">
                 <div class="faction-frame__content"><ng-content /></div>
 
@@ -68,20 +68,24 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
                     <div class="faction-frame__corner faction-frame__corner-ll"></div>
                     <div class="faction-frame__corner faction-frame__corner-lr"></div>
                 }
-
-                @if (showBrackets) {
-                    <div class="faction-frame__bracket faction-frame__bracket-left">
-                        <div class="faction-frame__bracket-t"></div>
-                        <div class="faction-frame__bracket-m"></div>
-                        <div class="faction-frame__bracket-b"></div>
-                    </div>
-                    <div class="faction-frame__bracket faction-frame__bracket-right">
-                        <div class="faction-frame__bracket-t"></div>
-                        <div class="faction-frame__bracket-m"></div>
-                        <div class="faction-frame__bracket-b"></div>
-                    </div>
-                }
             </div>
+
+            <!-- Brackets attach to the *outer* wrapper so their offsets are     -->
+            <!-- measured against the outer frame, not the inner body. Kept at   -->
+            <!-- this layer (after __inner) so they paint on top of inner +      -->
+            <!-- content but underneath nothing important.                       -->
+            @if (showBrackets) {
+                <div class="faction-frame__bracket faction-frame__bracket-left">
+                    <div class="faction-frame__bracket-t"></div>
+                    <div class="faction-frame__bracket-m"></div>
+                    <div class="faction-frame__bracket-b"></div>
+                </div>
+                <div class="faction-frame__bracket faction-frame__bracket-right">
+                    <div class="faction-frame__bracket-t"></div>
+                    <div class="faction-frame__bracket-m"></div>
+                    <div class="faction-frame__bracket-b"></div>
+                </div>
+            }
         </div>
     `,
     styles: [
@@ -355,11 +359,15 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
             /* Each bracket is a vertical flex column with top + middle (repeat) */
             /* + bottom pieces sharing a spine. Spine aligns to the outer side   */
             /* of the bracket, arms reach inward toward the frame.               */
+            /*                                                                   */
+            /* Anchored to the outer .faction-frame wrapper, so top / bottom /  */
+            /* left / right are measured against the outer dimensions (not the  */
+            /* inner body).                                                     */
 
             .faction-frame__bracket {
                 position: absolute;
-                top: 0;
-                bottom: 0;
+                top: 0; /* TODO(translate): bump to 36px to clear the outer header strip. */
+                bottom: 0; /* TODO(translate): bump to 12px to clear the outer bottom edge. */
                 display: flex;
                 flex-direction: column;
                 pointer-events: none;
@@ -466,6 +474,6 @@ export class FactionFrame {
     /* so the inner pieces don't shift in or out as you flip these. Always     */
     /* commit these as `true`.                                                 */
     protected readonly showOuter = true;
-    protected readonly showInner = true;
-    protected readonly showBrackets = true;
+    protected readonly showInner = false;
+    protected readonly showBrackets = false;
 }
