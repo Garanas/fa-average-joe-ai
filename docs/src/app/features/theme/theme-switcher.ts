@@ -68,7 +68,7 @@ const OVERLAY_POSITIONS: ConnectedPosition[] = [
             aria-label="Theme settings"
             title="Theme settings (Ctrl + ← / → to cycle factions)"
         >
-            <span class="material-symbols-outlined">palette</span>
+            <span class="material-symbols-outlined text-text">palette</span>
         </button>
         <ng-template
             cdkConnectedOverlay

@@ -1,7 +1,7 @@
 import { Injectable, PLATFORM_ID, effect, inject, signal } from '@angular/core';
 import { Location, isPlatformBrowser } from '@angular/common';
 
-import { DEFAULT_FACTION, FACTIONS, FactionId, findFaction, isFactionId } from './faction-theme';
+import { DEFAULT_FACTION, FACTIONS, FactionId, isFactionId } from './faction-theme';
 
 const STORAGE_KEY = 'fa-joe-ai-faction-theme';
 
@@ -15,6 +15,29 @@ interface FrameAsset {
     /** Path under /factions/<id>/, with leading slash. */
     path: string;
 }
+
+/**
+ * Browser-tab favicons. Each faction's `/factions/<id>/favicons/` folder
+ * contains the same filenames, so swapping the active faction means rewriting
+ * the `href` on these <link> elements — the relative paths stay constant.
+ *
+ * The `site.webmanifest` is intentionally omitted: its internal icon paths
+ * differ per faction and runtime manifest swaps are unreliable across
+ * browsers. PWA install icons remain the build-time defaults.
+ */
+interface FaviconLink {
+    rel: string;
+    type: string;
+    file: string;
+    sizes?: string;
+}
+
+const FAVICON_LINKS: readonly FaviconLink[] = [
+    { rel: 'icon', type: 'image/x-icon', file: 'favicon.ico' },
+    { rel: 'icon', type: 'image/png', file: 'favicon-32x32.png', sizes: '32x32' },
+    { rel: 'icon', type: 'image/png', file: 'favicon-16x16.png', sizes: '16x16' },
+    { rel: 'apple-touch-icon', type: 'image/png', file: 'apple-touch-icon.png' }
+];
 
 const FRAME_ASSETS: readonly FrameAsset[] = [
     { property: '--frame-ul', path: '/minimap-border/mini-map-glow_brd_ul.png' },
@@ -86,20 +109,31 @@ export class ThemeService {
     }
 
     /**
-     * Swap the page favicon to the active faction's icon. Reuses the
-     * `iconPath` already exposed by `FactionTheme`, so adding a faction means
-     * dropping in the icon file and nothing else here.
+     * Point the page's favicon <link>s at the active faction's
+     * `favicons/` folder. Each `FAVICON_LINKS` entry is keyed by its
+     * `rel` (plus `sizes`, where present) so the same <link> is reused
+     * across swaps instead of accumulating duplicates.
      */
     private applyFavicon(faction: FactionId): void {
-        const href = this.location.prepareExternalUrl(findFaction(faction).iconPath);
-        let link = document.head.querySelector<HTMLLinkElement>('link[rel~="icon"]');
-        if (!link) {
-            link = document.createElement('link');
-            link.rel = 'icon';
-            document.head.appendChild(link);
+        const head = document.head;
+        for (const { rel, type, file, sizes } of FAVICON_LINKS) {
+            const selector = sizes
+                ? `link[rel="${rel}"][sizes="${sizes}"]`
+                : `link[rel="${rel}"]:not([sizes])`;
+            let link = head.querySelector<HTMLLinkElement>(selector);
+            if (!link) {
+                link = document.createElement('link');
+                link.rel = rel;
+                if (sizes) {
+                    link.sizes.add(sizes);
+                }
+                head.appendChild(link);
+            }
+            link.type = type;
+            link.href = this.location.prepareExternalUrl(
+                `/factions/${faction}/favicons/${file}`
+            );
         }
-        link.type = 'image/png';
-        link.href = href;
     }
 
     private readInitial(): FactionId {
