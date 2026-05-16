@@ -25,7 +25,7 @@ import { ThemeService } from './theme.service';
                     </p>
                 </div>
                 <img
-                    class="hero-banner__icon pointer-events-none absolute -right-6 -bottom-6 hidden h-56 w-56 select-none sm:block"
+                    class="hero-banner__icon pointer-events-none absolute -right-6 -bottom-6 hidden h-56 w-56 select-none opacity-[0.18] sm:block"
                     [src]="iconUrl()"
                     alt=""
                 />
@@ -51,8 +51,10 @@ import { ThemeService } from './theme.service';
                     );
             }
 
+            /* Only the color-mix drop-shadow stays as raw CSS — it composes a */
+            /* live color from --color-accent which would be unreadable as a   */
+            /* Tailwind arbitrary value.                                       */
             .hero-banner__icon {
-                opacity: 0.18;
                 filter: drop-shadow(0 0 28px color-mix(in srgb, var(--color-accent) 60%, transparent));
             }
         `

@@ -79,10 +79,14 @@ const OVERLAY_POSITIONS: ConnectedPosition[] = [
             cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
             (backdropClick)="close()"
         >
-            <div class="theme-switcher__panel" role="dialog" aria-label="Theme settings">
-                <section class="theme-switcher__section">
+            <div
+                class="theme-switcher__panel flex flex-row gap-3 rounded-xl border border-border bg-surface p-3 text-text"
+                role="dialog"
+                aria-label="Theme settings"
+            >
+                <section class="flex flex-col gap-1">
                     <h3 class="theme-switcher__section-title">Faction</h3>
-                    <div class="theme-switcher__factions">
+                    <div class="flex min-w-40 flex-col gap-1">
                         @for (faction of factions(); track faction.id) {
                             <button
                                 mat-button
@@ -91,22 +95,21 @@ const OVERLAY_POSITIONS: ConnectedPosition[] = [
                                 [class.is-active]="faction.id === theme.current()"
                                 (click)="theme.setTheme(faction.id)"
                             >
-                                <span class="theme-switcher__faction-row">
-                                    <img class="theme-switcher__faction-icon" [src]="faction.resolvedIcon" alt="" />
+                                <span class="inline-flex w-full items-center gap-2">
+                                    <img class="inline-block h-5 w-5 shrink-0" [src]="faction.resolvedIcon" alt="" />
                                     <span>{{ faction.label }}</span>
                                 </span>
                             </button>
                         }
                     </div>
                 </section>
-                <section class="theme-switcher__section">
+                <section class="flex flex-col gap-1">
                     <h3 class="theme-switcher__section-title">Theme</h3>
-                    <div class="theme-switcher__schemes">
+                    <div class="flex flex-row gap-1">
                         @for (scheme of schemes; track scheme.id) {
                             <button
                                 mat-icon-button
                                 type="button"
-                                class="theme-switcher__scheme"
                                 [class.is-active]="scheme.id === colorScheme.current()"
                                 [attr.aria-label]="scheme.label"
                                 [title]="scheme.label"
@@ -122,27 +125,17 @@ const OVERLAY_POSITIONS: ConnectedPosition[] = [
     `,
     styles: [
         `
-            /* Chrome uses our own light/dark tokens (driven by data-color-     */
-            /* scheme on <html>) rather than Material's --mat-sys-* tokens,    */
-            /* because the magenta-violet prebuilt CSS is hard-coded dark.     */
+            /* Multi-layer drop shadow — Tailwind doesn't have a preset that  */
+            /* matches the close-soft + far-prominent pair we want for a      */
+            /* popover surface. Everything else on the panel is utility-driven. */
             .theme-switcher__panel {
-                display: flex;
-                flex-direction: row;
-                gap: 12px;
-                padding: 12px;
-                background-color: var(--color-surface);
-                color: var(--color-text);
-                border: 1px solid var(--color-border);
-                border-radius: 12px;
                 box-shadow:
                     0 4px 6px rgba(0, 0, 0, 0.04),
                     0 10px 32px rgba(0, 0, 0, 0.18);
             }
-            .theme-switcher__section {
-                display: flex;
-                flex-direction: column;
-                gap: 4px;
-            }
+
+            /* Reused in two places — extracted so the five small declarations */
+            /* aren't duplicated as utility class lists on both <h3>s.         */
             .theme-switcher__section-title {
                 margin: 0 0 4px;
                 padding: 0 4px;
@@ -152,35 +145,18 @@ const OVERLAY_POSITIONS: ConnectedPosition[] = [
                 letter-spacing: 0.08em;
                 color: var(--color-muted);
             }
-            .theme-switcher__factions {
-                display: flex;
-                flex-direction: column;
-                gap: 4px;
-                min-width: 10rem;
-            }
-            .theme-switcher__schemes {
-                display: flex;
-                flex-direction: row;
-                gap: 4px;
-            }
+
+            /* Material's .mat-mdc-button sets min-width: 64px and centers its */
+            /* content; override with matching class specificity so faction   */
+            /* buttons pack tightly and left-align.                            */
             .theme-switcher__faction.mat-mdc-button {
                 min-width: 0;
                 justify-content: flex-start;
             }
-            /* Force the icon + label onto one row, since mat-button's internal */
-            /* label wrapper doesn't guarantee row layout for arbitrary content. */
-            .theme-switcher__faction-row {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.5rem;
-                width: 100%;
-            }
-            .theme-switcher__faction-icon {
-                display: inline-block;
-                width: 1.25rem;
-                height: 1.25rem;
-                flex-shrink: 0;
-            }
+
+            /* Active button uses Material's secondary-container token, which */
+            /* is overridden per-faction via the .theme-* class on <html>.   */
+            /* That makes the active chip tint with the current faction.    */
             button.is-active {
                 background-color: var(--mat-sys-secondary-container);
                 color: var(--mat-sys-on-secondary-container);

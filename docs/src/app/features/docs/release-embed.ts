@@ -41,13 +41,13 @@ type ReleaseState =
     imports: [MarkdownComponent, DatePipe, DecimalPipe],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <aside class="release-card overflow-hidden rounded-xl border border-border bg-surface">
+        <aside class="overflow-hidden rounded-xl border border-border bg-surface">
             @switch (state().status) {
                 @case ('ready') {
                     @if (asReady(state()); as r) {
-                        <div class="release-card__header flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 pt-4">
+                        <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 pt-4">
                             <span
-                                class="font-display rounded-md bg-accent px-2 py-0.5 text-sm font-semibold text-mat-on-primary"
+                                class="font-display rounded-md bg-accent px-2 py-0.5 text-sm font-semibold"
                                 style="color: var(--mat-sys-on-primary)"
                             >
                                 {{ r.data.tag_name }}
@@ -64,13 +64,13 @@ type ReleaseState =
                         </div>
 
                         @if (r.data.body) {
-                            <div class="release-card__body prose px-5 py-3">
+                            <div class="prose px-5 py-3">
                                 <markdown [data]="r.data.body" />
                             </div>
                         }
 
                         @if (r.data.assets.length) {
-                            <ul class="release-card__assets m-0 list-none border-t border-border bg-bg/40 px-5 py-3">
+                            <ul class="m-0 list-none border-t border-border bg-bg/40 px-5 py-3">
                                 @for (asset of r.data.assets; track asset.browser_download_url) {
                                     <li class="flex items-center justify-between gap-3 py-1 text-sm">
                                         <a
