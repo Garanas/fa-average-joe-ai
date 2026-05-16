@@ -9,7 +9,6 @@ export interface FactionHero {
 export interface FactionTheme {
     id: FactionId;
     label: string;
-    iconPath: string;
     hero: FactionHero;
 }
 
@@ -17,7 +16,6 @@ export const FACTIONS: readonly FactionTheme[] = [
     {
         id: 'uef',
         label: 'UEF',
-        iconPath: '/factions/icon-uef.png',
         hero: {
             eyebrow: 'United Earth Federation',
             title: 'Hold the line. Build the line.',
@@ -28,7 +26,6 @@ export const FACTIONS: readonly FactionTheme[] = [
     {
         id: 'cybran',
         label: 'Cybran',
-        iconPath: '/factions/icon-cybran.png',
         hero: {
             eyebrow: 'Cybran Nation',
             title: 'Strike fast. Strike everywhere.',
@@ -39,7 +36,6 @@ export const FACTIONS: readonly FactionTheme[] = [
     {
         id: 'aeon',
         label: 'Aeon',
-        iconPath: '/factions/icon-aeon.png',
         hero: {
             eyebrow: 'Aeon Illuminate',
             title: 'The Way is one of patience.',
@@ -50,7 +46,6 @@ export const FACTIONS: readonly FactionTheme[] = [
     {
         id: 'seraphim',
         label: 'Seraphim',
-        iconPath: '/factions/icon-seraphim.png',
         hero: {
             eyebrow: 'The Seraphim',
             title: 'Ythotha’rein. We return.',

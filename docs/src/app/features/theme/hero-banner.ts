@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { Location } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
 
 import { FactionFrame } from './faction-frame';
 import { findFaction } from './faction-theme';
@@ -8,7 +8,7 @@ import { ThemeService } from './theme.service';
 @Component({
     selector: 'app-hero-banner',
     standalone: true,
-    imports: [FactionFrame],
+    imports: [FactionFrame, MatIconModule],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
         <app-faction-frame>
@@ -24,10 +24,9 @@ import { ThemeService } from './theme.service';
                         {{ faction().hero.tagline }}
                     </p>
                 </div>
-                <img
-                    class="hero-banner__icon pointer-events-none absolute -right-6 -bottom-6 hidden h-56 w-56 select-none opacity-[0.18] sm:block"
-                    [src]="iconUrl()"
-                    alt=""
+                <mat-icon
+                    class="hero-banner__icon pointer-events-none absolute -right-6 -bottom-6 hidden select-none opacity-[0.18] sm:block"
+                    [svgIcon]="'factions:' + faction().id"
                 />
             </div>
         </app-faction-frame>
@@ -51,10 +50,16 @@ import { ThemeService } from './theme.service';
                     );
             }
 
-            /* Only the color-mix drop-shadow stays as raw CSS — it composes a */
-            /* live color from --color-accent which would be unreadable as a   */
-            /* Tailwind arbitrary value.                                       */
-            .hero-banner__icon {
+            /* The icon paints itself via fill:currentColor in the SVG, so we */
+            /* set color directly on the host. Sizing the icon goes through  */
+            /* the mat-icon host so its inner SVG scales accordingly. The    */
+            /* drop-shadow uses color-mix and composes a live color from     */
+            /* --color-accent (the active faction's accent).                  */
+            .hero-banner__icon.mat-icon {
+                width: 14rem;
+                height: 14rem;
+                font-size: 14rem;
+                color: var(--color-accent);
                 filter: drop-shadow(0 0 28px color-mix(in srgb, var(--color-accent) 60%, transparent));
             }
         `
@@ -63,10 +68,5 @@ import { ThemeService } from './theme.service';
 })
 export class HeroBanner {
     private readonly theme = inject(ThemeService);
-    private readonly location = inject(Location);
-
     protected readonly faction = computed(() => findFaction(this.theme.current()));
-    protected readonly iconUrl = computed(() =>
-        this.location.prepareExternalUrl(this.faction().iconPath)
-    );
 }

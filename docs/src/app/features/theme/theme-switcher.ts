@@ -2,21 +2,16 @@ import {
     ChangeDetectionStrategy,
     Component,
     HostListener,
-    computed,
     inject,
     signal
 } from '@angular/core';
-import { Location } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { ConnectedPosition, OverlayModule } from '@angular/cdk/overlay';
 
 import { ColorScheme, ColorSchemeService } from './color-scheme.service';
-import { FACTIONS, FactionTheme } from './faction-theme';
+import { FACTIONS } from './faction-theme';
 import { ThemeService } from './theme.service';
-
-interface ResolvedFaction extends FactionTheme {
-    resolvedIcon: string;
-}
 
 interface SchemeOption {
     id: ColorScheme;
@@ -54,7 +49,7 @@ const OVERLAY_POSITIONS: ConnectedPosition[] = [
 @Component({
     selector: 'app-theme-switcher',
     standalone: true,
-    imports: [MatButtonModule, OverlayModule],
+    imports: [MatButtonModule, MatIconModule, OverlayModule],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
         <button
@@ -68,7 +63,7 @@ const OVERLAY_POSITIONS: ConnectedPosition[] = [
             aria-label="Theme settings"
             title="Theme settings (Ctrl + ← / → to cycle factions)"
         >
-            <span class="material-symbols-outlined text-text">palette</span>
+            <mat-icon class="text-text">palette</mat-icon>
         </button>
         <ng-template
             cdkConnectedOverlay
@@ -86,19 +81,20 @@ const OVERLAY_POSITIONS: ConnectedPosition[] = [
             >
                 <section class="flex flex-col gap-1">
                     <h3 class="theme-switcher__section-title">Faction</h3>
-                    <div class="flex min-w-40 flex-col gap-1">
-                        @for (faction of factions(); track faction.id) {
+                    <div class="flex flex-col gap-1">
+                        @for (faction of factions; track faction.id) {
                             <button
-                                mat-button
+                                mat-icon-button
                                 type="button"
-                                class="theme-switcher__faction"
                                 [class.is-active]="faction.id === theme.current()"
+                                [attr.aria-label]="faction.label"
+                                [title]="faction.label"
                                 (click)="theme.setTheme(faction.id)"
                             >
-                                <span class="inline-flex w-full items-center gap-2">
-                                    <img class="inline-block h-5 w-5 shrink-0" [src]="faction.resolvedIcon" alt="" />
-                                    <span>{{ faction.label }}</span>
-                                </span>
+                                <mat-icon
+                                    [class]="'faction-icon-' + faction.id"
+                                    [svgIcon]="'factions:' + faction.id"
+                                />
                             </button>
                         }
                     </div>
@@ -115,7 +111,7 @@ const OVERLAY_POSITIONS: ConnectedPosition[] = [
                                 [title]="scheme.label"
                                 (click)="colorScheme.setScheme(scheme.id)"
                             >
-                                <span class="material-symbols-outlined">{{ scheme.icon }}</span>
+                                <mat-icon>{{ scheme.icon }}</mat-icon>
                             </button>
                         }
                     </div>
@@ -146,14 +142,6 @@ const OVERLAY_POSITIONS: ConnectedPosition[] = [
                 color: var(--color-muted);
             }
 
-            /* Material's .mat-mdc-button sets min-width: 64px and centers its */
-            /* content; override with matching class specificity so faction   */
-            /* buttons pack tightly and left-align.                            */
-            .theme-switcher__faction.mat-mdc-button {
-                min-width: 0;
-                justify-content: flex-start;
-            }
-
             /* Active button uses Material's secondary-container token, which */
             /* is overridden per-faction via the .theme-* class on <html>.   */
             /* That makes the active chip tint with the current faction.    */
@@ -168,17 +156,10 @@ const OVERLAY_POSITIONS: ConnectedPosition[] = [
 export class ThemeSwitcher {
     protected readonly theme = inject(ThemeService);
     protected readonly colorScheme = inject(ColorSchemeService);
-    private readonly location = inject(Location);
 
     protected readonly open = signal(false);
 
-    protected readonly factions = computed<ResolvedFaction[]>(() =>
-        FACTIONS.map((faction) => ({
-            ...faction,
-            resolvedIcon: this.location.prepareExternalUrl(faction.iconPath)
-        }))
-    );
-
+    protected readonly factions = FACTIONS;
     protected readonly schemes = SCHEMES;
     protected readonly positions = OVERLAY_POSITIONS;
 

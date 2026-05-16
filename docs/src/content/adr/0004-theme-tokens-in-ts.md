@@ -20,7 +20,7 @@ TypeScript is canonical. The CSS block is a small parallel declaration.
 | Concern              | Source                                                         |
 | -------------------- | -------------------------------------------------------------- |
 | Faction id / label   | `FACTIONS` in `faction-theme.ts`                               |
-| Icon paths           | `FACTIONS[i].iconPath`                                         |
+| Icon paths           | Derived from `FACTIONS[i].id` (`/factions/<id>/...`)           |
 | Hero copy            | `FACTIONS[i].hero`                                             |
 | Colour values        | `:root.theme-<id>` blocks in `styles.css` (hand-mirrored)      |
 
