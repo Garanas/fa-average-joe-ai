@@ -14,7 +14,16 @@ interface FrameAsset {
     property: string;
     /** Path under /factions/<id>/, with leading slash. */
     path: string;
+    /** True if only some factions ship this asset; see `OUTER_BORDER_FACTIONS`. */
+    outer?: boolean;
 }
+
+/**
+ * Factions that ship the `/minimap-outer-border/` texture set. Aeon shipped
+ * first; add the others here as their assets land. When the set covers every
+ * faction, this can collapse back to "always apply".
+ */
+const OUTER_BORDER_FACTIONS: ReadonlySet<FactionId> = new Set<FactionId>(['aeon']);
 
 /**
  * Browser-tab favicons. Each faction's `/factions/<id>/favicons/` folder
@@ -54,6 +63,51 @@ const FRAME_ASSETS: readonly FrameAsset[] = [
     { property: '--bracket-right-t', path: '/bracket-right/bracket_bmp_t.png' },
     { property: '--bracket-right-m', path: '/bracket-right/bracket_bmp_m.png' },
     { property: '--bracket-right-b', path: '/bracket-right/bracket_bmp_b.png' },
+
+    /* Outer frame textures (header-bar variant). Aeon ships these today; the   */
+    /* other factions will get the same `/minimap-outer-border/` folder later.  */
+    /* Missing files just resolve to a 404 and the corresponding piece renders  */
+    /* as nothing — same graceful fallback the inner frame already relies on.   */
+    {
+        property: '--outer-frame-ul',
+        path: '/minimap-outer-border/mini-map_brd_ul.png',
+        outer: true,
+    },
+    {
+        property: '--outer-frame-ur',
+        path: '/minimap-outer-border/mini-map_brd_ur.png',
+        outer: true,
+    },
+    {
+        property: '--outer-frame-ll',
+        path: '/minimap-outer-border/mini-map_brd_ll.png',
+        outer: true,
+    },
+    {
+        property: '--outer-frame-lr',
+        path: '/minimap-outer-border/mini-map_brd_lr.png',
+        outer: true,
+    },
+    {
+        property: '--outer-frame-top',
+        path: '/minimap-outer-border/mini-map_brd_horz_um.png',
+        outer: true,
+    },
+    {
+        property: '--outer-frame-bottom',
+        path: '/minimap-outer-border/mini-map_brd_lm.png',
+        outer: true,
+    },
+    {
+        property: '--outer-frame-left',
+        path: '/minimap-outer-border/mini-map_brd_vert_l.png',
+        outer: true,
+    },
+    {
+        property: '--outer-frame-right',
+        path: '/minimap-outer-border/mini-map_brd_vert_r.png',
+        outer: true,
+    },
 ];
 
 @Injectable({ providedIn: 'root' })
@@ -102,7 +156,16 @@ export class ThemeService {
      */
     private applyFrameAssets(faction: FactionId): void {
         const root = document.documentElement;
-        for (const { property, path } of FRAME_ASSETS) {
+        const hasOuter = OUTER_BORDER_FACTIONS.has(faction);
+        for (const { property, path, outer } of FRAME_ASSETS) {
+            if (outer && !hasOuter) {
+                /* Skip outer-frame URLs for factions that haven't shipped the */
+                /* `/minimap-outer-border/` assets yet — otherwise the browser */
+                /* would log a 404 per piece on every theme change. The CSS    */
+                /* falls back to `none` via `var(--outer-frame-ul, none)`.     */
+                root.style.removeProperty(property);
+                continue;
+            }
             const href = this.location.prepareExternalUrl(`/factions/${faction}${path}`);
             root.style.setProperty(property, `url("${href}")`);
         }

@@ -10,7 +10,7 @@ import { ThemeService } from './theme.service';
     imports: [FactionFrame, MatIcon],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
-        <app-faction-frame>
+        <app-faction-frame [title]="faction().hero.eyebrow">
             <div class="hero-banner relative flex items-center gap-6 px-8 py-10 sm:px-12 sm:py-14">
                 <div class="relative z-10 max-w-xl">
                     <p

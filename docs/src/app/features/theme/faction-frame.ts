@@ -1,50 +1,86 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 /**
- * Wraps content in a 9-slice frame made of eight separate texture pieces,
- * plus two optional 3-piece brackets clamped to the left and right edges.
+ * Wraps content in a two-layer faction frame:
  *
- *   ┌──── horz_um repeats ────┐
- *   │ ul           ur │       Corners are 40 x 40, fixed.
- *   │  ┌──────────────┐  ur   Top/bottom edges tile horizontally (8 x 24 tile).
- *   │  │   <content>  │       Left/right edges tile vertically (24 x 8 tile).
- *   │  │              │       Brackets: top (32x72) + mid (16x4 repeats) + bottom (24x32).
- *   │  └──────────────┘       All sourced via `--frame-*` / `--bracket-*` custom
- *   │ ll           lr │       properties set per-faction by ThemeService.
- *   └────  lm  ───────┘
+ *   ┌══ outer frame, with header strip + title ══┐
+ *   ║                                            ║
+ *   ║   ┌── inner 9-slice + brackets ──┐         ║
+ *   ║   │       <content>              │         ║
+ *   ║   └──────────────────────────────┘         ║
+ *   ╚════════════════════════════════════════════╝
  *
- * Layout model: content fills the frame edge-to-edge and gets a clip-path
- * with chamfered (octagonal) corners so it can't poke past the frame's
- * inner bevel. The eight border pieces and the two brackets are absolutely
- * positioned on top of the content, with `pointer-events: none` so they
- * never steal clicks.
+ * Outer layer (this commit):
+ *   - 4 outer corners + 4 outer edges from `/minimap-outer-border/*`
+ *   - A header strip at the top, between the upper-left and upper-right corners,
+ *     hosting the optional `title()` input rendered as a small all-caps label.
+ *   - Outer corners are NOT symmetric: top corners are 36 × 36, bottom corners
+ *     are 16 × 12. Top/bottom edges tile horizontally; side edges tile vertically.
+ *
+ * Inner layer (unchanged):
+ *   - 4 inner corners (40 × 40) + 4 inner edges (8 × 24 / 24 × 8 tiles).
+ *   - Two optional 3-piece brackets clamped to the left and right edges.
+ *   - Content fills the inner frame edge-to-edge with an octagonal clip-path so
+ *     it can't poke past the inner bevel.
+ *
+ * All texture URLs come from CSS custom properties set per-faction by
+ * `ThemeService` (`--frame-*`, `--bracket-*`, `--outer-frame-*`).
  */
 @Component({
     selector: 'app-faction-frame',
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
         <div class="faction-frame">
-            <div class="faction-frame__content"><ng-content /></div>
+            @if (showOuter) {
+                <!-- Outer 9-slice frame. Order matters only for paint, not flow — -->
+                <!-- the corners overlap the edges, so they come last.              -->
+                <div class="faction-frame__outer faction-frame__outer-edge-top"></div>
+                <div class="faction-frame__outer faction-frame__outer-edge-bottom"></div>
+                <div class="faction-frame__outer faction-frame__outer-edge-left"></div>
+                <div class="faction-frame__outer faction-frame__outer-edge-right"></div>
 
-            <div class="faction-frame__edge faction-frame__edge-top"></div>
-            <div class="faction-frame__edge faction-frame__edge-bottom"></div>
-            <div class="faction-frame__edge faction-frame__edge-left"></div>
-            <div class="faction-frame__edge faction-frame__edge-right"></div>
+                <div class="faction-frame__outer faction-frame__outer-corner-ul"></div>
+                <div class="faction-frame__outer faction-frame__outer-corner-ur"></div>
+                <div class="faction-frame__outer faction-frame__outer-corner-ll"></div>
+                <div class="faction-frame__outer faction-frame__outer-corner-lr"></div>
 
-            <div class="faction-frame__corner faction-frame__corner-ul"></div>
-            <div class="faction-frame__corner faction-frame__corner-ur"></div>
-            <div class="faction-frame__corner faction-frame__corner-ll"></div>
-            <div class="faction-frame__corner faction-frame__corner-lr"></div>
+                <!-- Title slot, overlaid on the outer header strip between ul/ur. -->
+                @if (title(); as titleText) {
+                    <header class="faction-frame__title-bar">
+                        <span class="faction-frame__title">{{ titleText }}</span>
+                    </header>
+                }
+            }
 
-            <div class="faction-frame__bracket faction-frame__bracket-left">
-                <div class="faction-frame__bracket-t"></div>
-                <div class="faction-frame__bracket-m"></div>
-                <div class="faction-frame__bracket-b"></div>
-            </div>
-            <div class="faction-frame__bracket faction-frame__bracket-right">
-                <div class="faction-frame__bracket-t"></div>
-                <div class="faction-frame__bracket-m"></div>
-                <div class="faction-frame__bracket-b"></div>
+            <!-- Inner 9-slice + brackets + clipped content. The body wrapper -->
+            <!-- always renders — only the *border* pieces and brackets gate. -->
+            <div class="faction-frame__inner">
+                <div class="faction-frame__content"><ng-content /></div>
+
+                @if (showInner) {
+                    <div class="faction-frame__edge faction-frame__edge-top"></div>
+                    <div class="faction-frame__edge faction-frame__edge-bottom"></div>
+                    <div class="faction-frame__edge faction-frame__edge-left"></div>
+                    <div class="faction-frame__edge faction-frame__edge-right"></div>
+
+                    <div class="faction-frame__corner faction-frame__corner-ul"></div>
+                    <div class="faction-frame__corner faction-frame__corner-ur"></div>
+                    <div class="faction-frame__corner faction-frame__corner-ll"></div>
+                    <div class="faction-frame__corner faction-frame__corner-lr"></div>
+                }
+
+                @if (showBrackets) {
+                    <div class="faction-frame__bracket faction-frame__bracket-left">
+                        <div class="faction-frame__bracket-t"></div>
+                        <div class="faction-frame__bracket-m"></div>
+                        <div class="faction-frame__bracket-b"></div>
+                    </div>
+                    <div class="faction-frame__bracket faction-frame__bracket-right">
+                        <div class="faction-frame__bracket-t"></div>
+                        <div class="faction-frame__bracket-m"></div>
+                        <div class="faction-frame__bracket-b"></div>
+                    </div>
+                }
             </div>
         </div>
     `,
@@ -54,7 +90,146 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
                 display: block;
             }
 
+            /* ===== Outer layer ============================================= */
+
             .faction-frame {
+                position: relative;
+                /* Outer-border thicknesses from the source PNGs:                */
+                /*   top    36 px (corner ul/ur are 36 × 36, header strip lives  */
+                /*          inside this band)                                    */
+                /*   sides  16 px (vert_l / vert_r are 16 × 12)                  */
+                /*   bottom 12 px (lm is 12 × 12, ll / lr are 16 × 12)           */
+                padding: 36px 16px 12px 16px;
+            }
+
+            .faction-frame__outer {
+                position: absolute;
+                pointer-events: none;
+                image-rendering: pixelated;
+                image-rendering: crisp-edges;
+                background-repeat: no-repeat;
+            }
+
+            /* Top corners are 36 × 36 (they include the header overhang). */
+            .faction-frame__outer-corner-ul,
+            .faction-frame__outer-corner-ur {
+                width: 36px;
+                height: 36px;
+                background-size: 36px 36px;
+            }
+            .faction-frame__outer-corner-ul {
+                top: 0;
+                left: 0;
+                background-image: var(--outer-frame-ul, none);
+                /* TODO(translate): nudge to align with the inner frame's ul corner. */
+            }
+            .faction-frame__outer-corner-ur {
+                top: 0;
+                right: 0;
+                background-image: var(--outer-frame-ur, none);
+                /* TODO(translate): mirror of ul above. */
+            }
+
+            /* Bottom corners are 16 × 12 (no header on the bottom). */
+            .faction-frame__outer-corner-ll,
+            .faction-frame__outer-corner-lr {
+                width: 16px;
+                height: 12px;
+                background-size: 16px 12px;
+            }
+            .faction-frame__outer-corner-ll {
+                bottom: 0;
+                left: 0;
+                background-image: var(--outer-frame-ll, none);
+                /* TODO(translate): nudge to align with the inner frame's ll corner. */
+            }
+            .faction-frame__outer-corner-lr {
+                bottom: 0;
+                right: 0;
+                background-image: var(--outer-frame-lr, none);
+                /* TODO(translate): mirror of ll above. */
+            }
+
+            /* Top edge: 12 × 36 tile, tiled horizontally between ul (36) and ur (36). */
+            .faction-frame__outer-edge-top {
+                top: 0;
+                left: 36px;
+                right: 36px;
+                height: 36px;
+                background-image: var(--outer-frame-top, none);
+                background-size: 12px 36px;
+                background-repeat: repeat-x;
+                /* TODO(translate): seam-match against ul/ur if a 1-px gap shows. */
+            }
+
+            /* Bottom edge: 12 × 12 tile, tiled horizontally between ll (16) and lr (16). */
+            .faction-frame__outer-edge-bottom {
+                bottom: 0;
+                left: 16px;
+                right: 16px;
+                height: 12px;
+                background-image: var(--outer-frame-bottom, none);
+                background-size: 12px 12px;
+                background-repeat: repeat-x;
+                /* TODO(translate): seam-match against ll/lr if a 1-px gap shows. */
+            }
+
+            /* Side edges: 16 × 12 tile, tiled vertically. Note the start/end  */
+            /* offsets — sides span from below the top corners (36) down to    */
+            /* above the bottom corners (12).                                  */
+            .faction-frame__outer-edge-left,
+            .faction-frame__outer-edge-right {
+                top: 36px;
+                bottom: 12px;
+                width: 16px;
+                background-size: 16px 12px;
+                background-repeat: repeat-y;
+            }
+            .faction-frame__outer-edge-left {
+                left: 0;
+                background-image: var(--outer-frame-left, none);
+                /* TODO(translate): if the left rail looks shifted vs ul, nudge here. */
+            }
+            .faction-frame__outer-edge-right {
+                right: 0;
+                background-image: var(--outer-frame-right, none);
+                /* TODO(translate): mirror of left above. */
+            }
+
+            /* Header strip: overlays the top of the outer frame, between the  */
+            /* upper-left and upper-right corners. The horz_um tile already    */
+            /* carries the strip texture, so the title just sits on top.       */
+            .faction-frame__title-bar {
+                position: absolute;
+                top: 0;
+                left: 36px;
+                right: 36px;
+                height: 36px;
+                pointer-events: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                /* TODO(translate): vertically center the text inside the header  */
+                /* strip — the strip occupies the upper portion of this 36 px box. */
+            }
+
+            .faction-frame__title {
+                color: var(--color-text);
+                font-family: var(--font-display);
+                font-size: 0.6875rem;
+                font-weight: 600;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                white-space: nowrap;
+                /* TODO(translate): adjust padding-top to seat the label inside    */
+                /* the visible strip area (the lower ~10 px of horz_um is the      */
+                /* edge texture, not the strip).                                    */
+                padding-top: 2px;
+            }
+
+            /* ===== Inner layer (unchanged behaviour, just nested) =========== */
+
+            .faction-frame__inner {
                 position: relative;
                 padding: 4px;
                 /* Bevel size for the content's clipped corners. Should roughly match  */
@@ -280,4 +455,17 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
         `,
     ],
 })
-export class FactionFrame {}
+export class FactionFrame {
+    /** Optional header label shown centered in the outer frame's top strip. */
+    readonly title = input<string | undefined>(undefined);
+
+    /* Debug-time layer toggles. Flip to `false` while tuning translations to  */
+    /* isolate one layer — e.g. set `showOuter = false` to align the inner     */
+    /* frame against the content without the outer chrome on top. The outer-  */
+    /* padding on `.faction-frame` stays put even when `showOuter = false`,    */
+    /* so the inner pieces don't shift in or out as you flip these. Always     */
+    /* commit these as `true`.                                                 */
+    protected readonly showOuter = true;
+    protected readonly showInner = true;
+    protected readonly showBrackets = true;
+}
