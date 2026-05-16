@@ -18,6 +18,7 @@ export const routes: Routes = [
     },
     {
         path: '**',
-        loadComponent: () => import('./features/home/home').then((m) => m.Home)
+        loadComponent: () => import('./features/not-found/not-found').then((m) => m.NotFound),
+        title: 'Page not found · fa-joe-ai docs'
     }
 ];

@@ -37,7 +37,10 @@
             "server": "src/main.server.ts",
             "outputMode": "server",
             "security": {
-              "allowedHosts": []
+              "allowedHosts": [
+                "localhost",
+                "garanas.github.io"
+              ]
             },
             "ssr": {
               "entry": "src/server.ts"
