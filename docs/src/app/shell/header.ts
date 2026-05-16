@@ -11,6 +11,7 @@ import { ThemeSwitcher } from '../features/theme/theme-switcher';
         <a
             class="font-display text-lg font-semibold tracking-tight text-text no-underline"
             routerLink="/"
+            data-testid="brand"
         >
             Average Joe AI
         </a>

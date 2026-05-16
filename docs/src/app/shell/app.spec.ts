@@ -15,10 +15,14 @@ describe('App', () => {
         expect(fixture.componentInstance).toBeTruthy();
     });
 
-    it('renders the shell brand', () => {
+    it('renders the shell brand, outlet and footer', () => {
         const fixture = TestBed.createComponent(App);
         fixture.detectChanges();
         const compiled = fixture.nativeElement as HTMLElement;
-        expect(compiled.querySelector('.shell__brand')?.textContent).toContain('fa-joe-ai');
+
+        const brand = compiled.querySelector('[data-testid="brand"]');
+        expect(brand?.textContent?.trim()).toBe('Average Joe AI');
+        expect(compiled.querySelector('router-outlet')).not.toBeNull();
+        expect(compiled.querySelector('app-footer')).not.toBeNull();
     });
 });

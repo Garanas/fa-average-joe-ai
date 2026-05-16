@@ -24,7 +24,7 @@
         </header>
 
         @if (doc.release) {
-            <app-release-embed class="mb-8 block" [tag]="releaseTag(doc)" />
+            <app-release-embed class="mb-8 block" [tag]="doc.release.tag ?? 'latest'" />
         }
 
         <markdown class="prose" [src]="src()!"></markdown>

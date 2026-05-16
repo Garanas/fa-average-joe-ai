@@ -12,22 +12,24 @@
     @for (group of groups; track group.category.id) {
         <section class="mb-10">
             <h2 class="mb-4 font-display text-xl font-semibold">{{ group.category.label }}</h2>
+            <ul class="grid list-none gap-2 p-0">
+                @for (entry of group.entries; track entry.slug) {
+                    <li>
+                        <a
+                            class="glow-accent block rounded-lg border border-border px-4 py-3.5 text-inherit no-underline hover:border-accent hover:bg-surface"
+                            [routerLink]="['/docs', entry.category, entry.slug]"
+                        >
+                            <span class="block font-medium">{{ entry.title }}</span>
+                            @if (entry.summary) {
+                                <span class="mt-1 block text-[0.9375rem] text-muted">{{ entry.summary }}</span>
+                            }
+                        </a>
+                    </li>
+                } @empty {
+                    <p class="italic text-muted">Nothing here yet.</p>
+                }
+            </ul>
             @if (group.entries.length) {
-                <ul class="grid list-none gap-2 p-0">
-                    @for (entry of group.entries; track entry.slug) {
-                        <li>
-                            <a
-                                class="glow-accent block rounded-lg border border-border px-4 py-3.5 text-inherit no-underline hover:border-accent hover:bg-surface"
-                                [routerLink]="['/docs', entry.category, entry.slug]"
-                            >
-                                <span class="block font-medium">{{ entry.title }}</span>
-                                @if (entry.summary) {
-                                    <span class="mt-1 block text-[0.9375rem] text-muted">{{ entry.summary }}</span>
-                                }
-                            </a>
-                        </li>
-                    }
-                </ul>
                 @if (group.totalCount > group.entries.length) {
                     <a
                         class="mt-3 inline-block text-sm text-accent hover:underline"
@@ -43,8 +45,6 @@
                         See full overview &rarr;
                     </a>
                 }
-            } @else {
-                <p class="italic text-muted">Nothing here yet.</p>
             }
         </section>
     }

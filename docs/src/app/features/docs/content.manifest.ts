@@ -205,11 +205,3 @@ function recencySort(category: DocCategory, entries: DocEntry[]): DocEntry[] {
 export function docAssetPath(entry: DocEntry): string {
     return `/content/${entry.file}`;
 }
-
-export function docRoute(entry: DocEntry): string[] {
-    return ['/', 'docs', entry.category, entry.slug];
-}
-
-export function categoryRoute(id: string): string[] {
-    return ['/', 'docs', id];
-}

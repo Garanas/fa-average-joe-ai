@@ -4,7 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { DatePipe, Location } from '@angular/common';
 import { MarkdownComponent } from 'ngx-markdown';
 
-import { DocEntry, docAssetPath, findDoc } from './content.manifest';
+import { docAssetPath, findDoc } from './content.manifest';
 import { ReleaseEmbed } from './release-embed';
 
 @Component({
@@ -32,8 +32,4 @@ export class DocPage {
         const entry = this.entry();
         return entry ? this.location.prepareExternalUrl(docAssetPath(entry)) : undefined;
     });
-
-    protected releaseTag(entry: DocEntry): string {
-        return entry.release?.tag ?? 'latest';
-    }
 }

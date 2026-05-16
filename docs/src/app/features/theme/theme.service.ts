@@ -125,7 +125,10 @@ export class ThemeService {
                 link = document.createElement('link');
                 link.rel = rel;
                 if (sizes) {
-                    link.sizes.add(sizes);
+                    /* setAttribute over link.sizes.add(): the latter mutates a    */
+                    /* DOMTokenList that isn't populated on freshly-created        */
+                    /* HTMLLinkElement in jsdom/happy-dom, breaking unit tests.    */
+                    link.setAttribute('sizes', sizes);
                 }
                 head.appendChild(link);
             }
