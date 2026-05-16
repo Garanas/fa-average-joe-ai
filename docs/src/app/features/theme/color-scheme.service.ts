@@ -26,8 +26,14 @@ export class ColorSchemeService {
             const root = document.documentElement;
             if (scheme === 'auto') {
                 root.removeAttribute('data-color-scheme');
+                root.style.removeProperty('color-scheme');
             } else {
                 root.setAttribute('data-color-scheme', scheme);
+                /* Setting the standard CSS `color-scheme` property lets Material's */
+                /* M3 prebuilt theme — which uses `light-dark()` — respect the     */
+                /* user's override, not just the system preference. Also nudges    */
+                /* browser-supplied UI (form controls, scrollbars) to match.       */
+                root.style.setProperty('color-scheme', scheme);
             }
             try {
                 localStorage.setItem(STORAGE_KEY, scheme);

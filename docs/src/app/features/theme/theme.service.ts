@@ -1,7 +1,7 @@
 import { Injectable, PLATFORM_ID, effect, inject, signal } from '@angular/core';
 import { Location, isPlatformBrowser } from '@angular/common';
 
-import { DEFAULT_FACTION, FACTIONS, FactionId, isFactionId } from './faction-theme';
+import { DEFAULT_FACTION, FACTIONS, FactionId, findFaction, isFactionId } from './faction-theme';
 
 const STORAGE_KEY = 'fa-joe-ai-faction-theme';
 
@@ -52,6 +52,7 @@ export class ThemeService {
                 classList.toggle(`theme-${faction.id}`, faction.id === active);
             }
             this.applyFrameAssets(active);
+            this.applyFavicon(active);
             try {
                 localStorage.setItem(STORAGE_KEY, active);
             } catch {
@@ -62,6 +63,13 @@ export class ThemeService {
 
     setTheme(id: FactionId): void {
         this.current.set(id);
+    }
+
+    /** Move to the next or previous faction in the list, wrapping around. */
+    cycle(direction: 1 | -1): void {
+        const idx = FACTIONS.findIndex((f) => f.id === this.current());
+        const next = (idx + direction + FACTIONS.length) % FACTIONS.length;
+        this.current.set(FACTIONS[next].id);
     }
 
     /**
@@ -75,6 +83,23 @@ export class ThemeService {
             const href = this.location.prepareExternalUrl(`/factions/${faction}${path}`);
             root.style.setProperty(property, `url("${href}")`);
         }
+    }
+
+    /**
+     * Swap the page favicon to the active faction's icon. Reuses the
+     * `iconPath` already exposed by `FactionTheme`, so adding a faction means
+     * dropping in the icon file and nothing else here.
+     */
+    private applyFavicon(faction: FactionId): void {
+        const href = this.location.prepareExternalUrl(findFaction(faction).iconPath);
+        let link = document.head.querySelector<HTMLLinkElement>('link[rel~="icon"]');
+        if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.head.appendChild(link);
+        }
+        link.type = 'image/png';
+        link.href = href;
     }
 
     private readInitial(): FactionId {
