@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { MatIconModule } from '@angular/material/icon';
+import { MatIcon } from '@angular/material/icon';
 
 import { FactionFrame } from './faction-frame';
 import { findFaction } from './faction-theme';
@@ -7,7 +7,7 @@ import { ThemeService } from './theme.service';
 
 @Component({
     selector: 'app-hero-banner',
-    imports: [FactionFrame, MatIconModule],
+    imports: [FactionFrame, MatIcon],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
         <app-faction-frame>

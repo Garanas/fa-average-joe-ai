@@ -1,7 +1,11 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { type ConnectedPosition, OverlayModule } from '@angular/cdk/overlay';
+import { MatIconButton } from '@angular/material/button';
+import { MatIcon } from '@angular/material/icon';
+import {
+    CdkConnectedOverlay,
+    CdkOverlayOrigin,
+    type ConnectedPosition,
+} from '@angular/cdk/overlay';
 
 import { type ColorScheme, ColorSchemeService } from './color-scheme.service';
 import { FACTIONS } from './faction-theme';
@@ -42,7 +46,7 @@ const OVERLAY_POSITIONS: ConnectedPosition[] = [
 
 @Component({
     selector: 'app-theme-switcher',
-    imports: [MatButtonModule, MatIconModule, OverlayModule],
+    imports: [MatIconButton, MatIcon, CdkOverlayOrigin, CdkConnectedOverlay],
     changeDetection: ChangeDetectionStrategy.OnPush,
     template: `
         <button

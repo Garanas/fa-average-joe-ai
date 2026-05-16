@@ -36,8 +36,7 @@ interface GitHubRelease {
             @if (data(); as data) {
                 <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 pt-4">
                     <span
-                        class="font-display rounded-md bg-accent px-2 py-0.5 text-sm font-semibold"
-                        style="color: var(--mat-sys-on-primary)"
+                        class="font-display rounded-md bg-accent px-2 py-0.5 text-sm font-semibold text-[var(--mat-sys-on-primary)]"
                     >
                         {{ data.tag_name }}
                     </span>
@@ -50,8 +49,17 @@ interface GitHubRelease {
                 </div>
 
                 @if (data.body) {
+                    <!--
+                        Third-party content: the release body is authored on GitHub and may
+                        contain raw HTML (markdown allows it). [disableSanitizer]="false" is
+                        ngx-markdown's default, but it's set explicitly here as a trust-boundary
+                        marker — if someone ever flips it, the diff makes the security
+                        consequence visible. Sanitization runs through Angular's DomSanitizer
+                        with SecurityContext.HTML, which strips <script>, <iframe>, inline
+                        event handlers, and javascript: URLs.
+                    -->
                     <div class="prose px-5 py-3">
-                        <markdown [data]="data.body" />
+                        <markdown [data]="data.body" [disableSanitizer]="false" />
                     </div>
                 }
 
