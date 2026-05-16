@@ -72,13 +72,13 @@ const OVERLAY_POSITIONS: ConnectedPosition[] = [
             (backdropClick)="close()"
         >
             <div
-                class="theme-switcher__panel flex flex-row gap-3 rounded-xl border border-border bg-surface p-3 text-text"
+                class="theme-switcher__panel flex flex-col gap-3 rounded-xl border border-border bg-surface p-3 text-text"
                 role="dialog"
                 aria-label="Theme settings"
             >
                 <section class="flex flex-col gap-1">
                     <h3 class="theme-switcher__section-title">Faction</h3>
-                    <div class="flex flex-col gap-1">
+                    <div class="flex flex-row gap-1">
                         @for (faction of factions; track faction.id) {
                             <button
                                 mat-icon-button
