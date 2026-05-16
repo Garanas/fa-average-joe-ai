@@ -60,6 +60,33 @@
     --color-code-border: #e5e7eb;
 }
 
+/* The magenta-violet prebuilt Material theme is dark-only — its              */
+/* --mat-sys-on-surface-variant stays near-white in every mode. mat-icon-     */
+/* button reads its color from --mat-icon-button-icon-color, falling back to  */
+/* --mat-sys-on-surface-variant. Pin the override to --color-text so every    */
+/* mat-icon-button (header trigger, popover scheme buttons) tracks the page  */
+/* foreground and stays legible in light mode.                                */
+:root {
+    --mat-icon-button-icon-color: var(--color-text);
+}
+
+/* Material's icon-button uses inline-block + font-size: 24px, which sits the */
+/* icon on the text baseline rather than the box centre — every icon ends up */
+/* ~3px below centre. Switching the host to inline-flex centres the icon     */
+/* deterministically. The ripple, state-layer, focus-indicator, and touch-    */
+/* target spans inside are all position: absolute, so this doesn't disturb    */
+/* their fill of the button.                                                  */
+/*                                                                            */
+/* The `button.mat-mdc-icon-button` (and `a` variant) specificity is needed:  */
+/* Material's own `.mat-mdc-icon-button { display: inline-block }` is later   */
+/* in the cascade than this file, so a bare class selector would lose to it.  */
+button.mat-mdc-icon-button,
+a.mat-mdc-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 @layer base {
     html,
     body {

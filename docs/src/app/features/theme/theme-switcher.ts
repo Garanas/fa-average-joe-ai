@@ -60,7 +60,7 @@ const OVERLAY_POSITIONS: ConnectedPosition[] = [
             aria-label="Theme settings"
             title="Theme settings (Ctrl + ← / → to cycle factions)"
         >
-            <mat-icon class="text-text">palette</mat-icon>
+            <mat-icon>palette</mat-icon>
         </button>
         <ng-template
             cdkConnectedOverlay
@@ -139,12 +139,14 @@ const OVERLAY_POSITIONS: ConnectedPosition[] = [
                 color: var(--color-muted);
             }
 
-            /* Active button uses Material's secondary-container token, which */
-            /* is overridden per-faction via the .theme-* class on <html>.   */
-            /* That makes the active chip tint with the current faction.    */
+            /* Active chip tint. Material's --mat-sys-secondary-container is */
+            /* dark in this build (the magenta-violet prebuilt theme is      */
+            /* dark-only), so it looked mismatched in light mode. Use the    */
+            /* current faction's --color-accent at low alpha so the tint     */
+            /* tracks the faction AND the page palette in both modes.        */
             button.is-active {
-                background-color: var(--mat-sys-secondary-container);
-                color: var(--mat-sys-on-secondary-container);
+                background-color: color-mix(in srgb, var(--color-accent) 18%, transparent);
+                color: var(--color-text);
             }
         `,
     ],
