@@ -1,4 +1,7 @@
-:root {
+@import 'tailwindcss';
+@import '@angular/material/prebuilt-themes/magenta-violet.css';
+
+@theme {
     --color-bg: #ffffff;
     --color-surface: #fafafa;
     --color-text: #1f2328;
@@ -8,43 +11,95 @@
     --color-code-bg: #f6f8fa;
     --color-code-border: #e5e7eb;
 
-    --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-        Helvetica, Arial, sans-serif;
+    /* Single source of truth for faction colours. Referenced from both the   */
+    /* :root.theme-<id> blocks below AND the .faction-icon-<id> rules near    */
+    /* the bottom of this file. Updating a faction's colour starts here.      */
+    --color-faction-uef: #2a9dce;
+    --color-faction-cybran: #c72e2e;
+    --color-faction-aeon: #7cb342;
+    --color-faction-seraphim: #f5a623;
+
+    --font-sans:
+        'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --font-display: 'Oxanium', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+/* Dark palette. Faction --color-accent / --mat-sys-* are NOT redefined */
+/* here — those stay under faction control regardless of light/dark.   */
+
 @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-color-scheme='light']) {
         --color-bg: #0d1117;
         --color-surface: #161b22;
         --color-text: #e6edf3;
         --color-muted: #9198a1;
         --color-border: #30363d;
-        --color-accent: #a371f7;
         --color-code-bg: #161b22;
         --color-code-border: #30363d;
     }
 }
 
-* {
-    box-sizing: border-box;
+:root[data-color-scheme='dark'] {
+    --color-bg: #0d1117;
+    --color-surface: #161b22;
+    --color-text: #e6edf3;
+    --color-muted: #9198a1;
+    --color-border: #30363d;
+    --color-code-bg: #161b22;
+    --color-code-border: #30363d;
 }
 
-html,
-body {
-    margin: 0;
-    padding: 0;
-    background: var(--color-bg);
-    color: var(--color-text);
-    font-family: var(--font-sans);
-    font-size: 16px;
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+:root[data-color-scheme='light'] {
+    --color-bg: #ffffff;
+    --color-surface: #fafafa;
+    --color-text: #1f2328;
+    --color-muted: #6b7280;
+    --color-border: #e5e7eb;
+    --color-code-bg: #f6f8fa;
+    --color-code-border: #e5e7eb;
 }
 
-a {
-    color: var(--color-accent);
+/* The magenta-violet prebuilt Material theme is dark-only — its              */
+/* --mat-sys-on-surface-variant stays near-white in every mode. mat-icon-     */
+/* button reads its color from --mat-icon-button-icon-color, falling back to  */
+/* --mat-sys-on-surface-variant. Pin the override to --color-text so every    */
+/* mat-icon-button (header trigger, popover scheme buttons) tracks the page  */
+/* foreground and stays legible in light mode.                                */
+:root {
+    --mat-icon-button-icon-color: var(--color-text);
+}
+
+/* Material's icon-button uses inline-block + font-size: 24px, which sits the */
+/* icon on the text baseline rather than the box centre — every icon ends up */
+/* ~3px below centre. Switching the host to inline-flex centres the icon     */
+/* deterministically. The ripple, state-layer, focus-indicator, and touch-    */
+/* target spans inside are all position: absolute, so this doesn't disturb    */
+/* their fill of the button.                                                  */
+/*                                                                            */
+/* The `button.mat-mdc-icon-button` (and `a` variant) specificity is needed:  */
+/* Material's own `.mat-mdc-icon-button { display: inline-block }` is later   */
+/* in the cascade than this file, so a bare class selector would lose to it.  */
+button.mat-mdc-icon-button,
+a.mat-mdc-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@layer base {
+    html,
+    body {
+        background: var(--color-bg);
+        color: var(--color-text);
+        font-family: var(--font-sans);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+    a {
+        color: var(--color-accent);
+    }
 }
 
 .prose {
@@ -63,10 +118,26 @@ a {
     font-weight: 600;
 }
 
-.prose h1 { font-size: 1.875rem; }
-.prose h2 { font-size: 1.5rem; padding-bottom: 0.3em; border-bottom: 1px solid var(--color-border); }
-.prose h3 { font-size: 1.25rem; }
-.prose h4 { font-size: 1.05rem; }
+.prose h1,
+.prose h2 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+}
+
+.prose h1 {
+    font-size: 1.875rem;
+}
+.prose h2 {
+    font-size: 1.5rem;
+    padding-bottom: 0.3em;
+    border-bottom: 1px solid var(--color-border);
+}
+.prose h3 {
+    font-size: 1.25rem;
+}
+.prose h4 {
+    font-size: 1.05rem;
+}
 
 .prose p,
 .prose ul,
@@ -75,6 +146,12 @@ a {
     margin: 0 0 1em;
 }
 
+.prose ul {
+    list-style: disc;
+}
+.prose ol {
+    list-style: decimal;
+}
 .prose ul,
 .prose ol {
     padding-left: 1.5rem;
@@ -82,6 +159,10 @@ a {
 
 .prose li + li {
     margin-top: 0.25em;
+}
+
+.prose a {
+    text-decoration: underline;
 }
 
 .prose blockquote {
@@ -138,4 +219,92 @@ a {
 .prose th {
     background: var(--color-surface);
     font-weight: 600;
+}
+
+/* Faction theme overrides. The active theme-* class on <body> swaps */
+/* our --color-accent and Material's M3 primary sys tokens.          */
+
+:root.theme-uef {
+    --color-accent: var(--color-faction-uef);
+    --mat-sys-primary: var(--color-faction-uef);
+    --mat-sys-on-primary: #ffffff;
+    --mat-sys-primary-container: #d6f0fc;
+    --mat-sys-on-primary-container: #003747;
+}
+
+:root.theme-cybran {
+    --color-accent: var(--color-faction-cybran);
+    --mat-sys-primary: var(--color-faction-cybran);
+    --mat-sys-on-primary: #ffffff;
+    --mat-sys-primary-container: #ffdad5;
+    --mat-sys-on-primary-container: #410001;
+}
+
+:root.theme-aeon {
+    --color-accent: var(--color-faction-aeon);
+    --mat-sys-primary: var(--color-faction-aeon);
+    --mat-sys-on-primary: #ffffff;
+    --mat-sys-primary-container: #dcedc8;
+    --mat-sys-on-primary-container: #1b5e20;
+}
+
+:root.theme-seraphim {
+    --color-accent: var(--color-faction-seraphim);
+    --mat-sys-primary: var(--color-faction-seraphim);
+    --mat-sys-on-primary: #1a1a1a;
+    --mat-sys-primary-container: #ffe0b2;
+    --mat-sys-on-primary-container: #3f2c00;
+}
+
+/* Faction-icon colour classes. The faction SVGs use fill:currentColor, so   */
+/* setting `color` on the mat-icon paints the icon in that faction's accent. */
+.faction-icon-uef {
+    color: var(--color-faction-uef);
+}
+.faction-icon-cybran {
+    color: var(--color-faction-cybran);
+}
+.faction-icon-aeon {
+    color: var(--color-faction-aeon);
+}
+.faction-icon-seraphim {
+    color: var(--color-faction-seraphim);
+}
+
+/* Faction-tinted scrollbar */
+
+html {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-accent) transparent;
+}
+
+html::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+html::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+html::-webkit-scrollbar-thumb {
+    background-color: var(--color-accent);
+    border-radius: 999px;
+    border: 2px solid var(--color-bg);
+}
+
+/* Reusable accent glow on hover. The shadow color follows --color-accent  */
+/* so it tracks whatever faction theme is currently active.                */
+
+@utility glow-accent {
+    transition:
+        box-shadow 0.18s ease,
+        border-color 0.18s ease,
+        background-color 0.18s ease;
+
+    &:hover {
+        box-shadow:
+            0 0 0 1px var(--color-accent),
+            0 10px 24px -14px var(--color-accent);
+    }
 }

@@ -1,0 +1,55 @@
+<section class="mx-auto max-w-3xl px-6 pt-8 pb-16">
+    <app-hero-banner class="mb-10 block" />
+
+    <header class="mb-10 border-b border-border pb-6">
+        <h1 class="mb-2 font-display text-5xl font-semibold leading-none tracking-tight">
+            fa-joe-ai
+        </h1>
+        <p class="text-[1.0625rem] leading-relaxed text-muted">
+            The "Average Joe AI" mod for Supreme Commander: Forged Alliance Forever &mdash; a
+            thematic AI built on FAF's <code>AIBrain</code> extension surface.
+        </p>
+    </header>
+
+    @for (group of groups; track group.category.id) {
+        <section class="mb-10">
+            <h2 class="mb-4 font-display text-xl font-semibold">{{ group.category.label }}</h2>
+            <ul class="grid list-none gap-2 p-0">
+                @for (entry of group.entries; track entry.slug) {
+                    <li>
+                        <a
+                            class="glow-accent block rounded-lg border border-border px-4 py-3.5 text-inherit no-underline hover:border-accent hover:bg-surface"
+                            [routerLink]="['/docs', entry.category, entry.slug]"
+                        >
+                            <span class="block font-medium">{{ entry.title }}</span>
+                            @if (entry.summary) {
+                                <span class="mt-1 block text-[0.9375rem] text-muted">{{
+                                    entry.summary
+                                }}</span>
+                            }
+                        </a>
+                    </li>
+                } @empty {
+                    <p class="italic text-muted">Nothing here yet.</p>
+                }
+            </ul>
+            @if (group.entries.length) {
+                @if (group.totalCount > group.entries.length) {
+                    <a
+                        class="mt-3 inline-block text-sm text-accent hover:underline"
+                        [routerLink]="['/docs', group.category.id]"
+                    >
+                        View all {{ group.totalCount }} &rarr;
+                    </a>
+                } @else {
+                    <a
+                        class="mt-3 inline-block text-sm text-muted hover:text-accent hover:underline"
+                        [routerLink]="['/docs', group.category.id]"
+                    >
+                        See full overview &rarr;
+                    </a>
+                }
+            }
+        </section>
+    }
+</section>
