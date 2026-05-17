@@ -205,7 +205,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
             /* carries the strip texture, so the title just sits on top.       */
             .faction-frame__title-bar {
                 position: absolute;
-                top: 0;
+                top: -4px;
                 left: 36px;
                 right: 36px;
                 height: 36px;
@@ -239,16 +239,25 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
                 /* Bevel size for the content's clipped corners. Should roughly match  */
                 /* the inner bevel of the frame's corner texture (40 px corner minus   */
                 /* 24 px edge thickness ≈ 16 px). Tune freely.                         */
-                --corner-bevel: 16px;
+                --corner-bevel: 6px;
+                /* Inset for the polygon's four straight sides. The frame's edge       */
+                /* textures have a soft inner glow that the raw content would render   */
+                /* on top of — push the clipped content inward so the glow stays       */
+                /* visible. Bumped corner-bevel above for the same reason on diagonals. */
+                --content-inset: 4px;
 
-                /* ----- Bracket tuning ----- */
-                /* All non-zero magic numbers in the bracket transforms below derive   */
-                /* from these three variables. Right-bracket transforms mirror by      */
-                /* multiplying with -1. The middle's margin matches --bracket-end-     */
-                /* overlap so the spine stays continuous when top/bottom translate.    */
-                --bracket-offset-x: 5px; /* base inward shift on every bracket piece */
-                --bracket-mid-x-extra: 7px; /* extra inward shift for the narrower middle */
-                --bracket-end-overlap: 4px; /* outward Y translate on top/bottom */
+                /* ----- Inner-frame tuning ----- */
+                /* Shift the whole inner frame (wrapper + content + border anchors)    */
+                /* via margin so corners, edges and the content's clipped bevel all    */
+                /* move together. Positive values push the frame inward (frame         */
+                /* shrinks); negative values push it outward (margins overflow into    */
+                /* the outer padding band). Top and bottom are split because the       */
+                /* outer chrome is asymmetric (36 px top vs 12 px bottom), so visual   */
+                /* centering of the inner frame typically needs an asymmetric inset.   */
+                --frame-inset-x: -12px;
+                --frame-inset-top: -18px;
+                --frame-inset-bottom: -12px;
+                margin: var(--frame-inset-top) var(--frame-inset-x) var(--frame-inset-bottom);
             }
 
             /* Content fills the frame, but its corners are clipped to an octagon  */
@@ -257,14 +266,14 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
             /* paint after non-positioned siblings in source order).               */
             .faction-frame__content {
                 clip-path: polygon(
-                    var(--corner-bevel) 0,
-                    calc(100% - var(--corner-bevel)) 0,
-                    100% var(--corner-bevel),
-                    100% calc(100% - var(--corner-bevel)),
-                    calc(100% - var(--corner-bevel)) 100%,
-                    var(--corner-bevel) 100%,
-                    0 calc(100% - var(--corner-bevel)),
-                    0 var(--corner-bevel)
+                    var(--corner-bevel) var(--content-inset),
+                    calc(100% - var(--corner-bevel)) var(--content-inset),
+                    calc(100% - var(--content-inset)) var(--corner-bevel),
+                    calc(100% - var(--content-inset)) calc(100% - var(--corner-bevel)),
+                    calc(100% - var(--corner-bevel)) calc(100% - var(--content-inset)),
+                    var(--corner-bevel) calc(100% - var(--content-inset)),
+                    var(--content-inset) calc(100% - var(--corner-bevel)),
+                    var(--content-inset) var(--corner-bevel)
                 );
                 overflow: hidden;
                 min-width: 0;
@@ -371,6 +380,15 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
                 display: flex;
                 flex-direction: column;
                 pointer-events: none;
+
+                /* ----- Bracket tuning ----- */
+                /* All non-zero magic numbers in the bracket transforms below derive   */
+                /* from these three variables. Right-bracket transforms mirror by      */
+                /* multiplying with -1. The middle's margin matches --bracket-end-     */
+                /* overlap so the spine stays continuous when top/bottom translate.    */
+                --bracket-offset-x: 1px; /* base inward shift on every bracket piece */
+                --bracket-mid-x-extra: 7px; /* extra inward shift for the narrower middle */
+                --bracket-end-overlap: 8px; /* outward Y translate on top/bottom */
             }
 
             .faction-frame__bracket > div {
@@ -474,6 +492,6 @@ export class FactionFrame {
     /* so the inner pieces don't shift in or out as you flip these. Always     */
     /* commit these as `true`.                                                 */
     protected readonly showOuter = true;
-    protected readonly showInner = false;
+    protected readonly showInner = true;
     protected readonly showBrackets = false;
 }
